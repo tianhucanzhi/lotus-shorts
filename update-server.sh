@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Lotus Shorts 源码部署更新脚本
-# 放到服务器后：
-#   chmod +x /llm/lotus-shorts/scripts/update-server.sh
-#   /llm/lotus-shorts/scripts/update-server.sh
+# 用法：
+#   chmod +x /llm/lotus-shorts/update-server.sh
+#   /llm/lotus-shorts/update-server.sh
 #
 # 环境变量（可选）：
 #   ROOT=/llm/lotus-shorts
