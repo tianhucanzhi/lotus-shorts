@@ -1,1 +1,4 @@
  systemctl restart lotus-shorts
+
+ 代码更新
+ 去服务器上 ./update-server.sh ||  /llm/lotus-shorts/update-server.sh
