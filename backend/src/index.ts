@@ -6,6 +6,7 @@ import { cors } from 'hono/cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
+import { APP_MODE, isSaas } from './config/mode.js'
 import dramas from './routes/dramas.js'
 import episodes from './routes/episodes.js'
 import storyboards from './routes/storyboards.js'
@@ -23,6 +24,8 @@ import props from './routes/props.js'
 import settings from './routes/settings.js'
 import storage from './routes/storage.js'
 import serverUpdate from './routes/serverUpdate.js'
+import auth from './routes/auth.js'
+import { authContext, requireAuthIfSaas } from './middleware/auth.js'
 import { requestLogger, errorHandler } from './middleware/logger.js'
 import { resumeInterruptedTasks } from './services/generation.js'
 import { DATA_ROOT } from './utils/paths.js'
@@ -39,16 +42,20 @@ app.use('*', cors({
 }))
 app.use('*', requestLogger)
 app.use('*', errorHandler)
+app.use('*', authContext)
+app.use('/api/v1/*', requireAuthIfSaas)
 
 // Health check（version 供部署巡检/更新检查核对当前运行版本）
 app.get('/api/v1/health', (c) => c.json({
   status: 'ok',
+  mode: APP_MODE,
   version: process.env.LOTUS_VERSION || undefined,
   timestamp: new Date().toISOString(),
 }))
 
 // API routes
 const api = new Hono()
+api.route('/auth', auth)
 api.route('/dramas', dramas)
 api.route('/episodes', episodes)
 api.route('/storyboards', storyboards)
@@ -84,7 +91,7 @@ app.use('*', serveStatic({ root: distPath }))
 app.get('*', serveStatic({ root: distPath, path: 'index.html' }))
 
 const port = Number(process.env.PORT || 5679)
-console.log(`🚀 Lotus Shorts TS server on http://localhost:${port}`)
+console.log(`🚀 Lotus Shorts TS server on http://localhost:${port} (mode=${APP_MODE}${isSaas() ? ', saas auth enabled' : ''})`)
 
 await resumeInterruptedTasks()
 

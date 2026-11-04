@@ -157,6 +157,10 @@ No config files — everything is set via environment variables (all have defaul
 
 |变量<br>Variable|默认值<br>Default|说明<br>Description|
 |---|---|---|
+| `APP_MODE` | `standalone` |`standalone` 独立版（无需登录）/ `saas` 多用户登录与数据隔离<br>`standalone` (no login) / `saas` (multi-user + isolation)|
+| `JWT_SECRET` |开发默认值<br>dev default|SaaS JWT 签名密钥（生产务必修改）<br>SaaS JWT signing secret (change in production)|
+| `JWT_EXPIRES_IN` | `604800` |JWT 有效期（秒）<br>JWT lifetime in seconds|
+| `SAAS_ALLOW_REGISTER` | `true` |SaaS 是否开放自助注册<br>Whether SaaS self-registration is open|
 | `SQLITE_PATH` |`<仓库根>/data/lotus.sqlite3`<br>`<repo>/data/lotus.sqlite3`|SQLite 数据库文件位置<br>SQLite database file location|
 | `PORT` | `5679` |后端服务端口<br>Backend service port|
 | `STORAGE_PATH` |`<仓库根>/data/static`<br>`<repo>/data/static`|生成文件存储目录<br>Generated-file storage directory|

@@ -1,12 +1,15 @@
 import { Hono } from 'hono'
-import { and, eq, isNull, like, desc } from 'drizzle-orm'
+import { and, eq, isNull, desc } from 'drizzle-orm'
+import { isSaas } from '../config/mode.js'
 import { db, getInsertId, schema } from '../db/index.js'
+import type { AuthVariables } from '../middleware/auth.js'
+import { currentUserId, denyUnlessDramaOwner, dramaOwnerFilter } from '../services/access.js'
 import { success, badRequest, notFound, created, now } from '../utils/response.js'
 import { toSnakeCase, toSnakeCaseArray } from '../utils/transform.js'
 import { generateImage } from '../services/generation.js'
 import { getStylePromptByValue } from '../services/style-preset.js'
 
-const app = new Hono()
+const app = new Hono<{ Variables: AuthVariables }>()
 
 function coverSizeForAspect(aspectRatio?: string | null): string {
   const r = String(aspectRatio || '16:9').trim()
@@ -21,9 +24,11 @@ app.get('/', async (c) => {
   const pageSize = Number(c.req.query('page_size') || 20)
   const status = c.req.query('status')
   const keyword = c.req.query('keyword')
+  const userId = currentUserId(c)
+  const role = c.req.query('mine') ? 'user' : c.get('role')
 
   const allRows = await db.select().from(schema.dramas)
-    .where(isNull(schema.dramas.deletedAt))
+    .where(dramaOwnerFilter(userId, role))
     .orderBy(desc(schema.dramas.updatedAt))
   let filtered = allRows
 
@@ -61,7 +66,9 @@ app.get('/', async (c) => {
 app.post('/', async (c) => {
   const body = await c.req.json()
   const ts = now()
+  const userId = currentUserId(c)
   const res = await db.insert(schema.dramas).values({
+    userId: isSaas() ? userId : null,
     title: body.title,
     description: body.description || null,
     genre: body.genre,
@@ -114,7 +121,8 @@ app.post('/generate-cover', async (c) => {
 
 // GET /dramas/stats — must be before /:id
 app.get('/stats', async (c) => {
-  const all = await db.select().from(schema.dramas).where(isNull(schema.dramas.deletedAt))
+  const userId = currentUserId(c)
+  const all = await db.select().from(schema.dramas).where(dramaOwnerFilter(userId, c.get('role')))
   const byStatus = Object.entries(
     all.reduce((acc, d) => {
       acc[d.status || 'draft'] = (acc[d.status || 'draft'] || 0) + 1
@@ -127,6 +135,8 @@ app.get('/stats', async (c) => {
 // GET /dramas/:id - Get drama detail
 app.get('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessDramaOwner(c, id)
+  if (denied) return denied
   const [drama] = await db.select().from(schema.dramas).where(eq(schema.dramas.id, id))
   if (!drama) return notFound(c, '剧本不存在')
 
@@ -152,6 +162,8 @@ app.get('/:id', async (c) => {
 // PUT /dramas/:id - Update drama
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessDramaOwner(c, id)
+  if (denied) return denied
   const body = await c.req.json()
   const updates: Record<string, any> = { updatedAt: now() }
   if (body.title !== undefined) updates.title = body.title
@@ -170,6 +182,8 @@ app.put('/:id', async (c) => {
 // DELETE /dramas/:id - Soft delete
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessDramaOwner(c, id)
+  if (denied) return denied
   await db.update(schema.dramas).set({ deletedAt: now() }).where(eq(schema.dramas.id, id))
   return success(c)
 })
@@ -177,6 +191,8 @@ app.delete('/:id', async (c) => {
 // PUT /dramas/:id/characters - Save characters
 app.put('/:id/characters', async (c) => {
   const dramaId = Number(c.req.param('id'))
+  const denied = await denyUnlessDramaOwner(c, dramaId)
+  if (denied) return denied
   const body = await c.req.json()
   const chars = body.characters || []
   const ts = now()
@@ -194,6 +210,8 @@ app.put('/:id/characters', async (c) => {
 // PUT /dramas/:id/episodes - Save episodes
 app.put('/:id/episodes', async (c) => {
   const dramaId = Number(c.req.param('id'))
+  const denied = await denyUnlessDramaOwner(c, dramaId)
+  if (denied) return denied
   const body = await c.req.json()
   const episodes = body.episodes || []
   const ts = now()

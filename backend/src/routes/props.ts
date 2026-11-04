@@ -1,4 +1,6 @@
 import { Hono } from 'hono'
+import type { AuthVariables } from '../middleware/auth.js'
+import { denyUnlessDramaOwner, denyUnlessPropOwner } from '../services/access.js'
 import { and, eq } from 'drizzle-orm'
 import { db, getInsertId, schema } from '../db/index.js'
 import { success, created, badRequest, now } from '../utils/response.js'
@@ -8,7 +10,7 @@ import { getDramaStylePrompt } from '../services/style-preset.js'
 import { ensurePropFinalPrompt } from '../services/final-prompt.js'
 import { logTaskError, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 
-const app = new Hono()
+const app = new Hono<{ Variables: AuthVariables }>()
 // 道具图：白底单品静物，方形画布
 const PROP_IMAGE_SIZE = '1024x1024'
 
@@ -16,6 +18,8 @@ const PROP_IMAGE_SIZE = '1024x1024'
 app.post('/', async (c) => {
   const body = await c.req.json()
   if (!body.drama_id) return badRequest(c, 'drama_id 必填')
+  const deniedDrama = await denyUnlessDramaOwner(c, Number(body.drama_id))
+  if (deniedDrama) return deniedDrama
   if (!body.name?.trim()) return badRequest(c, '名称必填')
   const ts = now()
   const res = await db.insert(schema.props).values({
@@ -41,6 +45,8 @@ app.post('/', async (c) => {
 // DELETE /props/:id — 软删除
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessPropOwner(c, id)
+  if (denied) return denied
   await db.update(schema.props).set({ deletedAt: now(), updatedAt: now() }).where(eq(schema.props.id, id))
   return success(c)
 })
@@ -48,6 +54,8 @@ app.delete('/:id', async (c) => {
 // PUT /props/:id — 更新道具（物品外貌/类型/最终提示词）
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessPropOwner(c, id)
+  if (denied) return denied
   const body = await c.req.json()
   const updates: Record<string, any> = { updatedAt: now() }
   if (body.name !== undefined) updates.name = body.name
@@ -82,6 +90,8 @@ function propImagePrompt(prop: typeof schema.props.$inferSelect, stylePrompt = '
 // POST /props/:id/generate-prompt — 独立生成/重新生成白底单品最终提示词（不生图）
 app.post('/:id/generate-prompt', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessPropOwner(c, id)
+  if (denied) return denied
   const body = await c.req.json()
   const [prop] = await db.select().from(schema.props).where(eq(schema.props.id, id))
   if (!prop) return badRequest(c, '道具不存在')
@@ -103,6 +113,8 @@ app.post('/:id/generate-prompt', async (c) => {
 // POST /props/:id/generate-image — 生成道具白底单品图
 app.post('/:id/generate-image', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessPropOwner(c, id)
+  if (denied) return denied
   const body = await c.req.json()
   const [prop] = await db.select().from(schema.props).where(eq(schema.props.id, id))
   if (!prop) return badRequest(c, '道具不存在')

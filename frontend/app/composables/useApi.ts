@@ -1,7 +1,30 @@
 const BASE = '/api/v1'
 
+function authHeaders(extra?: HeadersInit): HeadersInit {
+  const headers: Record<string, string> = { ...(extra as Record<string, string> || {}) }
+  try {
+    const token = localStorage.getItem('lotus:auth_token')
+    if (token) headers.Authorization = `Bearer ${token}`
+  } catch { /* ignore */ }
+  return headers
+}
+
+function handleUnauthorized() {
+  try {
+    localStorage.removeItem('lotus:auth_token')
+    localStorage.removeItem('lotus:auth_user')
+  } catch { /* ignore */ }
+  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+    const redirect = encodeURIComponent(window.location.pathname + window.location.search)
+    window.location.href = `/login?redirect=${redirect}`
+  }
+}
+
 async function req<T = any>(method: string, path: string, body?: any): Promise<T> {
-  const opts: RequestInit = { method, headers: { 'Content-Type': 'application/json' } }
+  const opts: RequestInit = {
+    method,
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+  }
   if (body) opts.body = JSON.stringify(body)
 
   const start = performance.now()
@@ -11,6 +34,12 @@ async function req<T = any>(method: string, path: string, body?: any): Promise<T
     const resp = await fetch(`${BASE}${path}`, opts)
     const json = await resp.json()
     const ms = Math.round(performance.now() - start)
+
+    if (resp.status === 401 || json.code === 401) {
+      console.log(`%c[API] %c${method} ${path} %c401 %c${ms}ms`, 'color:#888', 'color:#ef5350', 'color:#ef5350;font-weight:bold', 'color:#888', json.message || '')
+      handleUnauthorized()
+      throw new Error(json.message || '请先登录')
+    }
 
     if (!resp.ok || (json.code && json.code >= 400)) {
       console.log(`%c[API] %c${method} ${path} %c${resp.status} %c${ms}ms`, 'color:#888', 'color:#ef5350', 'color:#ef5350;font-weight:bold', 'color:#888', json.message || '')
@@ -112,8 +141,12 @@ async function uploadReq<T = any>(path: string, file: File): Promise<T> {
   const fd = new FormData()
   fd.append('file', file)
   console.log(`%c[API] %cPOST %c${path} %c${file.name}`, 'color:#888', 'color:#4fc3f7;font-weight:bold', 'color:#ccc', 'color:#888')
-  const resp = await fetch(`${BASE}${path}`, { method: 'POST', body: fd })
+  const resp = await fetch(`${BASE}${path}`, { method: 'POST', body: fd, headers: authHeaders() })
   const json = await resp.json()
+  if (resp.status === 401 || json.code === 401) {
+    handleUnauthorized()
+    throw new Error(json.message || '请先登录')
+  }
   if (!resp.ok || (json.code && json.code >= 400)) {
     console.log(`%c[API] %cPOST ${path} %c${resp.status}`, 'color:#888', 'color:#ef5350', 'color:#ef5350;font-weight:bold')
     throw new Error(json.message || `${resp.status}`)
@@ -137,6 +170,51 @@ export const aiConfigAPI = {
   update: (id: number, d: any) => api.put(`/ai-configs/${id}`, d),
   del: (id: number) => api.del(`/ai-configs/${id}`),
   test: (d: any) => api.post('/ai-configs/test', d),
+  /** 读取本系统已落库的 Real-API 开户信息 */
+  getRealApiAccount: () => api.get<{
+    username: string
+    password: string
+    api_key: string
+    site_url?: string | null
+    user_id?: number | null
+    activation_code?: string | null
+    user_invite_code?: string | null
+    balance_usd?: number | null
+  } | null>('/ai-configs/real-api/account'),
+  /** 落库 Real-API 开户信息（旧版 localStorage 迁移用） */
+  saveRealApiAccount: (d: {
+    username?: string
+    password?: string
+    api_key?: string
+    site_url?: string | null
+    user_id?: number | null
+    activation_code?: string | null
+    user_invite_code?: string | null
+    balance_usd?: number | null
+  }) => api.post<typeof d>('/ai-configs/real-api/account', d),
+  /** 一键开通 Real-API 账号并返回 username/password/api_key */
+  autoRegisterRealApi: (d?: { username?: string; force?: boolean }) => api.post<{
+    username: string
+    password: string
+    api_key: string
+    site_url: string
+    user_id?: number | null
+    activation_code?: string | null
+    user_invite_code?: string | null
+    balance_usd?: number | null
+  }>('/ai-configs/real-api/auto-register', d || {}),
+  /** 查询 Real-API 账户余额 */
+  realApiBalance: (d?: { user_id?: number | null; username?: string; password?: string }) =>
+    api.post<{ balance_usd: number | null }>('/ai-configs/real-api/balance', d || {}),
+  /** 按激活码签发 Real-API 自动登录 URL；redirect 如 /console/recharge */
+  realApiLoginTicket: (activationCode: string, redirect?: string) => api.post<{
+    login_url: string
+    username?: string
+    expires_in?: number
+  }>('/ai-configs/real-api/login-ticket', {
+    activation_code: activationCode,
+    ...(redirect ? { redirect } : {}),
+  }),
 }
 
 // lang 缺省/为 zh 时读写基础版（不带 query，保持原请求形态）

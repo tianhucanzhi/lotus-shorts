@@ -1,4 +1,6 @@
 import { Hono } from 'hono'
+import type { AuthVariables } from '../middleware/auth.js'
+import { denyUnlessDramaOwner, denyUnlessSceneOwner } from '../services/access.js'
 import { and, eq } from 'drizzle-orm'
 import { db, getInsertId, schema } from '../db/index.js'
 import { success, created, badRequest, now } from '../utils/response.js'
@@ -7,12 +9,14 @@ import { getDramaStylePrompt } from '../services/style-preset.js'
 import { ensureSceneFinalPrompt } from '../services/final-prompt.js'
 import { logTaskError, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 
-const app = new Hono()
+const app = new Hono<{ Variables: AuthVariables }>()
 
 // POST /scenes — 手动新增场景（传入 episode_id 时关联到该集）
 app.post('/', async (c) => {
   const body = await c.req.json()
   if (!body.drama_id) return badRequest(c, 'drama_id 必填')
+  const deniedDrama = await denyUnlessDramaOwner(c, Number(body.drama_id))
+  if (deniedDrama) return deniedDrama
   if (!body.location?.trim()) return badRequest(c, '地点必填')
   const ts = now()
   const res = await db.insert(schema.scenes).values({
@@ -41,6 +45,8 @@ app.post('/', async (c) => {
 // PUT /scenes/:id
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessSceneOwner(c, id)
+  if (denied) return denied
   const body = await c.req.json()
   const updates: Record<string, any> = { updatedAt: now() }
   if (body.location !== undefined) updates.location = body.location
@@ -66,6 +72,8 @@ app.put('/:id', async (c) => {
 // POST /scenes/:id/generate-image
 app.post('/:id/generate-image', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessSceneOwner(c, id)
+  if (denied) return denied
   const body = await c.req.json()
   const [scene] = await db.select().from(schema.scenes).where(eq(schema.scenes.id, id))
   if (!scene) return badRequest(c, '场景不存在')
@@ -100,6 +108,8 @@ app.post('/:id/generate-image', async (c) => {
 // POST /scenes/:id/generate-prompt — 独立生成/重新生成固定视角最终提示词（不生图）
 app.post('/:id/generate-prompt', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessSceneOwner(c, id)
+  if (denied) return denied
   const body = await c.req.json()
   const [scene] = await db.select().from(schema.scenes).where(eq(schema.scenes.id, id))
   if (!scene) return badRequest(c, '场景不存在')
@@ -121,6 +131,8 @@ app.post('/:id/generate-prompt', async (c) => {
 // DELETE /scenes/:id — 软删除（保留历史生成记录）
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessSceneOwner(c, id)
+  if (denied) return denied
   await db.update(schema.scenes).set({ deletedAt: now(), updatedAt: now() }).where(eq(schema.scenes.id, id))
   return success(c)
 })

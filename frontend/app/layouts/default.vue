@@ -29,6 +29,11 @@
       <div class="header-right">
         <ThemeToggle />
         <LocaleSwitcher />
+        <div v-if="auth.isSaas.value && auth.user.value" class="user-chip">
+          <span class="user-name">{{ auth.user.value.display_name || auth.user.value.username }}</span>
+          <span v-if="auth.user.value.role === 'admin'" class="user-role">{{ t('layout.user.admin') }}</span>
+          <button type="button" class="btn btn-ghost user-logout" @click="onLogout">{{ t('layout.user.logout') }}</button>
+        </div>
       </div>
     </header>
 
@@ -42,6 +47,21 @@
     <main class="content">
       <slot />
     </main>
+
+    <footer class="app-footer">
+      <span>{{ t('layout.footer.copyright', { year: copyrightYear }) }}</span>
+      <span class="footer-sep" aria-hidden="true">·</span>
+      <nav class="footer-links" :aria-label="t('layout.footer.linksLabel')">
+        <a
+          v-for="link in footerLinks"
+          :key="link.href"
+          class="footer-link"
+          :href="link.href"
+          target="_blank"
+          rel="noopener noreferrer"
+        >{{ link.label }}</a>
+      </nav>
+    </footer>
   </div>
 </template>
 
@@ -53,7 +73,18 @@ import brandLogo from '~/assets/brand-logo.png'
 
 const { t, locale } = useI18n()
 const route = useRoute()
+const auth = useAuth()
 const showBrandImage = ref(true)
+const copyrightYear = new Date().getFullYear()
+const footerLinks = computed(() => [
+  { label: t('layout.footer.realApi'), href: 'https://real-api.yunfm.cn' },
+  { label: t('layout.footer.lotusGrowth'), href: 'https://lotus.yunfm.cn' },
+])
+
+function onLogout() {
+  auth.logout()
+  navigateTo('/login')
+}
 
 // 渲染时求值，语言切换即时生效（不能模块级常量固化）
 const SERVICE_TYPE_LABELS = computed(() => ({
@@ -62,13 +93,18 @@ const SERVICE_TYPE_LABELS = computed(() => ({
   video: t('common.serviceType.video'),
 }))
 const missingConfigLabels = ref([])
+const { tick: aiConfigBannerTick } = useAiConfigBanner()
+
+function isConfigActive(c) {
+  return c?.is_active === true || c?.is_active === 1 || c?.is_active === '1'
+}
 
 async function checkAiConfigs() {
   try {
     const configs = await aiConfigAPI.list()
     const labels = SERVICE_TYPE_LABELS.value
     missingConfigLabels.value = Object.entries(labels)
-      .filter(([type]) => !configs.some(c => c.service_type === type && c.is_active))
+      .filter(([type]) => !configs.some(c => c.service_type === type && isConfigActive(c)))
       .map(([, label]) => label)
   } catch { /* 配置检查失败不阻塞页面 */ }
 }
@@ -76,6 +112,8 @@ async function checkAiConfigs() {
 onMounted(checkAiConfigs)
 // 设置页保存配置后返回时重新检查(布局跨页面复用,onMounted 只触发一次)
 watch(() => route.path, checkAiConfigs)
+// 设置页写入配置后即时刷新横幅（同页不换路由）
+watch(aiConfigBannerTick, checkAiConfigs)
 // 切换界面语言时横幅中已拼接的类型文案需要重算
 watch(locale, checkAiConfigs)
 </script>
@@ -155,10 +193,31 @@ watch(locale, checkAiConfigs)
   background: var(--overlay-track);
 }
 
-/* Header 右侧 — 语言切换器 */
+/* Header 右侧 — 语言切换器 / 用户 */
 .header-right {
   margin-left: auto;
-  display: flex; align-items: center;
+  display: flex; align-items: center; gap: 8px;
+}
+.user-chip {
+  display: flex; align-items: center; gap: 8px;
+  margin-left: 4px;
+  padding: 4px 4px 4px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--overlay-track);
+}
+.user-name {
+  font-size: 12.5px; font-weight: 600; color: var(--text-1);
+  max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.user-role {
+  font-size: 10.5px; font-weight: 600; color: var(--accent-text);
+  padding: 2px 7px; border-radius: var(--radius-pill);
+  background: var(--accent-bg);
+}
+.user-logout {
+  height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
 }
 .nav-link {
   display: flex; align-items: center; gap: 6px;
@@ -203,4 +262,37 @@ watch(locale, checkAiConfigs)
 
 /* Content */
 .content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+.app-footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 24px;
+  border-top: 1px solid var(--border);
+  background: var(--header-bg);
+  font-size: 11.5px;
+  color: var(--text-3);
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+.footer-sep { opacity: 0.55; }
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.footer-link {
+  color: var(--text-3);
+  text-decoration: none;
+  transition: color 0.18s var(--ease-out);
+}
+.footer-link:hover { color: var(--text-1); }
+.footer-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3.5px var(--button-focus);
+  border-radius: 4px;
+}
 </style>

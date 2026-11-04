@@ -1,13 +1,18 @@
 import { Hono } from 'hono'
 import { eq } from 'drizzle-orm'
+import { isSaas } from '../config/mode.js'
 import { db, getInsertId, schema } from '../db/index.js'
+import type { AuthVariables } from '../middleware/auth.js'
+import { currentUserId, denyUnlessAiConfigOwner } from '../services/access.js'
 import { success, notFound, created, badRequest, now } from '../utils/response.js'
 import { toSnakeCase } from '../utils/transform.js'
 import { joinProviderUrl } from '../services/adapters/url.js'
 import { isOfficialProvider, parseConfigTemperature } from '../services/ai.js'
+import { getRealApiAccount, setRealApiAccount } from '../services/app-settings.js'
+import { createRealApiLoginTicket, fetchRealApiBalanceUsd, provisionRealApiAccount, sanitizeRealApiUsername } from '../services/real-api-provision.js'
 import { redactUrl, logTaskError, logTaskProgress, logTaskSuccess } from '../utils/task-logger.js'
 
-const app = new Hono()
+const app = new Hono<{ Variables: AuthVariables }>()
 
 /** 归一化 temperature 入参：null=未设置；合法值 0~2；非法抛错 */
 function normalizeTemperature(v: any): number | null {
@@ -118,7 +123,9 @@ function buildProbe(serviceType: string, provider: string, baseUrl: string, mode
 // GET /ai-configs?service_type=text
 app.get('/', async (c) => {
   const serviceType = c.req.query('service_type')
+  const userId = currentUserId(c)
   let rows = await db.select().from(schema.aiServiceConfigs)
+  if (isSaas() && userId) rows = rows.filter(r => r.userId === userId)
   if (serviceType) rows = rows.filter(r => r.serviceType === serviceType)
 
   const parsed = rows.map(withParsedFields)
@@ -129,6 +136,7 @@ app.get('/', async (c) => {
 app.post('/', async (c) => {
   const body = await c.req.json()
   const ts = now()
+  const userId = currentUserId(c)
 
   // 验证必填字段
   if (!body.service_type || !body.provider) {
@@ -148,6 +156,7 @@ app.post('/', async (c) => {
   }
 
   const res = await db.insert(schema.aiServiceConfigs).values({
+    userId: isSaas() ? userId : null,
     serviceType: body.service_type,
     provider: body.provider,
     name: body.name || `${body.provider}-${body.service_type}`,
@@ -165,6 +174,89 @@ app.post('/', async (c) => {
     .where(eq(schema.aiServiceConfigs.id, getInsertId(res)))
 
   return created(c, withParsedFields(row))
+})
+
+// GET /ai-configs/real-api/account — 读取本系统已落库的 Real-API 开户信息（跨浏览器）
+app.get('/real-api/account', async (c) => {
+  return success(c, getRealApiAccount())
+})
+
+// POST /ai-configs/real-api/account — 落库/覆盖 Real-API 开户信息（用于旧版 localStorage 迁移）
+app.post('/real-api/account', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  try {
+    const saved = setRealApiAccount(body)
+    return success(c, saved)
+  } catch (err: any) {
+    return badRequest(c, err?.message || '保存账号失败')
+  }
+})
+
+// POST /ai-configs/real-api/auto-register — 一键开通 Real-API 账号并返回 Key（Token 仅后端持有）
+app.post('/real-api/auto-register', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  const userId = currentUserId(c)
+  // 已开通过则直接返回落库记录，避免重复开户
+  const existing = getRealApiAccount()
+  if (existing?.username && existing?.api_key && !body.force) {
+    return success(c, existing)
+  }
+  // SaaS 优先用当前登录用户名；独立版可用 body.username，缺省 lotus
+  let preferred = String(body.username || '').trim()
+  if (!preferred && isSaas()) {
+    preferred = String(c.get('username') || '').trim()
+  }
+  if (!preferred) preferred = 'lotus'
+  preferred = sanitizeRealApiUsername(preferred)
+
+  try {
+    const account = await provisionRealApiAccount(preferred)
+    const saved = setRealApiAccount(account)
+    logTaskSuccess('AIConfig', 'real-api-auto-register', {
+      userId,
+      username: saved.username,
+    })
+    return success(c, saved)
+  } catch (err: any) {
+    logTaskError('AIConfig', 'real-api-auto-register', {
+      userId,
+      preferred,
+      error: err?.message,
+    })
+    return badRequest(c, err?.message || '自动注册 Real-API 失败')
+  }
+})
+
+// POST /ai-configs/real-api/balance — 查询 Real-API 账户余额
+app.post('/real-api/balance', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  try {
+    const stored = getRealApiAccount()
+    const balance = await fetchRealApiBalanceUsd({
+      userId: body.user_id ?? body.userId ?? stored?.user_id,
+      username: body.username || stored?.username,
+      password: body.password || stored?.password,
+    })
+    if (stored) {
+      try { setRealApiAccount({ ...stored, balance_usd: balance }) } catch { /* ignore */ }
+    }
+    return success(c, { balance_usd: balance })
+  } catch (err: any) {
+    return badRequest(c, err?.message || '查询余额失败')
+  }
+})
+
+// POST /ai-configs/real-api/login-ticket — 按激活码签发 Real-API 自动登录 URL
+app.post('/real-api/login-ticket', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  const code = String(body.activation_code || body.code || '').trim()
+  if (!code) return badRequest(c, '缺少 activation_code')
+  try {
+    const ticket = await createRealApiLoginTicket(code, body.redirect)
+    return success(c, ticket)
+  } catch (err: any) {
+    return badRequest(c, err?.message || '签发登录票失败')
+  }
 })
 
 // POST /ai-configs/test
@@ -242,6 +334,8 @@ app.post('/test', async (c) => {
 // GET /ai-configs/:id
 app.get('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessAiConfigOwner(c, id)
+  if (denied) return denied
   const [row] = await db.select().from(schema.aiServiceConfigs).where(eq(schema.aiServiceConfigs.id, id))
   if (!row) return notFound(c)
   return success(c, withParsedFields(row))
@@ -250,6 +344,8 @@ app.get('/:id', async (c) => {
 // PUT /ai-configs/:id
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessAiConfigOwner(c, id)
+  if (denied) return denied
   const body = await c.req.json()
   const [existing] = await db.select().from(schema.aiServiceConfigs).where(eq(schema.aiServiceConfigs.id, id))
   if (!existing) return notFound(c)
@@ -292,6 +388,8 @@ app.put('/:id', async (c) => {
 // DELETE /ai-configs/:id
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessAiConfigOwner(c, id)
+  if (denied) return denied
   await db.delete(schema.aiServiceConfigs).where(eq(schema.aiServiceConfigs.id, id))
   return success(c)
 })

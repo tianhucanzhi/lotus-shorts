@@ -1,4 +1,6 @@
 import { Hono } from 'hono'
+import type { AuthVariables } from '../middleware/auth.js'
+import { denyUnlessCharacterOwner, denyUnlessDramaOwner, denyUnlessEpisodeOwner } from '../services/access.js'
 import { and, eq } from 'drizzle-orm'
 import { db, getInsertId, schema } from '../db/index.js'
 import { success, created, badRequest, now } from '../utils/response.js'
@@ -8,13 +10,15 @@ import { getDramaStylePrompt } from '../services/style-preset.js'
 import { ensureCharacterFinalPrompt } from '../services/final-prompt.js'
 import { logTaskError, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 
-const app = new Hono()
+const app = new Hono<{ Variables: AuthVariables }>()
 const CHARACTER_IMAGE_SIZE = '1920x1080'
 
 // POST /characters — 手动新增角色（传入 episode_id 时关联到该集）
 app.post('/', async (c) => {
   const body = await c.req.json()
   if (!body.drama_id) return badRequest(c, 'drama_id 必填')
+  const deniedDrama = await denyUnlessDramaOwner(c, Number(body.drama_id))
+  if (deniedDrama) return deniedDrama
   if (!body.name?.trim()) return badRequest(c, '名称必填')
   const ts = now()
   const res = await db.insert(schema.characters).values({
@@ -56,6 +60,8 @@ function characterImagePrompt(char: typeof schema.characters.$inferSelect, style
 // PUT /characters/:id
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessCharacterOwner(c, id)
+  if (denied) return denied
   const body = await c.req.json()
   const updates: Record<string, any> = { updatedAt: now() }
   for (const key of ['name', 'role', 'description', 'appearance', 'styling', 'imageUrl', 'localPath']) {
@@ -73,6 +79,8 @@ app.put('/:id', async (c) => {
 // DELETE /characters/:id
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessCharacterOwner(c, id)
+  if (denied) return denied
   await db.update(schema.characters).set({ deletedAt: now() }).where(eq(schema.characters.id, id))
   return success(c)
 })
@@ -80,6 +88,8 @@ app.delete('/:id', async (c) => {
 // POST /characters/:id/generate-image
 app.post('/:id/generate-image', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessCharacterOwner(c, id)
+  if (denied) return denied
   const body = await c.req.json()
   const [char] = await db.select().from(schema.characters).where(eq(schema.characters.id, id))
   if (!char) return badRequest(c, '角色不存在')
@@ -105,6 +115,8 @@ app.post('/:id/generate-image', async (c) => {
 // POST /characters/:id/generate-prompt — 独立生成/重新生成三视图最终提示词（不生图）
 app.post('/:id/generate-prompt', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessCharacterOwner(c, id)
+  if (denied) return denied
   const body = await c.req.json()
   const [char] = await db.select().from(schema.characters).where(eq(schema.characters.id, id))
   if (!char) return badRequest(c, '角色不存在')
@@ -128,6 +140,8 @@ app.post('/batch-generate-images', async (c) => {
   const body = await c.req.json()
   const ids: number[] = body.character_ids || []
   if (!body.episode_id) return badRequest(c, 'episode_id 必填')
+  const deniedEp = await denyUnlessEpisodeOwner(c, Number(body.episode_id))
+  if (deniedEp) return deniedEp
   const [ep] = await db.select().from(schema.episodes).where(eq(schema.episodes.id, Number(body.episode_id)))
   if (!ep) return badRequest(c, '剧集不存在')
   const results: number[] = []

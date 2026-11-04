@@ -1,11 +1,13 @@
 import { Hono } from 'hono'
+import type { AuthVariables } from '../middleware/auth.js'
+import { denyUnlessEpisodeOwner, denyUnlessStoryboardOwner } from '../services/access.js'
 import { eq } from 'drizzle-orm'
 import { db, getInsertId, schema } from '../db/index.js'
 import { success, created, now, badRequest } from '../utils/response.js'
 import { toSnakeCase } from '../utils/transform.js'
 import { logTaskPayload, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 
-const app = new Hono()
+const app = new Hono<{ Variables: AuthVariables }>()
 
 async function syncStoryboardCharacters(storyboardId: number, characterIds: number[]) {
   await db.delete(schema.storyboardCharacters)
@@ -79,6 +81,8 @@ async function validateStoryboardBindings(episodeId: number, sceneId: number | n
 // POST /storyboards
 app.post('/', async (c) => {
   const body = await c.req.json()
+  const deniedEp = await denyUnlessEpisodeOwner(c, Number(body.episode_id))
+  if (deniedEp) return deniedEp
   const ts = now()
   logTaskStart('StoryboardAPI', 'create', {
     episodeId: body.episode_id,
@@ -117,6 +121,8 @@ app.post('/', async (c) => {
 // PUT /storyboards/:id
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessStoryboardOwner(c, id)
+  if (denied) return denied
   const body = await c.req.json()
   const [storyboard] = await db.select().from(schema.storyboards).where(eq(schema.storyboards.id, id))
   if (!storyboard) return badRequest(c, '镜头不存在')
@@ -164,6 +170,8 @@ app.put('/:id', async (c) => {
 // DELETE /storyboards/:id
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessStoryboardOwner(c, id)
+  if (denied) return denied
   logTaskStart('StoryboardAPI', 'delete', { storyboardId: id })
   await db.delete(schema.storyboardCharacters).where(eq(schema.storyboardCharacters.storyboardId, id))
   await db.delete(schema.storyboardProps).where(eq(schema.storyboardProps.storyboardId, id))

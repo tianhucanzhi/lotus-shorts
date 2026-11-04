@@ -7,8 +7,21 @@
 import type Database from 'better-sqlite3'
 
 export const sqliteSchemaStatements = [
+  `CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT,
+    password_hash TEXT NOT NULL,
+    display_name TEXT,
+    role TEXT NOT NULL DEFAULT 'user',
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+
   `CREATE TABLE IF NOT EXISTS dramas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
     title TEXT NOT NULL,
     description TEXT,
     genre TEXT,
@@ -158,6 +171,7 @@ export const sqliteSchemaStatements = [
 
   `CREATE TABLE IF NOT EXISTS ai_service_configs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
     service_type TEXT NOT NULL,
     provider TEXT,
     name TEXT NOT NULL,
@@ -188,8 +202,10 @@ export const sqliteSchemaStatements = [
     updated_at TEXT NOT NULL
   )`,
 
+  // 注意：依赖 user_id 的索引不在此创建——旧库表可能尚无该列，须等 ensureColumn 后再建（见 migrateStylePresetsUniqueConstraint）
   `CREATE TABLE IF NOT EXISTS style_presets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
     name TEXT NOT NULL,
     value TEXT NOT NULL,
     prompt TEXT NOT NULL,
@@ -197,8 +213,7 @@ export const sqliteSchemaStatements = [
     sort_order INTEGER DEFAULT 0,
     is_active INTEGER DEFAULT 1,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    UNIQUE (value)
+    updated_at TEXT NOT NULL
   )`,
 
   `CREATE TABLE IF NOT EXISTS sys_task (
@@ -304,34 +319,34 @@ export const sqliteSchemaStatements = [
  */
 export const stylePresetSeeds = [
   {
-    name: '3D 漫剧', value: '3d', sortOrder: 1,
+    name: '真人古装', value: 'live-guzhuang', sortOrder: 1,
+    prompt: 'ultra-realistic cinematic Chinese costume drama live-action look, period historical film photography, authentic traditional Chinese hanfu and ancient court attire with intricate embroidery silk textures and jade accessories, natural Asian skin tones with realistic pores and fabric weave detail, true human anatomy and proportions, shallow depth of field with creamy bokeh, soft natural daylight or candlelit palace ambience, subtle film grain, 35mm and anamorphic cinematic framing, elegant muted jewel-tone period color grading, detailed palace garden mountain and historical architecture environments, consistent actor appearance and costume continuity across shots, avoid cartoon or anime features, avoid 3D render look, avoid illustration style, avoid modern clothing and props, avoid plastic waxy skin, avoid over-smoothing beauty filter',
+    description: '真人古装影视质感，汉服宫装与历史场景写实成片',
+  },
+  {
+    name: '3D 漫剧', value: '3d', sortOrder: 2,
     prompt: 'high-quality 3D CG animation still, modern game-engine cinematic render, Unreal Engine and Pixar grade quality, semi-realistic stylized characters with refined facial features, clean sculpted anatomy, detailed skin shader with subtle subsurface scattering, PBR materials with crisp detailed textures, volumetric cinematic lighting with soft rim light, rich depth of field, polished film color grading, detailed environment art, sharp focus, consistent character design across shots, avoid flat lighting, avoid plastic waxy skin, avoid low-poly blurry look, avoid 2D flat cel shading, avoid anime line art',
     description: '游戏引擎级 3D 渲染，半写实角色，当前短剧主流的 3D 漫剧质感',
   },
   {
-    name: '日漫赛璐璐', value: 'anime', sortOrder: 2,
+    name: '日漫赛璐璐', value: 'anime', sortOrder: 3,
     prompt: 'Japanese TV anime style, clean cel shading with hard-edged shadow shapes, crisp uniform black line art, vivid saturated color palette, expressive large-eyed character design with on-model proportions, detailed hand-painted anime backgrounds, dramatic anime key lighting with screentone highlights, key-visual poster quality, consistent character design across shots, avoid 3D CGI look, avoid painterly soft blending, avoid watercolor texture, avoid photorealism, avoid thick western comic outlines',
     description: '日式赛璐璐动画风格',
   },
   {
-    name: '吉卜力手绘', value: 'ghibli', sortOrder: 3,
+    name: '吉卜力手绘', value: 'ghibli', sortOrder: 4,
     prompt: 'Studio Ghibli hand-drawn animation style, soft painterly brushwork with organic hand-crafted line quality, lush warm watercolor painted backgrounds, gentle natural daylight with nostalgic warm glow, muted earthy natural color palette, whimsical cozy storybook atmosphere, subtle film-grain softness, theatrical background art quality, consistent character design across shots, avoid hard cel shading, avoid 3D render look, avoid neon over-saturated colors, avoid sharp digital edges, avoid photorealism',
     description: '吉卜力手绘治愈风',
   },
   {
-    name: '水彩绘本', value: 'watercolor', sortOrder: 4,
+    name: '水彩绘本', value: 'watercolor', sortOrder: 5,
     prompt: 'delicate watercolor storybook illustration, soft translucent color washes, visible cold-press paper texture, fluid hand-painted brushstrokes with gentle pigment bleeds, light airy atmosphere, harmonious pastel palette, whimsical children book charm, loose expressive edges, consistent character design across shots, avoid bold black outlines, avoid digital airbrush look, avoid harsh contrast, avoid 3D rendering, avoid photorealism',
     description: '水彩插画质感',
   },
   {
-    name: '美式漫画', value: 'comic', sortOrder: 5,
+    name: '美式漫画', value: 'comic', sortOrder: 6,
     prompt: 'Western graphic-novel comic book style, bold confident black ink outlines, halftone dot shading and screentone gradients, dynamic saturated colors with dramatic contrast, dramatic spotlight lighting, flat graphic print look, sharp inking details, dynamic cinematic composition, consistent character design across shots, avoid painterly soft blending, avoid watercolor washes, avoid photorealistic rendering, avoid 3D CGI look, avoid anime cel shading',
     description: '美式漫画粗线条风格',
-  },
-  {
-    name: '真人古装', value: 'live-guzhuang', sortOrder: 6,
-    prompt: 'ultra-realistic cinematic Chinese costume drama live-action look, period historical film photography, authentic traditional Chinese hanfu and ancient court attire with intricate embroidery silk textures and jade accessories, natural Asian skin tones with realistic pores and fabric weave detail, true human anatomy and proportions, shallow depth of field with creamy bokeh, soft natural daylight or candlelit palace ambience, subtle film grain, 35mm and anamorphic cinematic framing, elegant muted jewel-tone period color grading, detailed palace garden mountain and historical architecture environments, consistent actor appearance and costume continuity across shots, avoid cartoon or anime features, avoid 3D render look, avoid illustration style, avoid modern clothing and props, avoid plastic waxy skin, avoid over-smoothing beauty filter',
-    description: '真人古装影视质感，汉服宫装与历史场景写实成片',
   },
   {
     name: '国风 2.5D', value: 'guofeng', sortOrder: 7,
@@ -371,25 +386,77 @@ const REMOVED_SEED_PROMPTS: Record<string, string> = {
   live: 'ultra-realistic cinematic live-action look, professional film photography, natural skin tones with detailed pores and realistic texture, true human anatomy and proportions, shallow depth of field with creamy bokeh, cinematic three-point lighting, subtle film grain, 35mm lens cinematic framing, true-to-life color grading, detailed real-world environments, consistent actor appearance across shots, avoid cartoon or anime features, avoid 3D render look, avoid illustration style, avoid plastic waxy skin, avoid over-smoothing beauty filter',
 }
 
-// INSERT ... SELECT WHERE NOT EXISTS → 幂等：只补缺失行，不覆盖用户编辑
+// INSERT ... SELECT WHERE NOT EXISTS → 幂等：只补全局缺失行，不覆盖用户编辑 / 个人副本
 // （SQLite 无 FROM DUAL，无 FROM 的 SELECT 合法）
-const SEED_SQL = 'INSERT INTO style_presets ("name", "value", "prompt", "description", "sort_order", "is_active", "created_at", "updated_at") SELECT ?, ?, ?, ?, ?, 1, ?, ? WHERE NOT EXISTS (SELECT 1 FROM style_presets WHERE value = ?)'
-// 内容寻址升级：命中旧种子原文才更新（用户在设置页改过的行不动）
-const UPGRADE_SQL = 'UPDATE style_presets SET "name" = ?, "prompt" = ?, "description" = ?, "sort_order" = ?, "updated_at" = ? WHERE "value" = ? AND "prompt" = ?'
-// 内容寻址下架：命中下架种子原文才删除
-const REMOVE_SQL = 'DELETE FROM style_presets WHERE "value" = ? AND "prompt" = ?'
+const SEED_SQL = 'INSERT INTO style_presets ("name", "value", "prompt", "description", "sort_order", "is_active", "created_at", "updated_at") SELECT ?, ?, ?, ?, ?, 1, ?, ? WHERE NOT EXISTS (SELECT 1 FROM style_presets WHERE value = ? AND user_id IS NULL)'
+// 内容寻址升级：仅全局行；命中旧种子原文才更新（个人副本与用户改过的全局行不动）
+const UPGRADE_SQL = 'UPDATE style_presets SET "name" = ?, "prompt" = ?, "description" = ?, "sort_order" = ?, "updated_at" = ? WHERE "value" = ? AND "prompt" = ? AND user_id IS NULL'
+// 同步种子默认排序：仅全局行（用户个人副本不动）
+const SORT_SQL = 'UPDATE style_presets SET "sort_order" = ?, "updated_at" = ? WHERE "value" = ? AND user_id IS NULL'
+// 内容寻址下架：仅全局行
+const REMOVE_SQL = 'DELETE FROM style_presets WHERE "value" = ? AND "prompt" = ? AND user_id IS NULL'
+
+function ensureColumn(sqlite: Database.Database, table: string, name: string, type: string) {
+  const cols = new Set((sqlite.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map(c => c.name))
+  if (!cols.has(name)) sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`)
+}
+
+/**
+ * 旧库 style_presets 带表级 UNIQUE(value)，与 SaaS 个人副本冲突。
+ * 检测到尚未建立局部唯一索引时重建表（保留数据），改为全局/用户两套局部唯一索引。
+ */
+function migrateStylePresetsUniqueConstraint(sqlite: Database.Database) {
+  const indexes = sqlite.prepare(
+    `SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'style_presets'`,
+  ).all() as { name: string }[]
+  if (indexes.some(i => i.name === 'idx_style_presets_user_value')) {
+    sqlite.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_style_presets_global_value ON style_presets(value) WHERE user_id IS NULL')
+    sqlite.exec('CREATE INDEX IF NOT EXISTS idx_style_presets_user_id ON style_presets(user_id)')
+    return
+  }
+
+  sqlite.exec(`
+    CREATE TABLE style_presets__saas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      name TEXT NOT NULL,
+      value TEXT NOT NULL,
+      prompt TEXT NOT NULL,
+      description TEXT,
+      sort_order INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    INSERT INTO style_presets__saas (id, user_id, name, value, prompt, description, sort_order, is_active, created_at, updated_at)
+      SELECT id, user_id, name, value, prompt, description, sort_order, is_active, created_at, updated_at FROM style_presets;
+    DROP TABLE style_presets;
+    ALTER TABLE style_presets__saas RENAME TO style_presets;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_style_presets_global_value ON style_presets(value) WHERE user_id IS NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_style_presets_user_value ON style_presets(user_id, value) WHERE user_id IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_style_presets_user_id ON style_presets(user_id);
+  `)
+}
 
 export function initSqliteSchema(sqlite: Database.Database) {
   for (const statement of sqliteSchemaStatements) {
     sqlite.exec(statement)
   }
-  // 兼容已安装的桌面版；仅增加任务恢复元数据，不改写历史生成结果。
+  // 兼容已安装库：增量补列，不改写历史数据。
   const taskColumns = new Set((sqlite.prepare('PRAGMA table_info(sys_task)').all() as { name: string }[]).map(c => c.name))
   for (const [name, type] of Object.entries({ config_id: 'INTEGER', config_base_url: 'TEXT', stage: 'TEXT', error_code: 'TEXT' })) {
     if (!taskColumns.has(name)) sqlite.exec(`ALTER TABLE sys_task ADD COLUMN ${name} ${type}`)
   }
+  ensureColumn(sqlite, 'dramas', 'user_id', 'INTEGER')
+  ensureColumn(sqlite, 'ai_service_configs', 'user_id', 'INTEGER')
+  ensureColumn(sqlite, 'style_presets', 'user_id', 'INTEGER')
+  sqlite.exec('CREATE INDEX IF NOT EXISTS idx_dramas_user_id ON dramas(user_id)')
+  sqlite.exec('CREATE INDEX IF NOT EXISTS idx_ai_service_configs_user_id ON ai_service_configs(user_id)')
+  sqlite.exec('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)')
+  migrateStylePresetsUniqueConstraint(sqlite)
   const insertSeed = sqlite.prepare(SEED_SQL)
   const upgradeSeed = sqlite.prepare(UPGRADE_SQL)
+  const sortSeed = sqlite.prepare(SORT_SQL)
   const removeSeed = sqlite.prepare(REMOVE_SQL)
   for (const s of stylePresetSeeds) {
     const ts = new Date().toISOString()
@@ -399,6 +466,7 @@ export function initSqliteSchema(sqlite: Database.Database) {
       const res = upgradeSeed.run(s.name, s.prompt, s.description, s.sortOrder, ts, s.value, legacyPrompt)
       if (res.changes > 0) console.log(`🎨 风格预设「${s.name}」已升级为结构化提示词`)
     }
+    sortSeed.run(s.sortOrder, ts, s.value)
   }
   for (const [value, prompt] of Object.entries(REMOVED_SEED_PROMPTS)) {
     const res = removeSeed.run(value, prompt)

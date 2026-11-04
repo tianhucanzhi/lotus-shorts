@@ -83,21 +83,103 @@
               <div class="setup-title">{{ t('settings.ai.quickTitle') }}</div>
               <span class="tag tag-accent">{{ t('settings.ai.recommended') }}</span>
             </div>
-            <p class="setup-desc">
-              {{ t('settings.ai.quickDesc') }}
-              <a class="lotus-site-link" :href="lotusSiteUrl" target="_blank" rel="noopener noreferrer">
-                {{ t('settings.ai.getKey') }}
-                <ExternalLink :size="12" :stroke-width="1.8" />
-              </a>
-            </p>
-            <div class="lotus-quick-row">
-              <input v-model="lotusApiKey" class="input" type="password" placeholder="Real-API Key" />
-              <button class="btn btn-primary" :disabled="lotusSaving" @click="applyLotusQuickConfig">
-                <Loader2 v-if="lotusSaving" :size="13" class="animate-spin" />
-                <Sparkles v-else :size="13" />
-                {{ t('settings.ai.applyQuick') }}
+            <p class="setup-desc">{{ t('settings.ai.quickDesc') }}</p>
+
+            <div class="lotus-mode-tabs">
+              <button type="button" class="lotus-mode-tab" :class="{ on: lotusKeyMode === 'new' }" @click="lotusKeyMode = 'new'">
+                {{ t('settings.ai.noAccountTab') }}
+              </button>
+              <button type="button" class="lotus-mode-tab" :class="{ on: lotusKeyMode === 'existing' }" @click="lotusKeyMode = 'existing'">
+                {{ t('settings.ai.hasAccountTab') }}
               </button>
             </div>
+
+            <template v-if="lotusKeyMode === 'existing'">
+              <p class="setup-desc lotus-mode-hint">
+                <button type="button" class="lotus-site-link" :disabled="lotusConsoleOpening" @click="openRealApiConsole()">
+                  {{ lotusConsoleOpening ? t('settings.ai.openingConsole') : t('settings.ai.getKey') }}
+                  <ExternalLink :size="12" :stroke-width="1.8" />
+                </button>
+              </p>
+              <div class="lotus-quick-row">
+                <div class="lotus-key-wrap">
+                  <input v-model="lotusApiKey" class="input" :type="lotusApiKeyVisible ? 'text' : 'password'" placeholder="Real-API Key" />
+                  <button type="button" class="lotus-key-toggle" :title="lotusApiKeyVisible ? '隐藏' : '查看'" @click="lotusApiKeyVisible = !lotusApiKeyVisible">
+                    <EyeOff v-if="lotusApiKeyVisible" :size="15" :stroke-width="1.8" />
+                    <Eye v-else :size="15" :stroke-width="1.8" />
+                  </button>
+                </div>
+                <button class="btn btn-primary" :disabled="lotusSaving" @click="applyLotusQuickConfig">
+                  <Loader2 v-if="lotusSaving" :size="13" class="animate-spin" />
+                  <Sparkles v-else :size="13" />
+                  {{ t('settings.ai.applyQuick') }}
+                </button>
+              </div>
+            </template>
+
+            <template v-else>
+              <p class="setup-desc lotus-mode-hint">{{ t('settings.ai.autoRegisterHint') }}</p>
+              <label v-if="!auth.isSaas.value" class="lotus-username-field">
+                <span>{{ t('settings.ai.autoRegisterUsername') }}</span>
+                <input v-model.trim="lotusRegisterUsername" class="input" maxlength="32" :placeholder="t('settings.ai.autoRegisterUsernameHint')" />
+              </label>
+              <div class="lotus-quick-row lotus-quick-row-new">
+                <button class="btn btn-primary" :disabled="lotusRegistering" @click="autoRegisterRealApi">
+                  <Loader2 v-if="lotusRegistering" :size="13" class="animate-spin" />
+                  <Sparkles v-else :size="13" />
+                  {{ lotusRegistering ? t('settings.ai.autoRegistering') : t('settings.ai.autoRegisterBtn') }}
+                </button>
+              </div>
+              <div v-if="lotusProvisioned" class="lotus-account-card">
+                <div class="lotus-account-title">{{ t('settings.ai.accountCreatedTitle') }}</div>
+                <div class="lotus-account-row">
+                  <span class="lotus-account-label">{{ t('settings.ai.accountUsername') }}</span>
+                  <code class="mono">{{ lotusProvisioned.username }}</code>
+                </div>
+                <div class="lotus-account-row">
+                  <span class="lotus-account-label">{{ t('settings.ai.accountPassword') }}</span>
+                  <code class="mono">{{ lotusProvisioned.password }}</code>
+                </div>
+                <div class="lotus-account-row">
+                  <span class="lotus-account-label">{{ t('settings.ai.accountBalance') }}</span>
+                  <code class="mono">
+                    <template v-if="lotusBalanceLoading">{{ t('settings.ai.accountBalanceLoading') }}</template>
+                    <template v-else-if="lotusProvisioned.balance_usd != null">${{ Number(lotusProvisioned.balance_usd).toFixed(4) }}</template>
+                    <template v-else>—</template>
+                  </code>
+                  <button type="button" class="btn btn-ghost btn-sm" :disabled="lotusBalanceLoading" @click="refreshRealApiBalance">
+                    {{ t('settings.ai.refreshBalance') }}
+                  </button>
+                  <button type="button" class="btn btn-primary btn-sm" :disabled="lotusConsoleOpening" @click="openRealApiConsole('/console/recharge')">
+                    {{ lotusConsoleOpening ? t('settings.ai.openingConsole') : t('settings.ai.goRecharge') }}
+                  </button>
+                </div>
+                <p class="lotus-account-warn">{{ t('settings.ai.accountPasswordHint') }}</p>
+                <p class="lotus-account-filled" v-html="t('settings.ai.accountKeyFilled')"></p>
+                <div class="lotus-account-actions">
+                  <button type="button" class="btn btn-ghost btn-sm" @click="copyProvisionedAccount">{{ t('settings.ai.copyAccount') }}</button>
+                  <button type="button" class="lotus-site-link" :disabled="lotusConsoleOpening" @click="openRealApiConsole()">
+                    {{ lotusConsoleOpening ? t('settings.ai.openingConsole') : t('settings.ai.getKey') }}
+                    <ExternalLink :size="12" :stroke-width="1.8" />
+                  </button>
+                </div>
+                <div class="lotus-quick-row" style="margin-top: 12px">
+                  <div class="lotus-key-wrap">
+                    <input v-model="lotusApiKey" class="input" :type="lotusApiKeyVisible ? 'text' : 'password'" placeholder="Real-API Key" />
+                    <button type="button" class="lotus-key-toggle" :title="lotusApiKeyVisible ? '隐藏' : '查看'" @click="lotusApiKeyVisible = !lotusApiKeyVisible">
+                      <EyeOff v-if="lotusApiKeyVisible" :size="15" :stroke-width="1.8" />
+                      <Eye v-else :size="15" :stroke-width="1.8" />
+                    </button>
+                  </div>
+                  <button class="btn btn-primary" :disabled="lotusSaving" @click="applyLotusQuickConfig">
+                    <Loader2 v-if="lotusSaving" :size="13" class="animate-spin" />
+                    <Sparkles v-else :size="13" />
+                    {{ t('settings.ai.applyQuick') }}
+                  </button>
+                </div>
+              </div>
+            </template>
+
             <div class="lotus-quick-models">
               <div v-for="q in lotusQuickConfigs" :key="q.name" class="hqm-row">
                 <span class="hqm-label">{{ serviceMeta[q.service_type].label }}</span>
@@ -260,80 +342,6 @@
             <p class="config-empty">{{ t('settings.storage.note') }}</p>
             <p v-if="!isDesktopMode" class="config-empty">{{ t('settings.storage.serverNote') }}</p>
           </section>
-        </div>
-
-        <!-- ===== 关于更新 ===== -->
-        <div v-else-if="tab === 'about'" class="settings-scroll">
-          <div class="settings-head">
-            <h2 class="settings-title">{{ t('settings.about.title') }}</h2>
-            <p class="settings-desc">{{ t('settings.about.desc') }}</p>
-          </div>
-          <section class="card svc-group">
-            <div class="svc-group-head">
-              <div class="svc-group-heading">
-                <span class="svc-group-title">{{ t('settings.about.currentVersion', { v: updateState?.currentVersion || '…' }) }}</span>
-                <div v-if="updateState?.latestVersion" class="svc-group-sub">{{ t('settings.about.latestVersion', { v: updateState.latestVersion }) }}</div>
-              </div>
-              <button class="btn btn-primary btn-sm ml-auto" :disabled="updateChecking" @click="checkUpdate">
-                <Loader2 v-if="updateChecking" :size="13" class="animate-spin" />
-                <RefreshCw v-else :size="13" />
-                {{ t('settings.about.check') }}
-              </button>
-            </div>
-
-            <div v-if="updateState?.status === 'up-to-date'" class="config-row">
-              <div class="provider-badge style-badge"><Check :size="15" /></div>
-              <div class="config-main"><div class="config-line"><span class="config-name">{{ t('settings.about.upToDate') }}</span></div></div>
-            </div>
-            <div v-else-if="updateState?.status === 'available' || updateState?.status === 'downloading'" class="config-row">
-              <div class="provider-badge style-badge"><Sparkles :size="15" /></div>
-              <div class="config-main">
-                <div class="config-line"><span class="config-name">{{ t('settings.about.found', { v: updateState.latestVersion }) }}</span></div>
-                <div v-if="updateState.notes" class="config-sub">{{ updateState.notes }}</div>
-                <div v-if="updateState.status === 'downloading' || updateDownloading" class="update-bar">
-                  <div class="update-bar-fill" :style="{ width: `${updateProgress}%` }"></div>
-                </div>
-                <!-- 服务器手动模式：无 Watchtower，给出更新命令 -->
-                <div v-if="!desktopBridge && serverUpdateMode === 'manual'" class="config-sub">
-                  {{ t('settings.about.serverManualHint') }} <span class="mono">docker compose pull && docker compose up -d</span>
-                </div>
-              </div>
-              <!-- 桌面版：下载更新包 -->
-              <button v-if="desktopBridge" class="btn btn-primary btn-sm" :disabled="updateDownloading" @click="downloadUpdate">
-                <Loader2 v-if="updateDownloading" :size="13" class="animate-spin" />
-                <Download v-else :size="13" />
-                {{ updateDownloading ? t('settings.about.downloading', { p: updateProgress }) : t('settings.about.download') }}
-              </button>
-              <!-- 服务器 + Watchtower：一键触发拉镜像重建 -->
-              <button v-else-if="serverUpdateMode === 'watchtower'" class="btn btn-primary btn-sm" :disabled="updateApplying" @click="applyUpdate">
-                <Loader2 v-if="updateApplying" :size="13" class="animate-spin" />
-                <Download v-else :size="13" />
-                {{ t('settings.about.serverApply') }}
-              </button>
-            </div>
-            <div v-else-if="updateState?.status === 'downloaded'" class="config-row">
-              <div class="provider-badge style-badge"><Download :size="15" /></div>
-              <div class="config-main">
-                <div class="config-line"><span class="config-name">{{ t('settings.about.ready') }}</span></div>
-                <div class="config-sub">{{ t('settings.about.readyDesc') }}</div>
-              </div>
-              <button class="btn btn-primary btn-sm" :disabled="updateApplying" @click="applyUpdate">
-                <Loader2 v-if="updateApplying" :size="13" class="animate-spin" />
-                {{ t('settings.about.restartInstall') }}
-              </button>
-            </div>
-            <div v-else-if="updateState?.status === 'error'" class="config-row">
-              <div class="provider-badge style-badge"><RefreshCw :size="15" /></div>
-              <div class="config-main">
-                <div class="config-line"><span class="config-name">{{ t('settings.about.checkFailed') }}</span></div>
-                <div class="config-sub">{{ updateState.error }}</div>
-              </div>
-              <button class="btn btn-ghost btn-sm" @click="checkUpdate">{{ t('settings.about.retry') }}</button>
-            </div>
-            <p v-else class="config-empty">{{ t('settings.about.empty') }}</p>
-          </section>
-          <p v-if="desktopBridge" class="config-empty">{{ t('settings.about.note') }}</p>
-          <p v-else class="config-empty">{{ t('settings.about.serverNote') }}</p>
         </div>
 
         <!-- ===== Agent 配置（左侧 tab 切换，Prompt 与 Skills 整合在同一 Agent 下） ===== -->
@@ -672,12 +680,12 @@
 </template>
 
 <script setup>
-import { Plus, Pencil, Trash2, FileText, ChevronDown, Check, Loader2, Bot, Cpu, Sparkles, Palette, ExternalLink, Star, HardDrive, Database, RefreshCw, Download, Languages, SunMoon, X } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, FileText, ChevronDown, Check, Loader2, Bot, Cpu, Sparkles, Palette, ExternalLink, Star, HardDrive, Database, Languages, SunMoon, X, Eye, EyeOff } from 'lucide-vue-next'
 import BaseSelect from '~/components/BaseSelect.vue'
 import { toast } from 'vue-sonner'
 import { toastError } from '~/composables/useToast'
 import { useI18n } from 'vue-i18n'
-import { aiConfigAPI, promptAPI, skillsAPI, storageAPI, stylePresetAPI, settingsAPI, serverUpdateAPI } from '~/composables/useApi'
+import { aiConfigAPI, promptAPI, skillsAPI, storageAPI, stylePresetAPI, settingsAPI } from '~/composables/useApi'
 import { useDesktopBridge } from '~/composables/useDesktopBridge'
 import { useMigrateState } from '~/composables/useMigrateState'
 import { useTheme } from '~/composables/useTheme'
@@ -686,17 +694,27 @@ import { startTour, autoTour } from '~/composables/useTour'
 import { confirmUnifiedLanguage } from '~/composables/useUnifiedLanguage'
 
 const { t } = useI18n()
+const auth = useAuth()
 
 const showBrandImage = ref(true)
 const tab = ref('ai')
-const baseTabs = computed(() => [
-  { id: 'ai', label: t('settings.tabs.ai'), icon: Cpu },
-  { id: 'general', label: t('settings.tabs.general'), icon: Languages },
-  { id: 'styles', label: t('settings.tabs.styles'), icon: Palette },
-  { id: 'agents', label: t('settings.tabs.agents'), icon: Bot },
-  { id: 'storage', label: t('settings.tabs.storage'), icon: HardDrive },
-  { id: 'about', label: t('settings.tabs.about'), icon: RefreshCw },
-])
+const baseTabs = computed(() => {
+  const tabs = [
+    { id: 'ai', label: t('settings.tabs.ai'), icon: Cpu },
+    { id: 'general', label: t('settings.tabs.general'), icon: Languages },
+    { id: 'styles', label: t('settings.tabs.styles'), icon: Palette },
+    { id: 'agents', label: t('settings.tabs.agents'), icon: Bot },
+  ]
+  // SaaS 多租户不开放本地存储位置切换
+  if (!auth.isSaas.value) {
+    tabs.push({ id: 'storage', label: t('settings.tabs.storage'), icon: HardDrive })
+  }
+  return tabs
+})
+
+watch(() => auth.isSaas.value, (saas) => {
+  if (saas && tab.value === 'storage') tab.value = 'ai'
+})
 
 // ===== AI Service Configs =====
 const cfgs = ref([])
@@ -705,8 +723,73 @@ const cfgEditId = ref(null)
 const cfgTesting = ref(false)
 const cfgTestResult = ref(null)
 const lotusApiKey = ref('')
+const lotusApiKeyVisible = ref(false)
 const lotusSaving = ref(false)
 const lotusSiteUrl = 'https://real-api.yunfm.cn'
+const lotusKeyMode = ref('new') // new | existing
+const lotusRegistering = ref(false)
+const lotusRegisterUsername = ref('lotus')
+const lotusProvisioned = ref(null)
+const lotusConsoleOpening = ref(false)
+const lotusBalanceLoading = ref(false)
+
+const LEGACY_REAL_API_ACCOUNT_KEY = 'lotus:real-api-account'
+
+function legacyRealApiAccountKeys() {
+  const uid = auth.user.value?.id
+  const keys = [LEGACY_REAL_API_ACCOUNT_KEY]
+  if (uid) keys.unshift(`${LEGACY_REAL_API_ACCOUNT_KEY}:${uid}`)
+  return keys
+}
+
+function readLegacyLocalRealApiAccount() {
+  for (const key of legacyRealApiAccountKeys()) {
+    try {
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      const saved = JSON.parse(raw)
+      if (saved?.activation_code || saved?.username) return saved
+    } catch { /* try next */ }
+  }
+  return null
+}
+
+function clearLegacyLocalRealApiAccount() {
+  for (const key of legacyRealApiAccountKeys()) {
+    try { localStorage.removeItem(key) } catch { /* ignore */ }
+  }
+}
+
+function applyServerRealApiAccount(saved) {
+  if (!saved?.activation_code && !saved?.username) return false
+  lotusProvisioned.value = saved
+  lotusKeyMode.value = 'new'
+  if (saved.api_key) lotusApiKey.value = saved.api_key
+  return true
+}
+
+async function restoreRealApiAccount() {
+  await auth.ensureReady()
+  try {
+    let saved = await aiConfigAPI.getRealApiAccount()
+    // 旧版只存浏览器：若服务端为空则一次性迁入 SQLite，再清掉 localStorage
+    if (!saved?.username && !saved?.activation_code) {
+      const legacy = readLegacyLocalRealApiAccount()
+      if (legacy) {
+        try {
+          saved = await aiConfigAPI.saveRealApiAccount(legacy)
+          clearLegacyLocalRealApiAccount()
+        } catch { saved = legacy }
+      }
+    } else {
+      clearLegacyLocalRealApiAccount()
+    }
+    if (applyServerRealApiAccount(saved)) refreshRealApiBalance()
+  } catch { /* 未开通或接口失败时保持空白 */ }
+}
+
+onMounted(() => { restoreRealApiAccount() })
+watch(() => auth.user.value?.id, () => { restoreRealApiAccount() })
 const cfgForm = reactive({ name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '' })
 // 模型标签编辑器：首位即默认模型；输入框支持回车添加、逗号/换行批量粘贴
 const modelInput = ref('')
@@ -775,6 +858,7 @@ const REAL_API_IMAGE_MODELS = [
 ]
 const REAL_API_VIDEO_MODELS = [
   'doubao-seedance-2.5',
+  'kling-v4',
   'MiniMax-H3',
   'wan3.0-video',
   'alibaba/wan-3.0',
@@ -828,6 +912,8 @@ function applyProviderPreset(type, provider) {
 
 async function loadCfgs() { try { cfgs.value = await aiConfigAPI.list() } catch (e) { toastError(e) } }
 
+const { notifyAiConfigsChanged } = useAiConfigBanner()
+
 // ===== 默认模型选择 =====
 // 默认解析规则与工作台/后端一致：启用配置中优先级最高者的模型列表首位
 function defaultModelOf(type) {
@@ -854,21 +940,33 @@ async function setDefaultModel(type, c, m) {
     await aiConfigAPI.update(c.id, payload)
     toast.success(t('settings.ai.defaultModelSwitched', { type: serviceMeta.value[type].label, model: m }))
     await loadCfgs()
+    notifyAiConfigsChanged()
   } catch (e) {
     toastError(e)
   } finally {
     defaultSaving.value = false
   }
 }
-async function toggleCfg(c) { await aiConfigAPI.update(c.id, { is_active: !c.is_active }); loadCfgs() }
-async function delCfg(id) { await aiConfigAPI.del(id); toast.success(t('index.deleted')); loadCfgs() }
+async function toggleCfg(c) {
+  await aiConfigAPI.update(c.id, { is_active: !c.is_active })
+  await loadCfgs()
+  notifyAiConfigsChanged()
+}
+async function delCfg(id) {
+  await aiConfigAPI.del(id)
+  toast.success(t('index.deleted'))
+  await loadCfgs()
+  notifyAiConfigsChanged()
+}
+
 async function applyLotusQuickConfig() {
   const apiKey = lotusApiKey.value.trim()
   if (!apiKey) { toast.warning(t('settings.ai.apiKeyRequired')); return }
   lotusSaving.value = true
   try {
     for (const preset of lotusQuickConfigs.value) {
-      const payload = { ...preset, api_key: apiKey }
+      // 写入时强制启用，避免旧停用同名配置更新后仍被横幅判定为未配置
+      const payload = { ...preset, api_key: apiKey, is_active: true }
       // Real-API 多条视频共用同一 base_url/provider，必须以 name 区分，避免互相覆盖
       const existing = cfgs.value.find(c => c.name === preset.name)
       if (existing) await aiConfigAPI.update(existing.id, payload)
@@ -877,10 +975,89 @@ async function applyLotusQuickConfig() {
     toast.success(t('settings.ai.quickApplied'))
     lotusApiKey.value = ''
     await loadCfgs()
+    notifyAiConfigsChanged()
   } catch (e) {
     toastError(e)
   } finally {
     lotusSaving.value = false
+  }
+}
+
+async function autoRegisterRealApi() {
+  lotusRegistering.value = true
+  try {
+    const username = auth.isSaas.value
+      ? (auth.user.value?.username || undefined)
+      : (lotusRegisterUsername.value.trim() || 'lotus')
+    const account = await aiConfigAPI.autoRegisterRealApi(username ? { username } : {})
+    lotusProvisioned.value = account
+    lotusApiKey.value = account.api_key || ''
+    toast.success(t('settings.ai.accountCreatedTitle'))
+    if (account.balance_usd == null) refreshRealApiBalance()
+  } catch (e) {
+    toastError(e)
+  } finally {
+    lotusRegistering.value = false
+  }
+}
+
+async function refreshRealApiBalance() {
+  const a = lotusProvisioned.value
+  if (!a?.username && !a?.user_id) return
+  lotusBalanceLoading.value = true
+  try {
+    const res = await aiConfigAPI.realApiBalance({
+      user_id: a.user_id,
+      username: a.username,
+      password: a.password || '123456',
+    })
+    lotusProvisioned.value = { ...a, balance_usd: res.balance_usd }
+  } catch (e) {
+    toastError(e, { fallback: 'settings.ai.balanceFailed' })
+  } finally {
+    lotusBalanceLoading.value = false
+  }
+}
+
+async function openRealApiConsole(redirect) {
+  let account = lotusProvisioned.value
+  if (!account?.activation_code) {
+    try { account = await aiConfigAPI.getRealApiAccount() } catch { /* ignore */ }
+    if (account) applyServerRealApiAccount(account)
+  }
+  const code = account?.activation_code
+  const site = (account?.site_url || lotusSiteUrl).replace(/\/+$/, '')
+  const fallback = redirect ? `${site}${redirect.startsWith('/') ? redirect : `/${redirect}`}` : site
+  if (!code) {
+    window.open(fallback, '_blank', 'noopener,noreferrer')
+    return
+  }
+  lotusConsoleOpening.value = true
+  try {
+    const ticket = await aiConfigAPI.realApiLoginTicket(code, redirect || undefined)
+    window.open(ticket.login_url || fallback, '_blank', 'noopener,noreferrer')
+  } catch (e) {
+    toastError(e, { fallback: 'settings.ai.openConsoleFailed' })
+    window.open(fallback, '_blank', 'noopener,noreferrer')
+  } finally {
+    lotusConsoleOpening.value = false
+  }
+}
+
+async function copyProvisionedAccount() {
+  const a = lotusProvisioned.value
+  if (!a) return
+  const text = [
+    `平台：${a.site_url || lotusSiteUrl}`,
+    `账号：${a.username}`,
+    `密码：${a.password || '123456'}`,
+    `API Key：${a.api_key || ''}`,
+  ].join('\n')
+  try {
+    await navigator.clipboard.writeText(text)
+    toast.success(t('settings.ai.copiedAccount'))
+  } catch {
+    toastError(new Error('复制失败'))
   }
 }
 function startAddCfg(t) {
@@ -947,7 +1124,10 @@ async function saveCfg() {
   try {
     if (cfgEditId.value) await aiConfigAPI.update(cfgEditId.value, { name: cfgForm.name, provider: cfgForm.provider, api_key: cfgForm.api_key, base_url: cfgForm.base_url, model: models, priority: cfgForm.priority, temperature })
     else await aiConfigAPI.create({ service_type: cfgForm.service_type, provider: cfgForm.provider, name: cfgForm.name || `${cfgForm.provider}-${cfgForm.service_type}`, api_key: cfgForm.api_key, base_url: cfgForm.base_url, model: models, priority: cfgForm.priority, temperature })
-    cfgDialog.value = false; toast.success(t('common.saved')); loadCfgs()
+    cfgDialog.value = false
+    toast.success(t('common.saved'))
+    await loadCfgs()
+    notifyAiConfigsChanged()
   } catch (e) { toastError(e) }
 }
 
@@ -1335,81 +1515,7 @@ function formatBytes(n) {
   return `${n} B`
 }
 
-// ===== 应用内更新（桌面版走 Electron 桥；服务器/Docker 走后端 server-update 路由） =====
-const updateState = ref(null)
-const updateChecking = ref(false)
-const updateDownloading = ref(false)
-const updateProgress = ref(0)
-const updateApplying = ref(false)
-const serverUpdateMode = ref('manual') // 'watchtower' | 'manual'，仅服务器模式有意义
-
-async function refreshUpdateState() {
-  try {
-    if (desktopBridge) {
-      updateState.value = await desktopBridge.getUpdateState()
-    } else {
-      const s = await serverUpdateAPI.state()
-      serverUpdateMode.value = s.updateMode || 'manual'
-      updateState.value = s
-    }
-  } catch { /* 静默 */ }
-}
-
-async function checkUpdate() {
-  updateChecking.value = true
-  try {
-    if (desktopBridge) {
-      updateState.value = await desktopBridge.checkUpdate()
-    } else {
-      const s = await serverUpdateAPI.check()
-      serverUpdateMode.value = s.updateMode || 'manual'
-      updateState.value = s
-    }
-    if (updateState.value?.status === 'up-to-date') toast.success(t('settings.about.upToDate'))
-  } catch (e) {
-    toastError(e, { fallback: 'settings.about.checkFailedToast' })
-    refreshUpdateState()
-  } finally { updateChecking.value = false }
-}
-
-async function downloadUpdate() {
-  if (!desktopBridge) return
-  updateDownloading.value = true
-  updateProgress.value = 0
-  const unProgress = desktopBridge.onUpdateProgress((p) => { updateProgress.value = p })
-  try {
-    updateState.value = await desktopBridge.downloadUpdate()
-    toast.success(t('settings.about.downloadDone'))
-  } catch (e) {
-    toastError(e, { fallback: 'settings.about.downloadFailed' })
-    refreshUpdateState()
-  } finally {
-    unProgress()
-    updateDownloading.value = false
-  }
-}
-
-async function applyUpdate() {
-  updateApplying.value = true
-  try {
-    if (desktopBridge) {
-      await desktopBridge.applyUpdate()
-      // 成功路径：应用退出并由更新后的版本接管，不会走到这里
-    } else {
-      await serverUpdateAPI.apply()
-      // Watchtower 异步拉镜像重建容器，本进程随后被替换
-      toast.success(t('settings.about.serverApplyStarted'), { duration: 8000 })
-      updateApplying.value = false
-    }
-  } catch (e) {
-    updateApplying.value = false
-    toastError(e, { fallback: desktopBridge ? 'settings.about.installFailed' : 'settings.about.serverApplyFailed' })
-    refreshUpdateState()  // 桌面端 apply 失败会把具体原因写进 updateState.error，刷新显示在错误行
-  }
-}
-
 watch(tab, (t) => {
-  if (t === 'about') refreshUpdateState()
   // 进入 Agent 页总是按当前内容语言重载（幂等）：兜住「先切语言、后进 Agent」的时序
   if (t === 'agents') {
     loadAgentPrompt(selectedAgent.value)
@@ -1467,15 +1573,127 @@ onBeforeUnmount(stopUsagePoll)
 .lotus-site-link {
   display: inline-flex; align-items: center; gap: 3px;
   margin-left: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--accent); text-decoration: none;
+  font: inherit;
   font-weight: 600; white-space: nowrap;
+  cursor: pointer;
 }
 .lotus-site-link:hover { text-decoration: underline; }
+.lotus-site-link:disabled { opacity: 0.6; cursor: wait; text-decoration: none; }
+.lotus-mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--surface-muted, var(--bg-2));
+}
+.lotus-mode-tab {
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  padding: 8px 10px;
+  font: 600 12.5px var(--font-body, system-ui, sans-serif);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.lotus-mode-tab.on {
+  background: var(--surface-raised, var(--bg-1));
+  color: var(--text-0);
+  box-shadow: var(--shadow-xs);
+}
+.lotus-mode-hint { margin-bottom: 12px; }
+.lotus-username-field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.lotus-username-field span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
 .lotus-quick-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
+}
+.lotus-quick-row-new { grid-template-columns: auto; justify-content: start; }
+.lotus-key-wrap {
+  position: relative;
+  min-width: 0;
+}
+.lotus-key-wrap .input {
+  width: 100%;
+  padding-right: 40px;
+}
+.lotus-key-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+.lotus-key-toggle:hover { color: var(--text-1); background: var(--bg-hover); }
+.lotus-account-card {
+  margin-top: 12px;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--surface-soft, var(--bg-0));
+}
+.lotus-account-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-0);
+  margin-bottom: 10px;
+}
+.lotus-account-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.lotus-account-label {
+  min-width: 72px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+.lotus-account-warn {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--warning, #b08a45);
+}
+.lotus-account-filled {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.lotus-account-filled :deep(strong) {
+  font-weight: 700;
+  color: var(--text-0);
+}
+.lotus-account-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
 }
 .lotus-quick-models {
   margin-top: 14px;
@@ -1847,19 +2065,5 @@ onBeforeUnmount(stopUsagePoll)
 }
 .migrate-warn {
   color: var(--error);
-}
-.update-bar {
-  width: 220px;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--overlay-track);
-  overflow: hidden;
-  margin-top: 6px;
-}
-.update-bar-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: var(--accent);
-  transition: width 0.2s ease;
 }
 </style>

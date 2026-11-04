@@ -46,7 +46,30 @@
       "light": "Light mode",
       "dark": "Dark mode",
       "system": "Follow system"
+    },
+    "user": {
+      "logout": "Log out",
+      "admin": "Admin"
+    },
+    "footer": {
+      "copyright": "© {year} 楼图（上海）信息科技有限公司",
+      "linksLabel": "Quick links",
+      "realApi": "Real-API",
+      "lotusGrowth": "Lotus Growth"
     }
+  },
+  "auth": {
+    "brand": "Lotus Shorts",
+    "subtitle": "Sign in to continue your short-drama projects",
+    "login": "Sign in",
+    "register": "Sign up",
+    "username": "Username",
+    "password": "Password",
+    "displayName": "Display name",
+    "displayNameHint": "Optional",
+    "submitting": "Submitting…",
+    "failed": "Something went wrong. Please try again.",
+    "registerClosed": "Registration is closed. Contact an admin for an account."
   },
   "migrate": {
     "title": "Switching storage location",
@@ -254,7 +277,7 @@
     "groupBase": "Basic",
     "tabs": {
       "general": "General",
-      "ai": "AI Services",
+      "ai": "AI Model Config",
       "styles": "Style Presets",
       "storage": "Storage",
       "about": "About & Updates",
@@ -289,12 +312,33 @@
       "unifiedSwitchWarning": "Switched to {lang} — UI and AI content language update together. Refreshing…"
     },
     "ai": {
-      "title": "AI Service Configs",
+      "title": "AI Model Config",
       "desc": "Start with a recommended template, then fine-tune per service type. The workbench locks the chosen image and video capabilities when creating an episode.",
       "quickTitle": "Lotus Quick Config",
       "recommended": "Recommended",
-      "quickDesc": "Enter a Real-API Key to write recommended text, image and video configs (real-api.yunfm.cn).",
-      "getKey": "Get a Real-API key",
+      "quickDesc": "Connect Real-API (real-api.yunfm.cn): paste a Key if you already have an account, or open one in one click.",
+      "getKey": "Open Real-API console",
+      "openingConsole": "Opening…",
+      "openConsoleFailed": "Auto-login failed; opened the console home instead",
+      "hasAccountTab": "I have a Real-API account",
+      "noAccountTab": "No account — open one",
+      "autoRegisterHint": "Registers on Real-API with this app’s username (adds _2 on conflict). Default password is 123456; API Key is filled automatically.",
+      "autoRegisterBtn": "Register & fill Key",
+      "autoRegistering": "Opening…",
+      "autoRegisterUsername": "Username",
+      "autoRegisterUsernameHint": "Standalone can customize; SaaS uses the signed-in username by default",
+      "accountCreatedTitle": "Real-API account ready",
+      "accountUsername": "Username",
+      "accountPassword": "Password",
+      "accountBalance": "Balance",
+      "accountBalanceLoading": "Loading…",
+      "refreshBalance": "Refresh",
+      "goRecharge": "Recharge",
+      "balanceFailed": "Failed to load balance",
+      "accountPasswordHint": "Default password is 123456 — change it after logging into Real-API",
+      "accountKeyFilled": "API Key filled below — <strong>click Apply Real-API Config to save</strong>",
+      "copyAccount": "Copy account info",
+      "copiedAccount": "Account info copied",
       "regionCn": "China",
       "regionCom": "Global",
       "applyQuick": "Apply Real-API Config",

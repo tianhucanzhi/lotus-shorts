@@ -45,7 +45,30 @@
       "light": "ライトモード",
       "dark": "ダークモード",
       "system": "システムに従う"
+    },
+    "user": {
+      "logout": "ログアウト",
+      "admin": "管理者"
+    },
+    "footer": {
+      "copyright": "© {year} 楼图（上海）信息科技有限公司",
+      "linksLabel": "クイックリンク",
+      "realApi": "Real-API",
+      "lotusGrowth": "蓮花成長体"
     }
+  },
+  "auth": {
+    "brand": "蓮花短劇",
+    "subtitle": "ログインして短編ドラマ制作を続ける",
+    "login": "ログイン",
+    "register": "登録",
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "displayName": "表示名",
+    "displayNameHint": "任意",
+    "submitting": "送信中…",
+    "failed": "失敗しました。もう一度お試しください",
+    "registerClosed": "現在登録は閉じています。管理者に連絡してください"
   },
   "migrate": {
     "title": "保存場所を切り替えています",
@@ -231,7 +254,7 @@
     "groupBase": "基本",
     "tabs": {
       "general": "一般",
-      "ai": "AI サービス",
+      "ai": "AIモデル設定",
       "styles": "スタイルプリセット",
       "storage": "保存場所",
       "about": "更新について",
@@ -266,12 +289,33 @@
       "unifiedSwitchWarning": "{lang} に切替しました。UI と AI コンテンツ言語が同期され、まもなく再読み込みします…"
     },
     "ai": {
-      "title": "AI サービス設定",
+      "title": "AIモデル設定",
       "desc": "まず推奨テンプレートで設定を作成し、サービスタイプごとに微調整します。ワークベンチで話を作成する際に選択した画像・動画能力がロックされます。",
       "quickTitle": "蓮花クイック設定",
       "recommended": "おすすめ",
-      "quickDesc": "Real-API Key を入力すると、テキスト・画像・動画の推奨設定を一括で書き込みます（real-api.yunfm.cn）。",
-      "getKey": "Real-API Key を取得",
+      "quickDesc": "Real-API（real-api.yunfm.cn）連携：既存アカウントは Key を入力、未登録はワンクリック開通。",
+      "getKey": "Real-API コンソールへ",
+      "openingConsole": "開いています…",
+      "openConsoleFailed": "自動ログインに失敗したため、コンソールトップを開きました",
+      "hasAccountTab": "Real-API アカウントあり",
+      "noAccountTab": "未登録・ワンクリック開通",
+      "autoRegisterHint": "本システムのユーザー名で Real-API 登録（重複時は _2）。初期パスワード 123456。API Key は自動入力。",
+      "autoRegisterBtn": "登録して Key を入力",
+      "autoRegistering": "開通中…",
+      "autoRegisterUsername": "登録ユーザー名",
+      "autoRegisterUsernameHint": "スタンドアロンは変更可；SaaS はログイン名を既定使用",
+      "accountCreatedTitle": "Real-API アカウント開通済み",
+      "accountUsername": "ログイン名",
+      "accountPassword": "パスワード",
+      "accountBalance": "残高",
+      "accountBalanceLoading": "取得中…",
+      "refreshBalance": "残高を更新",
+      "goRecharge": "チャージへ",
+      "balanceFailed": "残高の取得に失敗しました",
+      "accountPasswordHint": "初期パスワードは 123456。Real-API で速やかに変更してください",
+      "accountKeyFilled": "API Key を下に入力済み。<strong>「Real-API 設定を書き込む」で保存</strong>",
+      "copyAccount": "アカウント情報をコピー",
+      "copiedAccount": "コピーしました",
       "regionCn": "国内",
       "regionCom": "海外",
       "applyQuick": "Real-API 設定を書き込む",

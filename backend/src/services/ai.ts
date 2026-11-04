@@ -3,8 +3,18 @@
  */
 import { db, schema } from '../db/index.js'
 import { eq } from 'drizzle-orm'
+import { isSaas } from '../config/mode.js'
+import { getRequestUserId } from './request-context.js'
 import { logTaskProgress, logTaskWarn } from '../utils/task-logger.js'
 import { joinProviderUrl } from './adapters/url.js'
+
+/** SaaS 下只取当前用户的配置；独立版不限 */
+function ownedByCurrentUser<T extends { userId?: number | null }>(rows: T[]): T[] {
+  if (!isSaas()) return rows
+  const userId = getRequestUserId()
+  if (!userId) return []
+  return rows.filter(r => r.userId === userId)
+}
 
 export type ServiceType = 'text' | 'image' | 'video'
 
@@ -63,7 +73,7 @@ const lastLoggedActiveConfigKey = new Map<string, string>()
 const lastLoggedConfigByIdKey = new Map<number, string>()
 
 export async function getActiveConfig(serviceType: ServiceType): Promise<AIConfig | null> {
-  const rows = (await db.select().from(schema.aiServiceConfigs)
+  const rows = ownedByCurrentUser(await db.select().from(schema.aiServiceConfigs)
     .where(eq(schema.aiServiceConfigs.serviceType, serviceType))
   )
     .filter(r => r.isActive && isOfficialProvider(serviceType, r.provider))
@@ -107,7 +117,7 @@ export async function getTextConfig(): Promise<AIConfig> {
  * 取某服务类型当前启用且优先级最高的官方配置 ID（创建集时自动锁定用）
  */
 export async function getActiveConfigId(serviceType: ServiceType): Promise<number | null> {
-  const rows = (await db.select().from(schema.aiServiceConfigs)
+  const rows = ownedByCurrentUser(await db.select().from(schema.aiServiceConfigs)
     .where(eq(schema.aiServiceConfigs.serviceType, serviceType))
   )
     .filter(r => r.isActive && isOfficialProvider(serviceType, r.provider))

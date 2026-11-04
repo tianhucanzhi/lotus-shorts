@@ -2,13 +2,15 @@
  * Agent 聊天路由 — 非流式版本
  */
 import { Hono } from 'hono'
+import type { AuthVariables } from '../middleware/auth.js'
+import { denyUnlessDramaOwner } from '../services/access.js'
 import { validAgentTypes } from '../agents/index.js'
 import { buildAgentRequestContext } from '../agents/context.js'
 import { mastra } from '../mastra/index.js'
 import { success, badRequest } from '../utils/response.js'
 import { logTaskError, logTaskPayload, logTaskProgress, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 
-const app = new Hono()
+const app = new Hono<{ Variables: AuthVariables }>()
 
 // Mastra v1.17 的 ToolCallChunk / ToolResultChunk 结构：
 // { type: 'tool-call', payload: { toolCallId, toolName, args } }
@@ -49,6 +51,9 @@ app.post('/:type/chat', async (c) => {
     logTaskError('Agent', agentType, { reason: 'missing drama_id or episode_id' })
     return badRequest(c, '需要 drama_id 与 episode_id')
   }
+  const denied = await denyUnlessDramaOwner(c, Number(drama_id))
+  if (denied) return denied
+
 
   const agent = mastra.getAgent(agentType)
   if (!agent) {

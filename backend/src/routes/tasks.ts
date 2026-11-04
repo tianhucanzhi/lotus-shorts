@@ -1,16 +1,35 @@
 import { Hono } from 'hono'
+import { isSaas } from '../config/mode.js'
+import type { AuthVariables } from '../middleware/auth.js'
+import { currentUserId, denyUnlessDramaOwner, denyUnlessStoryboardOwner } from '../services/access.js'
 import { and, desc, eq } from 'drizzle-orm'
 import { db, schema } from '../db/index.js'
-import { success, created, badRequest } from '../utils/response.js'
+import { success, created, badRequest, forbidden } from '../utils/response.js'
 import { generateImage, generateVideo, recoverVideoTask } from '../services/generation.js'
 import { safeTaskError } from '../services/video-download.js'
 import { getActiveConfig, getConfigById } from '../services/ai.js'
 import { getDramaStylePrompt } from '../services/style-preset.js'
 import { logTaskError, logTaskPayload, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
 
-const app = new Hono()
+const app = new Hono<{ Variables: AuthVariables }>()
+
+async function denyUnlessTaskOwner(c: any, taskId: number) {
+  const [task] = await db.select().from(schema.sysTask).where(eq(schema.sysTask.id, taskId))
+  if (!task) return badRequest(c, '任务不存在')
+  if (task.dramaId) {
+    const denied = await denyUnlessDramaOwner(c, task.dramaId)
+    if (denied) return denied
+    return null
+  }
+  // 无 drama 归属的任务：SaaS 下仅 admin 可看
+  if (isSaas() && c.get('role') !== 'admin') return forbidden(c, '无权访问该任务')
+  return null
+}
+
 
 app.post('/:id/recover', async c => {
+  const denied = await denyUnlessTaskOwner(c, Number(c.req.param('id')))
+  if (denied) return denied
   try {
     await recoverVideoTask(Number(c.req.param('id')))
     return success(c, { id: Number(c.req.param('id')) })
@@ -18,6 +37,8 @@ app.post('/:id/recover', async c => {
 })
 
 app.get('/:id/diagnostics', async c => {
+  const denied = await denyUnlessTaskOwner(c, Number(c.req.param('id')))
+  if (denied) return denied
   const [task] = await db.select().from(schema.sysTask).where(eq(schema.sysTask.id, Number(c.req.param('id'))))
   if (!task) return badRequest(c, '任务不存在')
   return success(c, { id: task.id, upstreamTaskId: task.taskId, provider: task.provider, model: task.model,
@@ -125,6 +146,14 @@ function validateVideoRequest(body: any, provider?: string): string | null {
 // POST /tasks — 发起生成任务（body.type: image | video）
 app.post('/', async (c) => {
   const body = await c.req.json()
+  if (body.drama_id) {
+    const deniedDrama = await denyUnlessDramaOwner(c, Number(body.drama_id))
+    if (deniedDrama) return deniedDrama
+  }
+  if (body.storyboard_id) {
+    const deniedSb = await denyUnlessStoryboardOwner(c, Number(body.storyboard_id))
+    if (deniedSb) return deniedSb
+  }
   const type = body.type as TaskType
   if (type !== 'image' && type !== 'video') return badRequest(c, 'type 必须为 image 或 video')
 
@@ -236,6 +265,8 @@ app.post('/', async (c) => {
 // GET /tasks/:id — 轮询任务状态
 app.get('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessTaskOwner(c, id)
+  if (denied) return denied
   const [row] = await db.select().from(schema.sysTask)
     .where(eq(schema.sysTask.id, id))
   return success(c, row || null)
@@ -246,6 +277,14 @@ app.get('/', async (c) => {
   const type = c.req.query('type')
   const storyboardId = c.req.query('storyboard_id')
   const dramaId = c.req.query('drama_id')
+  if (dramaId) {
+    const denied = await denyUnlessDramaOwner(c, Number(dramaId))
+    if (denied) return denied
+  }
+  if (storyboardId) {
+    const denied = await denyUnlessStoryboardOwner(c, Number(storyboardId))
+    if (denied) return denied
+  }
 
   let rows = await db.select().from(schema.sysTask)
 
@@ -253,12 +292,24 @@ app.get('/', async (c) => {
   if (storyboardId) rows = rows.filter(r => r.storyboardId === Number(storyboardId))
   if (dramaId) rows = rows.filter(r => r.dramaId === Number(dramaId))
 
+  // SaaS：未指定 drama_id 时，按当前用户拥有的项目过滤（admin 可见全部）
+  if (isSaas() && !dramaId && c.get('role') !== 'admin') {
+    const userId = currentUserId(c)
+    if (!userId) return forbidden(c, '请先登录')
+    const owned = await db.select({ id: schema.dramas.id }).from(schema.dramas)
+      .where(eq(schema.dramas.userId, userId))
+    const ownedIds = new Set(owned.map(d => d.id))
+    rows = rows.filter(r => r.dramaId != null && ownedIds.has(r.dramaId))
+  }
+
   return success(c, rows)
 })
 
 // DELETE /tasks/:id
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'))
+  const denied = await denyUnlessTaskOwner(c, id)
+  if (denied) return denied
   const [task] = await db.select().from(schema.sysTask).where(eq(schema.sysTask.id, id))
   if (task?.status === 'processing') return badRequest(c, '任务运行中，暂不能删除')
   await db.delete(schema.sysTask).where(eq(schema.sysTask.id, id))

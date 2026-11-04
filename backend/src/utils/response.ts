@@ -12,6 +12,14 @@ export function badRequest(c: Context, message = '请求参数错误') {
   return c.json({ code: 400, message }, 400)
 }
 
+export function unauthorized(c: Context, message = '未登录或登录已过期') {
+  return c.json({ code: 401, message }, 401)
+}
+
+export function forbidden(c: Context, message = '无权访问') {
+  return c.json({ code: 403, message }, 403)
+}
+
 export function notFound(c: Context, message = '资源不存在') {
   return c.json({ code: 404, message }, 404)
 }

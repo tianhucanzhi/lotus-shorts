@@ -5,8 +5,22 @@
  */
 import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core'
 
+/** SaaS 用户表；独立版可不使用 */
+export const users = sqliteTable('users', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  username: text('username').notNull().unique(),
+  email: text('email'),
+  passwordHash: text('password_hash').notNull(),
+  displayName: text('display_name'),
+  role: text('role').notNull().default('user'), // user | admin
+  status: text('status').notNull().default('active'), // active | disabled
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
+
 export const dramas = sqliteTable('dramas', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id'), // SaaS 归属；独立版可为空
   title: text('title').notNull(),
   description: text('description'),
   genre: text('genre'),
@@ -153,6 +167,7 @@ export const storyboardProps = sqliteTable('storyboard_props', {
 
 export const aiServiceConfigs = sqliteTable('ai_service_configs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id'), // SaaS 归属；独立版可为空
   serviceType: text('service_type').notNull(),
   provider: text('provider'),
   name: text('name').notNull(),
@@ -186,6 +201,7 @@ export const aiServiceProviders = sqliteTable('ai_service_providers', {
 
 export const stylePresets = sqliteTable('style_presets', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id'), // null=全局；SaaS 用户首次改动后写入个人副本
   name: text('name').notNull(),
   value: text('value').notNull(),
   prompt: text('prompt').notNull(),
@@ -194,7 +210,7 @@ export const stylePresets = sqliteTable('style_presets', {
   isActive: integer('is_active', { mode: 'boolean' }).default(true),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
-  // 注意: 此表无 deleted_at（硬删除），value 列有唯一索引（见 sqlite-schema.ts DDL）
+  // 注意: 此表无 deleted_at（硬删除）；唯一约束见 sqlite-schema 局部索引（全局 value / 用户+value）
 })
 
 // 统一生成任务表：图片/视频生成共用，type 区分，生成参数存 params(JSON)
