@@ -35,7 +35,9 @@ changed() {
 
 echo "==> [1/4] git pull"
 OLD_HEAD="$(git rev-parse HEAD)"
-git pull --ff-only
+git fetch origin
+# 服务器上对已跟踪文件的本地改动丢掉，以远程为准。未跟踪的 .env、data/ 不受影响
+git reset --hard origin/main
 NEW_HEAD="$(git rev-parse HEAD)"
 echo "    ${OLD_HEAD:0:7} -> ${NEW_HEAD:0:7}"
 
