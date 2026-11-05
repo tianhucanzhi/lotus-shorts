@@ -4,22 +4,73 @@
   </NuxtLayout>
   <Toaster position="top-right" :duration="3000" :theme="resolvedTheme" />
   <MigrateOverlay />
+  <ContactFloat />
+  <noscript>
+    <div class="seo-noscript">
+      <h1>{{ t('seo.noscriptTitle') }}</h1>
+      <p>{{ t('seo.noscriptBody') }}</p>
+    </div>
+  </noscript>
 </template>
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { Toaster, toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
+import ContactFloat from '~/components/ContactFloat.vue'
 import MigrateOverlay from '~/components/MigrateOverlay.vue'
 import { useDesktopBridge } from '~/composables/useDesktopBridge'
 import { useMigrateState } from '~/composables/useMigrateState'
 import { useTheme } from '~/composables/useTheme'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const route = useRoute()
 const { resolvedTheme } = useTheme()
 
-// 响应式文档标题（nuxt.config.ts 的静态 title 仅作 SSR/兜底）
-useHead(() => ({ title: t('app.title') }))
+const SITE_ORIGIN = 'https://shorts.yunfm.cn'
+
+const HTML_LANG: Record<string, string> = { zh: 'zh-CN', en: 'en', ja: 'ja', ko: 'ko' }
+const OG_LOCALE: Record<string, string> = { zh: 'zh_CN', en: 'en_US', ja: 'ja_JP', ko: 'ko_KR' }
+
+function isPublicPath(path: string) {
+  return path === '/' || path === '/login'
+}
+
+// 静态 head 在 nuxt.config（无 JS 也能被抓到）；这里按路由和界面语言覆盖
+useHead(() => {
+  const path = route.path
+  const publicPage = isPublicPath(path)
+  const title = path === '/login'
+    ? t('seo.loginTitle')
+    : path.startsWith('/admin')
+      ? t('seo.adminTitle')
+      : path.startsWith('/settings')
+      ? t('seo.settingsTitle')
+      : path.startsWith('/drama')
+        ? t('seo.projectTitle')
+        : t('seo.title')
+  const description = path === '/login' ? t('seo.loginDescription') : t('seo.description')
+  const canonical = `${SITE_ORIGIN}${path === '/' ? '/' : path}`
+  return {
+    htmlAttrs: { lang: HTML_LANG[locale.value] || 'zh-CN' },
+    title,
+    meta: [
+      { name: 'description', content: description },
+      { name: 'keywords', content: t('seo.keywords') },
+      { name: 'robots', content: publicPage ? 'index, follow, max-image-preview:large' : 'noindex, nofollow' },
+      { property: 'og:title', content: title },
+      { property: 'og:description', content: path === '/login' ? description : t('seo.ogDescription') },
+      { property: 'og:url', content: canonical },
+      { property: 'og:site_name', content: t('seo.siteName') },
+      { property: 'og:locale', content: OG_LOCALE[locale.value] || 'zh_CN' },
+      { name: 'twitter:title', content: title },
+      { name: 'twitter:description', content: path === '/login' ? description : t('seo.ogDescription') },
+    ],
+    link: [
+      { rel: 'canonical', href: canonical },
+    ],
+  }
+})
 
 const bridge = useDesktopBridge()
 const { state, begin, update, end } = useMigrateState()
@@ -55,6 +106,15 @@ onMounted(() => {
 
 <style>
 @import url('./assets/studio.css');
+
+.seo-noscript {
+  max-width: 720px;
+  margin: 48px auto;
+  padding: 0 24px;
+  color: #222;
+  font: 16px/1.7 system-ui, sans-serif;
+}
+.seo-noscript h1 { font-size: 28px; margin: 0 0 12px; }
 
 /* === 应用内引导（driver.js）主题覆写 — 跟随设计 token === */
 .lotus-tour-popover {

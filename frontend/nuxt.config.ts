@@ -27,12 +27,65 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: '莲花短剧',
-      meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }],
+      htmlAttrs: { lang: 'zh-CN' },
+      title: '莲花短剧 - AI 短剧与漫剧一站式制作',
+      meta: [
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'description', content: '莲花短剧（Lotus Shorts）是 AI 短剧制作工具：小说改剧本、角色场景道具提取、分镜拆解、文生图与文生视频，再到成片拼接导出。支持真人古装、3D 漫剧等多种视觉风格。' },
+        { name: 'keywords', content: '莲花短剧,Lotus Shorts,AI短剧,AI漫剧,短剧制作,剧本改写,分镜,文生视频,真人古装' },
+        { name: 'author', content: '楼图（上海）信息科技有限公司' },
+        { name: 'application-name', content: '莲花短剧' },
+        { name: 'robots', content: 'index, follow, max-image-preview:large' },
+        { name: 'theme-color', content: '#1a1a1a' },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:site_name', content: '莲花短剧' },
+        { property: 'og:locale', content: 'zh_CN' },
+        { property: 'og:url', content: 'https://shorts.yunfm.cn/' },
+        { property: 'og:title', content: '莲花短剧 - AI 短剧与漫剧一站式制作' },
+        { property: 'og:description', content: '从小说到成片：剧本改写、资产提取、分镜、生图、生视频与拼接导出，一站完成 AI 短剧制作。' },
+        { name: 'twitter:card', content: 'summary' },
+        { name: 'twitter:title', content: '莲花短剧 - AI 短剧与漫剧一站式制作' },
+        { name: 'twitter:description', content: '从小说到成片：剧本改写、资产提取、分镜、生图、生视频与拼接导出，一站完成 AI 短剧制作。' },
+      ],
       link: [
+        { rel: 'canonical', href: 'https://shorts.yunfm.cn/' },
         // v 参数用于 favicon 缓存穿透（浏览器对 favicon 缓存独立于 HTTP 缓存，换图必须 bump）
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon.png?v=20261031c' },
         { rel: 'shortcut icon', type: 'image/png', href: '/favicon.png?v=20261031c' },
+        { rel: 'apple-touch-icon', href: '/favicon.png?v=20261031c' },
+      ],
+      script: [
+        {
+          type: 'application/ld+json',
+          innerHTML: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@graph': [
+              {
+                '@type': 'WebSite',
+                name: '莲花短剧',
+                alternateName: 'Lotus Shorts',
+                url: 'https://shorts.yunfm.cn/',
+                inLanguage: ['zh-CN', 'en', 'ja', 'ko'],
+                description: 'AI 短剧与漫剧一站式制作：剧本、分镜、生图、生视频到成片导出。',
+              },
+              {
+                '@type': 'SoftwareApplication',
+                name: '莲花短剧',
+                alternateName: 'Lotus Shorts',
+                applicationCategory: 'MultimediaApplication',
+                operatingSystem: 'Web',
+                url: 'https://shorts.yunfm.cn/',
+                description: '从小说或大纲到成片：剧本改写、角色场景道具提取、分镜拆解、文生图、文生视频与拼接导出。',
+                inLanguage: ['zh-CN', 'en', 'ja', 'ko'],
+                publisher: {
+                  '@type': 'Organization',
+                  name: '楼图（上海）信息科技有限公司',
+                  url: 'https://shorts.yunfm.cn/',
+                },
+              },
+            ],
+          }),
+        },
       ],
     },
   },

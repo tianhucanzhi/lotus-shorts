@@ -25,8 +25,10 @@ import settings from './routes/settings.js'
 import storage from './routes/storage.js'
 import serverUpdate from './routes/serverUpdate.js'
 import auth from './routes/auth.js'
+import admin from './routes/admin.js'
 import { authContext, requireAuthIfSaas } from './middleware/auth.js'
 import { requestLogger, errorHandler } from './middleware/logger.js'
+import { ensureDefaultAdmin } from './services/auth.js'
 import { resumeInterruptedTasks } from './services/generation.js'
 import { DATA_ROOT } from './utils/paths.js'
 
@@ -56,6 +58,7 @@ app.get('/api/v1/health', (c) => c.json({
 // API routes
 const api = new Hono()
 api.route('/auth', auth)
+api.route('/admin', admin)
 api.route('/dramas', dramas)
 api.route('/episodes', episodes)
 api.route('/storyboards', storyboards)
@@ -93,6 +96,7 @@ app.get('*', serveStatic({ root: distPath, path: 'index.html' }))
 const port = Number(process.env.PORT || 5679)
 console.log(`🚀 Lotus Shorts TS server on http://localhost:${port} (mode=${APP_MODE}${isSaas() ? ', saas auth enabled' : ''})`)
 
+await ensureDefaultAdmin()
 await resumeInterruptedTasks()
 
 serve({ fetch: app.fetch, port })

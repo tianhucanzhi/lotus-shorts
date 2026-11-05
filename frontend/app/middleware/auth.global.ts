@@ -22,4 +22,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
       query: { redirect: to.fullPath },
     })
   }
+
+  if ((to.path === '/admin' || to.path.startsWith('/admin/')) && auth.user.value?.role !== 'admin') {
+    return navigateTo('/')
+  }
 })

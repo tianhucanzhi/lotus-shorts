@@ -24,6 +24,10 @@
           <Settings :size="15" :stroke-width="1.8" />
           <span>{{ t('layout.nav.settings') }}</span>
         </NuxtLink>
+        <NuxtLink v-if="showAdmin" to="/admin" class="nav-link" :class="{ active: route.path === '/admin' }">
+          <Shield :size="15" :stroke-width="1.8" />
+          <span>{{ t('layout.nav.admin') }}</span>
+        </NuxtLink>
       </nav>
 
       <div class="header-right">
@@ -66,7 +70,7 @@
 </template>
 
 <script setup>
-import { LayoutGrid, Settings, TriangleAlert } from 'lucide-vue-next'
+import { LayoutGrid, Settings, Shield, TriangleAlert } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { aiConfigAPI } from '~/composables/useApi'
 import brandLogo from '~/assets/brand-logo.png'
@@ -74,6 +78,7 @@ import brandLogo from '~/assets/brand-logo.png'
 const { t, locale } = useI18n()
 const route = useRoute()
 const auth = useAuth()
+const showAdmin = computed(() => !auth.isSaas.value || auth.user.value?.role === 'admin')
 const showBrandImage = ref(true)
 const copyrightYear = new Date().getFullYear()
 const footerLinks = computed(() => [

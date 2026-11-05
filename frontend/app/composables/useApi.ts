@@ -252,6 +252,15 @@ export const settingsAPI = {
 }
 
 // 服务器/Docker 部署的版本检查与更新（桌面版走 useDesktopBridge，不用此 API）
+export const adminAPI = {
+  overview: () => api.get('/admin/overview'),
+  users: (q?: string) => api.get(`/admin/users${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  createUser: (d: { username: string; password: string; display_name?: string; role?: string }) => api.post('/admin/users', d),
+  updateUser: (id: number, d: { role?: string; status?: string; display_name?: string; password?: string }) => api.put(`/admin/users/${id}`, d),
+  dramas: (q?: string) => api.get(`/admin/dramas${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  tasks: (status?: string) => api.get(`/admin/tasks${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+}
+
 export const serverUpdateAPI = {
   state: () => api.get('/server-update/state'),
   check: () => api.post('/server-update/check'),

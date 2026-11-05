@@ -3,6 +3,35 @@
     "title": "Lotus Shorts",
     "updateAvailable": "New version v{version} is available. Upgrade in Settings → About."
   },
+  "seo": {
+    "siteName": "Lotus Shorts",
+    "title": "Lotus Shorts — AI short-drama production",
+    "description": "Lotus Shorts turns a story into a finished short drama: script rewrite, character/scene/prop extraction, storyboard breakdown, image and video generation, then export.",
+    "keywords": "Lotus Shorts,AI short drama,storyboard,text to video,script rewrite",
+    "ogDescription": "From story to finished cut: script, assets, storyboards, images, video, and export in one workspace.",
+    "loginTitle": "Sign in — Lotus Shorts",
+    "loginDescription": "Sign in to Lotus Shorts and continue your AI short-drama projects.",
+    "settingsTitle": "Settings — Lotus Shorts",
+    "projectTitle": "Project — Lotus Shorts",
+    "adminTitle": "Admin — Lotus Shorts",
+    "noscriptTitle": "Lotus Shorts",
+    "noscriptBody": "An AI workspace for short dramas: scripts, storyboards, images, video, and export. JavaScript is required."
+  },
+  "admin": {
+    "title": "Admin",
+    "sub": "Users, projects, and generation tasks",
+    "standaloneHint": "This install is standalone. There are no user accounts; this page shows local projects and tasks.",
+    "tabs": { "overview": "Overview", "users": "Users", "projects": "Projects", "tasks": "Tasks" },
+    "stats": { "users": "Users", "admins": "Admins", "disabledUsers": "Disabled", "projects": "Projects", "episodes": "Episodes", "tasks": "Tasks", "processing": "Running", "failed": "Failed" },
+    "mode": "Mode", "register": "Open registration", "registerOn": "Yes", "registerOff": "No", "dataDir": "Data directory",
+    "recentUsers": "Recent signups", "recentProjects": "Recent projects", "recentFailures": "Recent failures", "empty": "Nothing here",
+    "searchUser": "Search username or display name", "searchProject": "Search projects", "createUser": "New user",
+    "username": "Username", "password": "Password", "displayName": "Display name", "role": "Role", "status": "Status",
+    "roleUser": "User", "roleAdmin": "Admin", "statusActive": "Active", "statusDisabled": "Disabled", "you": "You",
+    "promote": "Make admin", "demote": "Remove admin", "disable": "Disable", "enable": "Enable", "resetPassword": "Reset password", "newPassword": "New password",
+    "created": "User created", "updated": "Updated", "owner": "Owner", "unassigned": "Unassigned", "episodes": "Episodes", "style": "Style",
+    "type": "Type", "model": "Model", "error": "Error", "open": "Open", "allStatus": "All statuses", "createdAt": "Created", "updatedAt": "Updated", "byStatus": "By status"
+  },
   "common": {
     "confirm": "Confirm",
     "cancel": "Cancel",
@@ -35,7 +64,8 @@
   "layout": {
     "nav": {
       "projects": "Projects",
-      "settings": "Settings"
+      "settings": "Settings",
+      "admin": "Admin"
     },
     "banner": {
       "missing": "{types} model not configured yet. AI features are unavailable.",
@@ -56,6 +86,12 @@
       "linksLabel": "Quick links",
       "realApi": "Real-API",
       "lotusGrowth": "Lotus Growth"
+    },
+    "contact": {
+      "label": "Contact us",
+      "body": "Questions while using the product, business cooperation, or product inquiries — feel free to reach out. We will get back to you as soon as we can.",
+      "qrAlt": "WeChat QR code",
+      "scan": "Scan to add the admin on WeChat"
     }
   },
   "auth": {

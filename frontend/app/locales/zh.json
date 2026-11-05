@@ -3,6 +3,83 @@
     "title": "莲花短剧",
     "updateAvailable": "发现新版本 v{version}，可在「设置 → 关于更新」中升级"
   },
+  "seo": {
+    "siteName": "莲花短剧",
+    "title": "莲花短剧 - AI 短剧与漫剧一站式制作",
+    "description": "莲花短剧（Lotus Shorts）是 AI 短剧制作工具：小说改剧本、角色场景道具提取、分镜拆解、文生图与文生视频，再到成片拼接导出。支持真人古装、3D 漫剧等多种视觉风格。",
+    "keywords": "莲花短剧,Lotus Shorts,AI短剧,AI漫剧,短剧制作,剧本改写,分镜,文生视频,真人古装",
+    "ogDescription": "从小说到成片：剧本改写、资产提取、分镜、生图、生视频与拼接导出，一站完成 AI 短剧制作。",
+    "loginTitle": "登录 - 莲花短剧",
+    "loginDescription": "登录莲花短剧，继续你的 AI 短剧项目：剧本、分镜、生图与视频生成。",
+    "settingsTitle": "设置 - 莲花短剧",
+    "projectTitle": "项目 - 莲花短剧",
+    "adminTitle": "管理后台 - 莲花短剧",
+    "noscriptTitle": "莲花短剧 Lotus Shorts",
+    "noscriptBody": "AI 短剧与漫剧一站式制作平台。支持剧本改写、角色与场景提取、分镜拆解、文生图、文生视频和成片导出。请启用 JavaScript 后使用。"
+  },
+  "admin": {
+    "title": "管理后台",
+    "sub": "用户、项目和生成任务",
+    "standaloneHint": "当前是独立版，没有多用户账号，这里只展示本机项目和任务。",
+    "tabs": {
+      "overview": "概览",
+      "users": "用户",
+      "projects": "项目",
+      "tasks": "任务"
+    },
+    "stats": {
+      "users": "用户",
+      "admins": "管理员",
+      "disabledUsers": "已停用",
+      "projects": "项目",
+      "episodes": "剧集",
+      "tasks": "生成任务",
+      "processing": "进行中",
+      "failed": "失败"
+    },
+    "mode": "运行模式",
+    "register": "开放注册",
+    "registerOn": "是",
+    "registerOff": "否",
+    "dataDir": "数据目录",
+    "recentUsers": "最近注册",
+    "recentProjects": "最近项目",
+    "recentFailures": "最近失败",
+    "empty": "暂无数据",
+    "searchUser": "搜索用户名或显示名",
+    "searchProject": "搜索项目",
+    "createUser": "新建用户",
+    "username": "用户名",
+    "password": "密码",
+    "displayName": "显示名称",
+    "role": "角色",
+    "status": "状态",
+    "roleUser": "普通用户",
+    "roleAdmin": "管理员",
+    "statusActive": "可用",
+    "statusDisabled": "已停用",
+    "you": "当前账号",
+    "promote": "设为管理员",
+    "demote": "取消管理员",
+    "disable": "停用",
+    "enable": "启用",
+    "resetPassword": "重置密码",
+    "newPassword": "新密码",
+    "created": "用户已创建",
+    "updated": "已更新",
+    "owner": "所属用户",
+    "unassigned": "未归属",
+    "episodes": "集数",
+    "style": "风格",
+    "type": "类型",
+    "model": "模型",
+    "error": "错误",
+    "open": "打开",
+    "allStatus": "全部状态",
+    "createdAt": "创建时间",
+    "updatedAt": "更新时间",
+    "byStatus": "按状态"
+  },
   "common": {
     "confirm": "确认",
     "cancel": "取消",
@@ -35,7 +112,8 @@
   "layout": {
     "nav": {
       "projects": "项目",
-      "settings": "设置"
+      "settings": "设置",
+      "admin": "管理"
     },
     "banner": {
       "missing": "尚未配置{types}模型,AI 功能无法使用",
@@ -56,6 +134,12 @@
       "linksLabel": "快捷链接",
       "realApi": "Real-API",
       "lotusGrowth": "莲花成长体"
+    },
+    "contact": {
+      "label": "联系我们",
+      "body": "使用过程遇到问题、商务合作、产品咨询等，欢迎随时联系我们，我们将尽快为您解答",
+      "qrAlt": "微信二维码",
+      "scan": "扫一扫 添加管理员微信"
     }
   },
   "auth": {

@@ -3,6 +3,35 @@
     "title": "蓮花ショートドラマ",
     "updateAvailable": "新バージョン v{version} があります。「設定 → 更新について」でアップグレードできます"
   },
+  "seo": {
+    "siteName": "蓮花ショートドラマ",
+    "title": "蓮花ショートドラマ - AIショートドラマ制作",
+    "description": "小説から完成映像まで。脚本、キャラクター・シーン抽出、絵コンテ、画像生成、動画生成、書き出しを一つの作業台で行えます。",
+    "keywords": "蓮花ショートドラマ,Lotus Shorts,AIショートドラマ,絵コンテ,動画生成",
+    "ogDescription": "脚本、素材、絵コンテ、画像、動画、書き出しまでを一括で制作。",
+    "loginTitle": "ログイン - 蓮花ショートドラマ",
+    "loginDescription": "ログインして AI ショートドラマの制作を続けます。",
+    "settingsTitle": "設定 - 蓮花ショートドラマ",
+    "projectTitle": "プロジェクト - 蓮花ショートドラマ",
+    "adminTitle": "管理 - 蓮花ショートドラマ",
+    "noscriptTitle": "蓮花ショートドラマ Lotus Shorts",
+    "noscriptBody": "AI ショートドラマ制作ツールです。利用には JavaScript が必要です。"
+  },
+  "admin": {
+    "title": "管理",
+    "sub": "ユーザー、プロジェクト、生成タスク",
+    "standaloneHint": "現在はスタンドアロン版です。ユーザーアカウントはなく、この端末のプロジェクトとタスクだけを表示します。",
+    "tabs": { "overview": "概要", "users": "ユーザー", "projects": "プロジェクト", "tasks": "タスク" },
+    "stats": { "users": "ユーザー", "admins": "管理者", "disabledUsers": "停止中", "projects": "プロジェクト", "episodes": "話数", "tasks": "生成タスク", "processing": "実行中", "failed": "失敗" },
+    "mode": "モード", "register": "登録を開放", "registerOn": "はい", "registerOff": "いいえ", "dataDir": "データディレクトリ",
+    "recentUsers": "最近の登録", "recentProjects": "最近のプロジェクト", "recentFailures": "最近の失敗", "empty": "データなし",
+    "searchUser": "ユーザー名または表示名", "searchProject": "プロジェクトを検索", "createUser": "ユーザー作成",
+    "username": "ユーザー名", "password": "パスワード", "displayName": "表示名", "role": "権限", "status": "状態",
+    "roleUser": "一般", "roleAdmin": "管理者", "statusActive": "有効", "statusDisabled": "停止", "you": "自分",
+    "promote": "管理者にする", "demote": "管理者を外す", "disable": "停止", "enable": "有効化", "resetPassword": "パスワード再設定", "newPassword": "新しいパスワード",
+    "created": "ユーザーを作成しました", "updated": "更新しました", "owner": "所有者", "unassigned": "未所属", "episodes": "話数", "style": "スタイル",
+    "type": "種類", "model": "モデル", "error": "エラー", "open": "開く", "allStatus": "すべての状態", "createdAt": "作成", "updatedAt": "更新", "byStatus": "状態別"
+  },
   "common": {
     "confirm": "確認",
     "cancel": "キャンセル",
@@ -34,7 +63,8 @@
   "layout": {
     "nav": {
       "projects": "プロジェクト",
-      "settings": "設定"
+      "settings": "設定",
+      "admin": "管理"
     },
     "banner": {
       "missing": "{types}モデルが未設定のため、AI 機能は使用できません",
@@ -55,6 +85,12 @@
       "linksLabel": "クイックリンク",
       "realApi": "Real-API",
       "lotusGrowth": "蓮花成長体"
+    },
+    "contact": {
+      "label": "お問い合わせ",
+      "body": "ご利用中の問題、ビジネス提携、製品に関するご相談など、いつでもご連絡ください。できるだけ早くお返事します。",
+      "qrAlt": "WeChat QRコード",
+      "scan": "スキャンして管理者の WeChat を追加"
     }
   },
   "auth": {
