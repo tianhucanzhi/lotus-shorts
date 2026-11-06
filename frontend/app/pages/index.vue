@@ -83,6 +83,7 @@
             @error="thumbFallback($event, coverSrc(d))"
           />
           <span v-else class="cover-initial">{{ coverInitial(d) }}</span>
+          <span v-if="isSampleProject(d)" class="cover-sample">{{ t('index.sampleBadge') }}</span>
           <span v-if="d.aspect_ratio && d.aspect_ratio !== 'adaptive'" class="cover-ratio">{{ d.aspect_ratio }}</span>
           <div class="status-wrap" @click.stop>
             <AppMenu
@@ -317,6 +318,18 @@ const statusMenuId = ref(null)
 function currentStatus(d) { return d.status || 'draft' }
 function projectStatus(d) { return statusOptions.value.find(s => s.value === currentStatus(d))?.label || t('index.status.draft') }
 function statusDotClass(d) { return currentStatus(d) === 'active' ? 'on' : currentStatus(d) === 'completed' ? 'done' : '' }
+function isSampleProject(d) {
+  if (d?.is_sample === true || d?.isSample === true) return true
+  const meta = d?.metadata
+  if (meta && typeof meta === 'object') return meta.is_sample === true || meta.sample_key === 'yipin-buyi'
+  if (typeof meta === 'string') {
+    try {
+      const parsed = JSON.parse(meta)
+      return parsed?.is_sample === true || parsed?.sample_key === 'yipin-buyi'
+    } catch { /* ignore */ }
+  }
+  return false
+}
 
 async function setDramaStatus(d, status) {
   statusMenuId.value = null
@@ -712,6 +725,20 @@ onMounted(() => setTimeout(() => autoTour('index', INDEX_TOUR, t), 600))
   font-weight: 500;
   letter-spacing: 0.02em;
   font-family: var(--font-mono);
+}
+.cover-sample {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  z-index: 1;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-raised));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  color: var(--accent-text);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 .cover-badge {
   display: inline-flex;

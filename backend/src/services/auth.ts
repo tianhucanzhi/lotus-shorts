@@ -4,6 +4,7 @@ import { sign, verify } from 'hono/jwt'
 import { db, getInsertId, schema } from '../db/index.js'
 import { isSaas, jwtExpiresIn, jwtSecret } from '../config/mode.js'
 import { now } from '../utils/response.js'
+import { ensureSampleDramaForUser } from './sample-drama.js'
 
 const SCRYPT_N = 16384
 const SCRYPT_R = 8
@@ -104,6 +105,8 @@ export async function registerUser(input: {
     await db.update(schema.aiServiceConfigs).set({ userId }).where(isNull(schema.aiServiceConfigs.userId))
   }
 
+  if (isSaas()) await ensureSampleDramaForUser(userId)
+
   const row = await findUserById(userId)
   if (!row) throw new Error('注册失败')
   return toAuthUser(row)
@@ -113,6 +116,7 @@ export async function loginUser(username: string, password: string): Promise<Aut
   const row = await findUserByUsername(String(username || '').trim())
   if (!row || row.status !== 'active') throw new Error('用户名或密码错误')
   if (!verifyPassword(password, row.passwordHash)) throw new Error('用户名或密码错误')
+  if (isSaas()) await ensureSampleDramaForUser(row.id)
   return toAuthUser(row)
 }
 
@@ -201,6 +205,7 @@ export async function ensureDefaultAdmin(): Promise<void> {
     await db.update(schema.dramas).set({ userId }).where(isNull(schema.dramas.userId))
     await db.update(schema.aiServiceConfigs).set({ userId }).where(isNull(schema.aiServiceConfigs.userId))
   }
+  if (isSaas()) await ensureSampleDramaForUser(userId)
   console.log(`[auth] 已创建默认管理员 ${DEFAULT_ADMIN_USERNAME}`)
 }
 
@@ -228,7 +233,9 @@ export async function adminCreateUser(input: {
     createdAt: ts,
     updatedAt: ts,
   })
-  const row = await findUserById(getInsertId(res))
+  const userId = getInsertId(res)
+  if (isSaas()) await ensureSampleDramaForUser(userId)
+  const row = await findUserById(userId)
   if (!row) throw new Error('创建失败')
   return toPublicUser(row)
 }

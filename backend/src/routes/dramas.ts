@@ -4,6 +4,7 @@ import { isSaas } from '../config/mode.js'
 import { db, getInsertId, schema } from '../db/index.js'
 import type { AuthVariables } from '../middleware/auth.js'
 import { currentUserId, denyUnlessDramaOwner, dramaOwnerFilter } from '../services/access.js'
+import { ensureSampleDramaForUser, isSampleDrama, parseDramaMeta } from '../services/sample-drama.js'
 import { success, badRequest, notFound, created, now } from '../utils/response.js'
 import { toSnakeCase, toSnakeCaseArray } from '../utils/transform.js'
 import { generateImage } from '../services/generation.js'
@@ -25,7 +26,11 @@ app.get('/', async (c) => {
   const status = c.req.query('status')
   const keyword = c.req.query('keyword')
   const userId = currentUserId(c)
-  const role = c.req.query('mine') ? 'user' : c.get('role')
+  // 项目启动台始终只看自己的项目；全站列表走 /admin/dramas，避免管理员看到每个用户的示例副本
+  const role = 'user'
+
+  // 存量账号懒预置示例项目（用户删除后不会重复下发）
+  if (isSaas() && userId) await ensureSampleDramaForUser(userId)
 
   const allRows = await db.select().from(schema.dramas)
     .where(dramaOwnerFilter(userId, role))
@@ -46,9 +51,12 @@ app.get('/', async (c) => {
       .where(eq(schema.characters.dramaId, drama.id))
     const scns = await db.select().from(schema.scenes)
       .where(eq(schema.scenes.dramaId, drama.id))
+    const meta = parseDramaMeta(drama.metadata)
     return {
       ...toSnakeCase(drama),
       tags: drama.tags ? JSON.parse(drama.tags) : [],
+      metadata: meta,
+      is_sample: isSampleDrama(meta),
       total_episodes: eps.length,
       episodes: toSnakeCaseArray(eps),
       characters: toSnakeCaseArray(chars),
@@ -122,7 +130,7 @@ app.post('/generate-cover', async (c) => {
 // GET /dramas/stats — must be before /:id
 app.get('/stats', async (c) => {
   const userId = currentUserId(c)
-  const all = await db.select().from(schema.dramas).where(dramaOwnerFilter(userId, c.get('role')))
+  const all = await db.select().from(schema.dramas).where(dramaOwnerFilter(userId, 'user'))
   const byStatus = Object.entries(
     all.reduce((acc, d) => {
       acc[d.status || 'draft'] = (acc[d.status || 'draft'] || 0) + 1
@@ -149,9 +157,12 @@ app.get('/:id', async (c) => {
   const prps = await db.select().from(schema.props)
     .where(eq(schema.props.dramaId, id))
 
+  const meta = parseDramaMeta(drama.metadata)
   return success(c, {
     ...toSnakeCase(drama),
     tags: drama.tags ? JSON.parse(drama.tags) : [],
+    metadata: meta,
+    is_sample: isSampleDrama(meta),
     episodes: toSnakeCaseArray(eps),
     characters: toSnakeCaseArray(chars),
     scenes: toSnakeCaseArray(scns),

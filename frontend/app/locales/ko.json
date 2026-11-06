@@ -166,6 +166,7 @@
     "sortUpdated": "최근 업데이트",
     "sortTitle": "프로젝트 이름",
     "statusBadgeTitle": "클릭하여 프로젝트 상태 설정",
+    "sampleBadge": "예시",
     "openProjectAria": "프로젝트 {title} 열기",
     "openProject": "프로젝트 열기",
     "deleteProject": "프로젝트 삭제",

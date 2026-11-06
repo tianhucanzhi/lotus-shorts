@@ -73,7 +73,10 @@ export async function denyUnlessAiConfigOwner(c: AppContext, configId: number) {
   return null
 }
 
-/** 列表过滤：独立版/未登录看全部未删；SaaS 普通用户只看自己的；admin 传 role=admin 看全部 */
+/**
+ * 列表过滤：独立版看全部未删；SaaS 默认只看自己的。
+ * 全站项目列表请用 /admin/dramas，不要在启动台对 admin 放开。
+ */
 export function dramaOwnerFilter(userId: number | null, role?: string | null) {
   if (!isSaas()) return isNull(schema.dramas.deletedAt)
   if (role === 'admin') return isNull(schema.dramas.deletedAt)

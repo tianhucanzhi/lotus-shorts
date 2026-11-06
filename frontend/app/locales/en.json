@@ -167,6 +167,7 @@
     "sortUpdated": "Recently updated",
     "sortTitle": "Project name",
     "statusBadgeTitle": "Click to set project status",
+    "sampleBadge": "Sample",
     "openProjectAria": "Open project {title}",
     "openProject": "Open project",
     "editProject": "Edit project",
