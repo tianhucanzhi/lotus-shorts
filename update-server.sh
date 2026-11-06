@@ -38,6 +38,8 @@ OLD_HEAD="$(git rev-parse HEAD)"
 git fetch origin
 # 服务器上对已跟踪文件的本地改动丢掉，以远程为准。未跟踪的 .env、data/ 不受影响
 git reset --hard origin/main
+# reset 会按仓库记录的权限写回；这里再保证脚本可执行，避免下次 ./ 被拒绝
+chmod +x "$ROOT/update-server.sh" || true
 NEW_HEAD="$(git rev-parse HEAD)"
 echo "    ${OLD_HEAD:0:7} -> ${NEW_HEAD:0:7}"
 
