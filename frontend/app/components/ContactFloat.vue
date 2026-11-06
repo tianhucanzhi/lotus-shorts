@@ -43,8 +43,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 <style scoped>
 .contact-btn {
   position: fixed;
-  right: 20px;
-  bottom: 20px;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
   z-index: 80;
   display: inline-flex;
   align-items: center;

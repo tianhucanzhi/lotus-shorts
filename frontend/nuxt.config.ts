@@ -30,7 +30,7 @@ export default defineNuxtConfig({
       htmlAttrs: { lang: 'zh-CN' },
       title: '莲花短剧 - AI 短剧与漫剧一站式制作',
       meta: [
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'description', content: '莲花短剧（Lotus Shorts）是 AI 短剧制作工具：小说改剧本、角色场景道具提取、分镜拆解、文生图与文生视频，再到成片拼接导出。支持真人古装、3D 漫剧等多种视觉风格。' },
         { name: 'keywords', content: '莲花短剧,Lotus Shorts,AI短剧,AI漫剧,短剧制作,剧本改写,分镜,文生视频,真人古装' },
         { name: 'author', content: '楼图（上海）信息科技有限公司' },

@@ -383,4 +383,16 @@ th { color: var(--text-3); font-weight: 650; font-size: 12px; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--text-2); }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 @media (max-width: 800px) { .meta { grid-template-columns: 1fr; } }
+@media (max-width: 768px) {
+  .page { padding: 16px 14px 40px; }
+  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab { flex-shrink: 0; }
+  .toolbar { flex-wrap: wrap; }
+  .toolbar .input, .select { max-width: none; width: 100%; }
+  .table-wrap { -webkit-overflow-scrolling: touch; }
+  table { min-width: 680px; }
+  .actions { white-space: normal; }
+  .dialog-actions { flex-wrap: wrap; }
+  .dialog-actions .btn { flex: 1; }
+}
 </style>

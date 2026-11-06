@@ -104,6 +104,7 @@ async function submit() {
 <style scoped>
 .login-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 32px 16px;
@@ -201,5 +202,12 @@ async function submit() {
   text-align: center;
   color: var(--text-3);
   font-size: 12px;
+}
+@media (max-width: 768px) {
+  .login-page {
+    padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+  }
+  .login-panel { padding: 24px 18px 20px; }
+  .input { font-size: 16px; }
 }
 </style>

@@ -944,5 +944,8 @@ onMounted(() => setTimeout(() => autoTour('index', INDEX_TOUR, t), 600))
   .field-row { grid-template-columns: 1fr; }
   .dialog-foot { flex-direction: column-reverse; }
   .dialog-foot .btn { width: 100%; }
+  .cover-more { opacity: 1; }
+  .project-grid { grid-template-columns: 1fr; }
+  .launcher-title { font-size: 18px; letter-spacing: 0.04em; }
 }
 </style>

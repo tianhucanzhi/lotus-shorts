@@ -388,7 +388,7 @@ function onBlur(e) {
 .mention-dropdown {
   position: fixed;
   z-index: var(--z-menu);
-  width: 240px;
+  width: min(240px, calc(100vw - 16px));
   max-height: 220px;
   overflow-y: auto;
   padding: 5px;

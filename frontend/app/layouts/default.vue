@@ -126,7 +126,7 @@ watch(locale, checkAiConfigs)
 <style scoped>
 .shell {
   display: flex; flex-direction: column;
-  height: 100vh; overflow: hidden;
+  height: 100vh; height: 100dvh; overflow: hidden;
   background: transparent;
 }
 
@@ -299,5 +299,42 @@ watch(locale, checkAiConfigs)
   outline: none;
   box-shadow: 0 0 0 3.5px var(--button-focus);
   border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .header {
+    height: auto;
+    min-height: 52px;
+    flex-wrap: wrap;
+    padding: max(8px, env(safe-area-inset-top)) 12px 8px;
+    gap: 8px 10px;
+  }
+  .brand { gap: 8px; padding: 2px 4px; }
+  .brand-sub { display: none; }
+  .header-nav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav-link { flex-shrink: 0; padding: 0 12px; }
+  .header-right { gap: 4px; }
+  .user-chip { padding-left: 8px; gap: 6px; }
+  .user-name { max-width: 72px; }
+  .user-role { display: none; }
+  .config-banner {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    line-height: 1.45;
+  }
+  .config-banner-link { margin-left: 0; }
+  .app-footer {
+    height: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 2px;
+    padding: 8px 12px max(8px, env(safe-area-inset-bottom));
+    text-align: center;
+  }
 }
 </style>

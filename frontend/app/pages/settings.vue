@@ -2011,7 +2011,7 @@ onBeforeUnmount(stopUsagePoll)
 /* Dialogs */
 .config-dialog { width: min(720px, calc(100vw - 40px)); }
 .config-dialog-body { display: flex; flex-direction: column; gap: 14px; }
-.skill-dialog { width: 440px; }
+.skill-dialog { width: min(440px, calc(100vw - 32px)); }
 .skill-dialog-body { display: flex; flex-direction: column; gap: 12px; }
 .dialog-sub { margin-top: 4px; font-size: 12px; color: var(--text-2); }
 .test-draft-btn { margin-right: auto; }
@@ -2065,5 +2065,50 @@ onBeforeUnmount(stopUsagePoll)
 }
 .migrate-warn {
   color: var(--error);
+}
+
+@media (max-width: 768px) {
+  .settings-layout { flex-direction: column; }
+  .settings-nav {
+    width: 100%;
+    flex-direction: row;
+    gap: 0;
+    padding: 8px 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav-group { flex-direction: row; gap: 4px; }
+  .nav-group-label { display: none; }
+  .nav-item { width: auto; white-space: nowrap; padding: 8px 12px; }
+  .settings-content { overflow: auto; -webkit-overflow-scrolling: touch; }
+  .settings-scroll { height: auto; overflow: visible; padding: 16px 14px 40px; }
+  .settings-title { font-size: 18px; }
+  .svc-group-head, .config-row, .config-empty { padding-left: 14px; padding-right: 14px; }
+  .config-row { flex-wrap: wrap; align-items: flex-start; }
+  .config-main { flex: 1 1 180px; }
+  .lang-picker { max-width: 100%; overflow-x: auto; }
+  .field-row { grid-template-columns: 1fr; }
+  .lotus-quick-row { grid-template-columns: 1fr; }
+  .lotus-mode-tab { white-space: normal; }
+  .skills-layout { flex-direction: column; height: auto; min-height: 0; overflow: visible; }
+  .skills-agent-list {
+    width: 100%;
+    flex-direction: row;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    padding: 8px 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .skills-agent-title { display: none; }
+  .skills-agent-item { width: auto; white-space: nowrap; flex-shrink: 0; }
+  .skills-head { flex-wrap: wrap; }
+  .skills-head .btn { margin-left: 0; }
+  .agent-pane-tabs { flex-wrap: wrap; align-items: stretch; }
+  .agent-pane-tab { padding: 6px 8px; }
+  .agent-prompt-input,
+  .skill-content-input { min-height: 240px; }
 }
 </style>

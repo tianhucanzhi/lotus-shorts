@@ -35,7 +35,7 @@ const { state } = useMigrateState()
   justify-content: center;
 }
 .migrate-box {
-  width: 380px;
+  width: min(380px, calc(100vw - 32px));
   padding: 28px 32px;
   border-radius: 12px;
   background: var(--surface-raised);

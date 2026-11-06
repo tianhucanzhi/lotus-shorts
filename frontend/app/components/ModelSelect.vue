@@ -140,4 +140,9 @@ function pick(model) {
   max-width: 320px;
 }
 .model-select-dim { color: var(--text-3); }
+@media (max-width: 768px) {
+  .model-select { min-width: 0; max-width: 100%; }
+  .model-select-trigger { max-width: 100%; min-width: 0; }
+  .model-select-option-name { max-width: calc(100vw - 96px); }
+}
 </style>

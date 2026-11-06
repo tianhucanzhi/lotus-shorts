@@ -1624,4 +1624,32 @@ onMounted(load)
   .dialog-foot { flex-wrap: wrap; gap: 10px; }
   .dialog-foot-copy { display: none; }
 }
+@media (max-width: 768px) {
+  .page { padding: 12px 12px max(24px, env(safe-area-inset-bottom)); }
+  .page-title { font-size: 16px; }
+  .page-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab-btn { flex-shrink: 0; margin-right: 14px; }
+  .ep-card-foot { flex-wrap: wrap; }
+  .ep-badges { margin-left: auto; }
+  .asset-filter { max-width: 100%; }
+  .asset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .character-asset-grid { grid-template-columns: 1fr; justify-content: stretch; }
+  .mat-detail-overlay { padding: 8px; }
+  .mat-detail-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+  .mat-detail-head { flex-wrap: wrap; align-items: flex-start; }
+  .mat-detail-head-actions { flex-wrap: wrap; }
+  .mat-detail-shell { grid-template-columns: 1fr; }
+  .mat-detail-edit-grid { grid-template-columns: 1fr; }
+  .mat-detail-preview-panel { position: static; }
+  .mat-detail-foot { flex-wrap: wrap; }
+  .mat-detail-secondary-actions,
+  .mat-detail-primary-actions { flex-wrap: wrap; }
+  .viewer-dialog { width: calc(100vw - 16px); }
+}
 </style>
