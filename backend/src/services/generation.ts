@@ -46,6 +46,8 @@ interface GenerateImageParams {
   referenceImages?: string[]
   frameType?: string
   configId?: number
+  /** SaaS：无 drama 任务（如新建封面）用于鉴权 */
+  ownerUserId?: number
 }
 
 interface GenerateVideoParams {
@@ -92,6 +94,7 @@ export async function generateImage(params: GenerateImageParams): Promise<number
     size: params.size || '1920x1080',
     frameType: params.frameType,
     referenceImages: params.referenceImages,
+    ...(params.ownerUserId ? { owner_user_id: params.ownerUserId } : {}),
   })
 
   logTaskStart('ImageTask', 'enqueue', {

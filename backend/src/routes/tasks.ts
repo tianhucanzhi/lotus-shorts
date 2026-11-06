@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { isSaas } from '../config/mode.js'
 import type { AuthVariables } from '../middleware/auth.js'
-import { currentUserId, denyUnlessDramaOwner, denyUnlessStoryboardOwner } from '../services/access.js'
+import { currentUserId, denyUnlessAiConfigOwner, denyUnlessDramaOwner, denyUnlessStoryboardOwner } from '../services/access.js'
 import { and, desc, eq } from 'drizzle-orm'
 import { db, schema } from '../db/index.js'
 import { success, created, badRequest, forbidden } from '../utils/response.js'
@@ -21,9 +21,21 @@ async function denyUnlessTaskOwner(c: any, taskId: number) {
     if (denied) return denied
     return null
   }
-  // 无 drama 归属的任务：SaaS 下仅 admin 可看
-  if (isSaas() && c.get('role') !== 'admin') return forbidden(c, '无权访问该任务')
-  return null
+  // 无 drama 的任务（如新建项目封面）：按创建者 / AI 配置归属判定，不能只放行 admin
+  if (!isSaas()) return null
+  if (c.get('role') === 'admin') return null
+  const userId = currentUserId(c)
+  if (!userId) return forbidden(c, '请先登录')
+  try {
+    const params = task.params ? JSON.parse(task.params) : {}
+    if (params.owner_user_id === userId || params.ownerUserId === userId) return null
+  } catch { /* ignore */ }
+  if (task.configId) {
+    const denied = await denyUnlessAiConfigOwner(c, task.configId)
+    if (denied) return forbidden(c, '无权访问该任务')
+    return null
+  }
+  return forbidden(c, '无权访问该任务')
 }
 
 

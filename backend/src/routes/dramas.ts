@@ -114,12 +114,17 @@ app.post('/generate-cover', async (c) => {
   ].filter(Boolean)
 
   try {
+    if (body.drama_id) {
+      const denied = await denyUnlessDramaOwner(c, Number(body.drama_id))
+      if (denied) return denied
+    }
     const taskId = await generateImage({
       prompt: promptParts.join(', '),
       size,
       dramaId: body.drama_id ? Number(body.drama_id) : undefined,
       model: body.model,
       configId: body.config_id,
+      ownerUserId: currentUserId(c) ?? undefined,
     })
     return created(c, { task_id: taskId })
   } catch (err: any) {
