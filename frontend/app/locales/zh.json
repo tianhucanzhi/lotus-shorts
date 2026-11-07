@@ -83,6 +83,7 @@
   "common": {
     "confirm": "确认",
     "cancel": "取消",
+    "ok": "知道了",
     "back": "返回",
     "saved": "已保存",
     "delete": "删除",
@@ -874,7 +875,7 @@
       "metricFailed": "{n} 失败",
       "references": "参考 {n}",
       "refCountMeta": "{n} 个参考素材",
-      "shotN": "镜头 #{n}",
+      "shotN": "分镜 {n}",
       "playerTitle": "分镜 {n}",
       "setMain": "设为主视频",
       "setMainDone": "已设为主视频",
@@ -913,6 +914,13 @@
       "confirmModel": "视频模型",
       "confirmResolution": "分辨率",
       "confirmNote": "将按以上配置逐镜头发起生成；失败的任务之后可点「重试失败」一键重跑。",
+      "confirmEstimate": "预估费用",
+      "confirmEstimateValue": "约 ¥{n}（¥0.8/秒）",
+      "confirmBalance": "当前余额",
+      "confirmBalanceValue": "约 ¥{n}",
+      "confirmBalanceUnknown": "暂无法查询",
+      "batchBalanceHint": "余额不足以覆盖本批全部视频，请先充值或减少批量镜头数量。",
+      "batchBalanceShort": "按 ¥0.8/秒估算，本批约需 ¥{need}，当前 Real-API 余额约 ¥{balance}，不足以生成全部视频。\n请先充值，或减少批量镜头数量后再试。",
       "confirmStart": "开始生成 ({n})",
       "selectMissing": "选未生成",
       "aspectRatio": "画面比例"
@@ -980,7 +988,8 @@
       "batchGeneratingProp": "道具图片批量生成中",
       "allCharsDone": "所有角色图片已生成",
       "allScenesDone": "所有场景图片已生成",
-      "allPropsDone": "所有道具图片已生成"
+      "allPropsDone": "所有道具图片已生成",
+      "batchBalanceHint": "余额不足以覆盖本批全部图片（共 {n} 张），请先充值或减少批量数量。"
     },
     "extract": {
       "done": "{type}提取完成",
@@ -1004,6 +1013,7 @@
     "status": {
       "done": "已完成",
       "generating": "生成中",
+      "regenerating": "重绘中",
       "failed": "失败",
       "todo": "待生成"
     },
@@ -1036,7 +1046,13 @@
     "server": "服务返回异常，请稍后重试",
     "unavailable": "服务暂时不可用，请稍后重试",
     "auth": "鉴权失败，请检查 API Key 配置",
-    "rateLimit": "请求过于频繁或额度不足，请稍后重试",
+    "balance": "账户余额不足，请充值后再生成",
+    "balanceTitle": "余额不足",
+    "balanceDetail": "这次生成需要的费用超过了当前 Real-API 余额。",
+    "balanceAction": "去充值",
+    "rateLimit": "请求过于频繁，请稍后再试",
+    "rateLimitTitle": "请稍后再试",
+    "rateLimitDetail": "刚才的请求太密集，或服务暂时限流了。\n稍等几秒再点生成即可，不必连续猛点。",
     "timeout": "生成超时，请重试",
     "moderation": "内容未通过审核，请调整提示词或切换模型后重试",
     "requestFailed": "请求失败（{status}）",

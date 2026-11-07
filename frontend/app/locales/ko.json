@@ -35,6 +35,7 @@
   "common": {
     "confirm": "확인",
     "cancel": "취소",
+    "ok": "알겠습니다",
     "back": "뒤로",
     "saved": "저장됨",
     "delete": "삭제",
@@ -803,7 +804,7 @@
       "metricFailed": "{n} 실패",
       "references": "참조 {n}",
       "refCountMeta": "참조 소재 {n}개",
-      "shotN": "샷 #{n}",
+      "shotN": "스토리보드 {n}",
       "playerTitle": "스토리보드 {n}",
       "setMain": "메인 영상으로 설정",
       "setMainDone": "메인 영상으로 설정되었습니다",
@@ -842,6 +843,13 @@
       "confirmModel": "영상 모델",
       "confirmResolution": "해상도",
       "confirmNote": "위 설정으로 샷별로 생성을 시작합니다. 실패한 작업은 나중에 「실패 재시도」로 한 번에 다시 실행할 수 있습니다.",
+      "confirmEstimate": "예상 비용",
+      "confirmEstimateValue": "약 ¥{n}（¥0.8/초）",
+      "confirmBalance": "현재 잔액",
+      "confirmBalanceValue": "약 ¥{n}",
+      "confirmBalanceUnknown": "조회 불가",
+      "batchBalanceHint": "잔액이 이번 일괄 생성에 부족합니다. 충전하거나 샷 수를 줄여 주세요.",
+      "batchBalanceShort": "¥0.8/초로 추정하면 이번 일괄은 약 ¥{need}, Real-API 잔액은 약 ¥{balance}입니다.\n먼저 충전하거나, 샷 수를 줄인 뒤 다시 시도하세요.",
       "confirmStart": "생성 시작 ({n})",
       "selectMissing": "미생성 선택",
       "aspectRatio": "화면 비율"
@@ -909,7 +917,8 @@
       "batchGeneratingProp": "소품 이미지 일괄 생성 중",
       "allCharsDone": "모든 캐릭터 이미지가 생성되었습니다",
       "allScenesDone": "모든 장면 이미지가 생성되었습니다",
-      "allPropsDone": "모든 소품 이미지가 생성되었습니다"
+      "allPropsDone": "모든 소품 이미지가 생성되었습니다",
+      "batchBalanceHint": "잔액이 이번 이미지 일괄 생성({n}장)에 부족합니다. 충전하거나 수량을 줄여 주세요."
     },
     "extract": {
       "done": "{type} 추출이 완료되었습니다",
@@ -933,6 +942,7 @@
     "status": {
       "done": "완료",
       "generating": "생성 중",
+      "regenerating": "재생성 중",
       "failed": "실패",
       "todo": "미생성"
     },
@@ -965,7 +975,13 @@
     "server": "서버가 비정상적인 응답을 반환했습니다. 잠시 후 다시 시도하세요",
     "unavailable": "서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도하세요",
     "auth": "인증에 실패했습니다. API 키 설정을 확인하세요",
-    "rateLimit": "요청이 너무 많거나 할당량이 부족합니다. 잠시 후 다시 시도하세요",
+    "balance": "잔액이 부족합니다. 충전 후 다시 생성해 주세요",
+    "balanceTitle": "잔액 부족",
+    "balanceDetail": "이번 생성 비용이 현재 Real-API 잔액을 초과했습니다.",
+    "balanceAction": "충전하기",
+    "rateLimit": "요청이 너무 많습니다. 잠시 후 다시 시도하세요",
+    "rateLimitTitle": "잠시 후 다시 시도",
+    "rateLimitDetail": "요청이 너무 빠르거나 서비스가 일시적으로 제한 중입니다.\n몇 초 기다린 뒤 다시 생성하세요. 연속 클릭은 필요 없습니다.",
     "timeout": "생성 시간이 초과되었습니다. 다시 시도하세요",
     "moderation": "콘텐츠가 심사를 통과하지 못했습니다. 프롬프트를 조정하거나 모델을 변경해 다시 시도하세요",
     "requestFailed": "요청 실패（{status}）",

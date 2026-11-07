@@ -35,6 +35,7 @@
   "common": {
     "confirm": "Confirm",
     "cancel": "Cancel",
+    "ok": "Got it",
     "back": "Back",
     "saved": "Saved",
     "delete": "Delete",
@@ -826,8 +827,8 @@
       "metricFailed": "{n} failed",
       "references": "{n} refs",
       "refCountMeta": "{n} reference assets",
-      "shotN": "Shot #{n}",
-      "playerTitle": "Shot {n}",
+      "shotN": "Storyboard {n}",
+      "playerTitle": "Storyboard {n}",
       "setMain": "Set as Main Video",
       "setMainDone": "Set as main video",
       "setMainFailed": "Setting failed",
@@ -865,6 +866,13 @@
       "confirmModel": "Video model",
       "confirmResolution": "Resolution",
       "confirmNote": "Generation will start shot by shot with the above config; failed tasks can be retried later via \"Retry failed\".",
+      "confirmEstimate": "Estimated cost",
+      "confirmEstimateValue": "~¥{n} (¥0.8/s)",
+      "confirmBalance": "Current balance",
+      "confirmBalanceValue": "~¥{n}",
+      "confirmBalanceUnknown": "Unavailable",
+      "batchBalanceHint": "Balance is not enough for this whole batch. Top up first, or select fewer shots.",
+      "batchBalanceShort": "At ¥0.8/s, this batch needs about ¥{need}, but your Real-API balance is about ¥{balance}.\nPlease top up, or reduce the number of shots and try again.",
       "confirmStart": "Start ({n})",
       "selectMissing": "Select without video",
       "aspectRatio": "Aspect Ratio"
@@ -932,7 +940,8 @@
       "batchGeneratingProp": "Batch prop images generating",
       "allCharsDone": "All character images generated",
       "allScenesDone": "All scene images generated",
-      "allPropsDone": "All prop images generated"
+      "allPropsDone": "All prop images generated",
+      "batchBalanceHint": "Balance is not enough for this whole image batch ({n} images). Top up first, or generate fewer at once."
     },
     "extract": {
       "done": "{type} extraction complete",
@@ -956,6 +965,7 @@
     "status": {
       "done": "Done",
       "generating": "Generating",
+      "regenerating": "Regenerating",
       "failed": "Failed",
       "todo": "Pending"
     },
@@ -988,7 +998,13 @@
     "server": "The server returned an unexpected response. Please try again later.",
     "unavailable": "Service temporarily unavailable. Please try again later.",
     "auth": "Authentication failed. Check your API key settings.",
-    "rateLimit": "Too many requests or insufficient quota. Please try again later.",
+    "balance": "Insufficient balance. Please top up before generating.",
+    "balanceTitle": "Insufficient balance",
+    "balanceDetail": "This generation costs more than your current Real-API balance.",
+    "balanceAction": "Top up",
+    "rateLimit": "Too many requests. Please try again in a moment.",
+    "rateLimitTitle": "Please try again later",
+    "rateLimitDetail": "Requests came in too quickly, or the service is rate-limiting right now.\nWait a few seconds, then generate again — no need to click repeatedly.",
     "timeout": "Generation timed out. Please try again.",
     "moderation": "Content was blocked by moderation. Adjust the prompt or switch models and retry.",
     "requestFailed": "Request failed ({status})",

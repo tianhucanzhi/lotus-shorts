@@ -35,6 +35,7 @@
   "common": {
     "confirm": "確認",
     "cancel": "キャンセル",
+    "ok": "了解",
     "back": "戻る",
     "saved": "保存しました",
     "delete": "削除",
@@ -803,7 +804,7 @@
       "metricFailed": "{n} 失敗",
       "references": "参照 {n}",
       "refCountMeta": "{n} 件の参照素材",
-      "shotN": "ショット #{n}",
+      "shotN": "分镜 {n}",
       "playerTitle": "分镜 {n}",
       "setMain": "メイン動画に設定",
       "setMainDone": "メイン動画に設定しました",
@@ -842,6 +843,13 @@
       "confirmModel": "動画モデル",
       "confirmResolution": "解像度",
       "confirmNote": "上記の設定でショットごとに生成を開始します。失敗したタスクは後で「失敗を再試行」からまとめて再実行できます。",
+      "confirmEstimate": "概算費用",
+      "confirmEstimateValue": "約 ¥{n}（¥0.8/秒）",
+      "confirmBalance": "現在残高",
+      "confirmBalanceValue": "約 ¥{n}",
+      "confirmBalanceUnknown": "取得不可",
+      "batchBalanceHint": "残高がこの一括生成に足りません。チャージするか、ショット数を減らしてください。",
+      "batchBalanceShort": "¥0.8/秒で概算すると、この一括は約 ¥{need}、Real-API 残高は約 ¥{balance} です。\n先にチャージするか、ショット数を減らしてから再試行してください。",
       "confirmStart": "生成開始 ({n})",
       "selectMissing": "未生成を選択",
       "aspectRatio": "アスペクト比"
@@ -909,7 +917,8 @@
       "batchGeneratingProp": "小道具画像を一括生成中",
       "allCharsDone": "すべてのキャラクター画像が生成済みです",
       "allScenesDone": "すべてのシーン画像が生成済みです",
-      "allPropsDone": "すべての小道具画像が生成済みです"
+      "allPropsDone": "すべての小道具画像が生成済みです",
+      "batchBalanceHint": "残高がこの一括画像生成（{n} 枚）に足りません。チャージするか、枚数を減らしてください。"
     },
     "extract": {
       "done": "{type}の抽出が完了しました",
@@ -933,6 +942,7 @@
     "status": {
       "done": "完了",
       "generating": "生成中",
+      "regenerating": "再生成中",
       "failed": "失敗",
       "todo": "未生成"
     },
@@ -965,7 +975,13 @@
     "server": "サーバーから異常な応答が返されました。しばらくしてから再試行してください",
     "unavailable": "サービスは一時的に利用できません。しばらくしてから再試行してください",
     "auth": "認証に失敗しました。APIキー設定を確認してください",
-    "rateLimit": "リクエストが多すぎるか、クォータが不足しています。しばらくしてから再試行してください",
+    "balance": "残高が不足しています。チャージしてから再生成してください",
+    "balanceTitle": "残高不足",
+    "balanceDetail": "今回の生成費用が Real-API の残高を超えています。",
+    "balanceAction": "チャージへ",
+    "rateLimit": "リクエストが多すぎます。しばらくしてから再試行してください",
+    "rateLimitTitle": "しばらくお待ちください",
+    "rateLimitDetail": "操作が短時間に集中したか、サービス側で一時制限中です。\n数秒待ってからもう一度生成してください。連打は不要です。",
     "timeout": "生成がタイムアウトしました。再試行してください",
     "moderation": "コンテンツが審査を通過しませんでした。プロンプトを調整するかモデルを切り替えて再試行してください",
     "requestFailed": "リクエストに失敗しました（{status}）",

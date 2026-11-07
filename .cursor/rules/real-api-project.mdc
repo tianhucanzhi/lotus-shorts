@@ -1,0 +1,12 @@
+---
+description: Real-API 对应仓库路径
+alwaysApply: true
+---
+
+# Real-API 项目位置
+
+提到 **Real-API** / `real-api.yunfm.cn` / 中转站开户与计费时，代码仓库是：
+
+`F:\LLM\my_project\AI-Middle-Platform`
+
+不要在 `lotus-shorts` 里找或改 Real-API 服务端逻辑；莲花短剧只消费该 API。改余额校验、视频 job 预扣、开户等，去 AI-Middle-Platform。

@@ -788,7 +788,12 @@ async function restoreRealApiAccount() {
   } catch { /* 未开通或接口失败时保持空白 */ }
 }
 
-onMounted(() => { restoreRealApiAccount() })
+onMounted(() => {
+  restoreRealApiAccount()
+  const onOpenRecharge = () => { openRealApiConsole('/console/recharge') }
+  window.addEventListener('lotus:open-recharge', onOpenRecharge)
+  onUnmounted(() => window.removeEventListener('lotus:open-recharge', onOpenRecharge))
+})
 watch(() => auth.user.value?.id, () => { restoreRealApiAccount() })
 const cfgForm = reactive({ name: '', provider: '', api_key: '', base_url: '', models: [], service_type: 'text', priority: 0, temperature: '' })
 // 模型标签编辑器：首位即默认模型；输入框支持回车添加、逗号/换行批量粘贴

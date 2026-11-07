@@ -583,7 +583,7 @@
                     <div v-else class="video-task-empty">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
                     </div>
-                    <span class="video-task-index">#{{ String(task.index + 1).padStart(2, '0') }}</span>
+                    <span class="video-task-index">{{ task.index + 1 }}</span>
                   </div>
                   <div class="video-task-main">
                     <div class="video-task-line">
@@ -1432,11 +1432,80 @@
             <div class="batch-video-row"><span>{{ t('episode.vid.confirmTotal') }}</span><strong>{{ t('episode.vid.confirmApprox', { n: batchVideoTotalDuration }) }}</strong></div>
             <div class="batch-video-row"><span>{{ t('episode.vid.confirmModel') }}</span><strong>{{ effectiveVideoModelLabel || t('episode.vid.defaultModel') }}</strong></div>
             <div class="batch-video-row"><span>{{ t('episode.vid.confirmResolution') }}</span><strong>{{ episodeResolutionLabel }}</strong></div>
-            <p class="batch-video-note">{{ t('episode.vid.confirmNote') }}</p>
+            <div
+              v-if="batchEstimate.applicable && !batchEstimate.loading && !batchEstimate.ok"
+              class="batch-balance-alert"
+              role="alert"
+            >
+              <div class="batch-balance-alert-icon"><Wallet :size="18" :stroke-width="2" /></div>
+              <div class="batch-balance-alert-body">
+                <strong>{{ t('errors.balanceTitle') }}</strong>
+                <p>{{ t('episode.vid.batchBalanceHint') }}</p>
+                <button type="button" class="btn btn-sm batch-balance-recharge" @click="goBatchRecharge">
+                  {{ t('errors.balanceAction') }}
+                </button>
+              </div>
+            </div>
+            <p v-else class="batch-video-note">{{ t('episode.vid.confirmNote') }}</p>
           </div>
           <footer class="dialog-foot">
             <button class="btn" @click="batchVideoConfirm.open = false">{{ t('common.cancel') }}</button>
-            <button class="btn btn-primary" @click="confirmBatchVideos">{{ t('episode.vid.confirmStart', { n: batchVideoConfirm.targets.length }) }}</button>
+            <button
+              v-if="batchEstimate.applicable && !batchEstimate.loading && !batchEstimate.ok"
+              class="btn btn-primary"
+              @click="goBatchRecharge"
+            >{{ t('errors.balanceAction') }}</button>
+            <button
+              v-else
+              class="btn btn-primary"
+              :disabled="batchEstimate.loading"
+              @click="confirmBatchVideos"
+            >{{ t('episode.vid.confirmStart', { n: batchVideoConfirm.targets.length }) }}</button>
+          </footer>
+        </div>
+      </div>
+
+      <div v-if="batchImageBalance.open" class="overlay" @click.self="batchImageBalance.open = false">
+        <div class="dialog batch-video-dialog">
+          <header class="dialog-head">
+            <h2 class="dialog-title">{{ t('errors.balanceTitle') }}</h2>
+            <button class="btn btn-ghost btn-icon" @click="batchImageBalance.open = false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </header>
+          <div class="dialog-body batch-video-body">
+            <div class="batch-balance-alert" role="alert">
+              <div class="batch-balance-alert-icon"><Wallet :size="18" :stroke-width="2" /></div>
+              <div class="batch-balance-alert-body">
+                <strong>{{ t('errors.balanceTitle') }}</strong>
+                <p>{{ t('episode.image.batchBalanceHint', { n: batchImageBalance.count }) }}</p>
+                <button type="button" class="btn btn-sm batch-balance-recharge" @click="goBatchRecharge">
+                  {{ t('errors.balanceAction') }}
+                </button>
+              </div>
+            </div>
+          </div>
+          <footer class="dialog-foot">
+            <button class="btn" @click="batchImageBalance.open = false">{{ t('common.cancel') }}</button>
+            <button class="btn btn-primary" @click="goBatchRecharge">{{ t('errors.balanceAction') }}</button>
+          </footer>
+        </div>
+      </div>
+
+      <div v-if="regenConfirm.open" class="overlay" @click.self="answerRegenConfirm(false)">
+        <div class="dialog batch-video-dialog">
+          <header class="dialog-head">
+            <h2 class="dialog-title">{{ t('episode.recovery.newGeneration') }}</h2>
+            <button class="btn btn-ghost btn-icon" @click="answerRegenConfirm(false)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </header>
+          <div class="dialog-body batch-video-body">
+            <p class="batch-video-note" style="margin:0">{{ t('episode.recovery.confirmNew') }}</p>
+          </div>
+          <footer class="dialog-foot">
+            <button class="btn" @click="answerRegenConfirm(false)">{{ t('common.cancel') }}</button>
+            <button class="btn btn-primary" @click="answerRegenConfirm(true)">{{ t('common.confirm') }}</button>
           </footer>
         </div>
       </div>
@@ -1459,13 +1528,13 @@ import { toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
 import {
   Users, FileText, FolderKanban, Clapperboard, Download, Loader2,
-  Plus, X, ListTodo, CircleHelp,
+  Plus, X, ListTodo, CircleHelp, Wallet,
 } from 'lucide-vue-next'
 import { api, dramaAPI, episodeAPI, storyboardAPI, characterAPI, sceneAPI, propAPI, taskAPI, mergeAPI, aiConfigAPI, uploadAPI } from '~/composables/useApi'
 import { startTour, autoTour } from '~/composables/useTour'
 import { useAgent } from '~/composables/useAgent'
 import { resolveTextModelSelection } from '~/utils/text-model-selection'
-import { toastError, mapError, MODERATION_RE } from '~/composables/useToast'
+import { toastError, mapError, classifyError, MODERATION_RE } from '~/composables/useToast'
 import LocaleSwitcher from '~/components/LocaleSwitcher.vue'
 import brandLogo from '~/assets/brand-logo.png'
 
@@ -1629,6 +1698,8 @@ const pendingCharImageIds = ref([])
 const pendingSceneImageIds = ref([])
 const pendingPropImageIds = ref([])
 const pendingVideoIds = ref([])
+/** 重绘中：等待的任务 id 下限（须出现更新的 processing/completed 才结束 pending） */
+const pendingVideoMinTaskId = ref({})
 const failedVideoMessages = ref({})
 // 任务列表面板：顶栏按钮触发的右侧抽屉,按集聚合 sys_task + video_merges
 const genTasks = ref([])
@@ -1972,6 +2043,27 @@ function isPendingVideo(id) {
   return pendingVideoIds.value.includes(id)
 }
 
+function markVideoPending(storyboardId, minTaskId) {
+  if (!storyboardId) return
+  if (!isPendingVideo(storyboardId)) pendingVideoIds.value.push(storyboardId)
+  const floor = Math.max(0, Number(minTaskId) || 0)
+  const prev = Number(pendingVideoMinTaskId.value[storyboardId] || 0)
+  pendingVideoMinTaskId.value = {
+    ...pendingVideoMinTaskId.value,
+    [storyboardId]: Math.max(prev, floor),
+  }
+}
+
+function clearVideoPending(storyboardId) {
+  if (!storyboardId) return
+  pendingVideoIds.value = pendingVideoIds.value.filter(id => id !== storyboardId)
+  if (pendingVideoMinTaskId.value[storyboardId] != null) {
+    const next = { ...pendingVideoMinTaskId.value }
+    delete next[storyboardId]
+    pendingVideoMinTaskId.value = next
+  }
+}
+
 function videoFailMessage(id) {
   return failedVideoMessages.value[id] || ''
 }
@@ -1983,9 +2075,10 @@ function videoModerationHint(msg) {
 }
 
 function videoTaskState(sb) {
-  if (hasVid(sb)) return 'done'
+  // 重绘时旧 video_url 仍在，必须先看 pending，否则会一直显示「已完成」
   if (isPendingVideo(sb?.id)) return 'pending'
   if (videoFailMessage(sb?.id)) return 'failed'
+  if (hasVid(sb)) return 'done'
   return 'ready'
 }
 
@@ -2027,14 +2120,14 @@ async function recoverVideo(sb) {
 }
 async function recoverTask(taskId, storyboardId) {
   if (isPendingVideo(storyboardId)) return
-  if (storyboardId) pendingVideoIds.value.push(storyboardId)
+  if (storyboardId) markVideoPending(storyboardId, taskId || 0)
   try {
     await taskAPI.recover(taskId)
     delete failedVideoMessages.value[storyboardId]
     await refresh()
     pollVideoGeneration(taskId, storyboardId)
   } catch (error) {
-    pendingVideoIds.value = pendingVideoIds.value.filter(id => id !== storyboardId)
+    clearVideoPending(storyboardId)
     toastError(error)
   }
 }
@@ -2044,8 +2137,10 @@ function videoTaskStatusLabel(sb) {
   if (state === 'done') return t('episode.status.done')
   if (state === 'pending') {
     const stage = latestVideoTask(sb.id)?.stage
-    return stage === 'downloading' ? t('episode.recovery.downloading')
-      : stage === 'transferring' ? t('episode.recovery.transferring') : t('episode.status.generating')
+    if (stage === 'downloading') return t('episode.recovery.downloading')
+    if (stage === 'transferring') return t('episode.recovery.transferring')
+    // 已有成片再点重绘：显示「重绘中」，与首次生成区分
+    return hasVid(sb) ? t('episode.status.regenerating') : t('episode.status.generating')
   }
   if (state === 'failed' && latestVideoTask(sb?.id)?.result_url) return t('episode.recovery.localDownloadFailed')
   if (state === 'failed') return t('episode.status.failed')
@@ -2061,6 +2156,20 @@ function videoTaskActionLabel(sb) {
   return t('episode.asset.generate')
 }
 
+/** description 里的【镜头N】是段内子镜头标记，不是列表序号；展示时去掉，改用「分镜 1/2/3」 */
+function videoTaskDisplayTitle(sb, index) {
+  const shotNo = index + 1
+  const fallback = t('episode.vid.shotN', { n: shotNo })
+  const raw = String(sb?.description || '').trim()
+  if (!raw) return fallback
+  const cleaned = raw
+    .replace(/【\s*镜头\s*\d+\s*】/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!cleaned) return fallback
+  return `${fallback} · ${cleaned}`
+}
+
 const allVideoTaskRows = computed(() => sbs.value.map((sb, index) => {
   const duration = Number(sb.duration || 5)
   const referenceCount = getShotReferenceImages(sb).length
@@ -2069,7 +2178,7 @@ const allVideoTaskRows = computed(() => sbs.value.map((sb, index) => {
     id: sb.id,
     index,
     storyboard: sb,
-    title: sb.description || t('episode.vid.shotN', { n: String(index + 1).padStart(2, '0') }),
+    title: videoTaskDisplayTitle(sb, index),
     meta: sceneName,
     duration: Number.isFinite(duration) ? duration : 5,
     referenceCount,
@@ -2093,6 +2202,21 @@ function toggleVideoFilter(state) {
 const videoSelectMode = ref(false)
 const selectedVideoSbIds = ref([])
 const batchVideoConfirm = ref({ open: false, targets: [] })
+/** 重新生成计费确认（不用 window.confirm，避免与页面弹层互相卡住） */
+const regenConfirm = ref({ open: false, resolve: null })
+
+function askRegenConfirm() {
+  return new Promise((resolve) => {
+    regenConfirm.value.resolve?.(false)
+    regenConfirm.value = { open: true, resolve }
+  })
+}
+
+function answerRegenConfirm(ok) {
+  const resolve = regenConfirm.value.resolve
+  regenConfirm.value = { open: false, resolve: null }
+  resolve?.(!!ok)
+}
 
 function isVideoSbSelected(id) { return selectedVideoSbIds.value.includes(id) }
 function toggleVideoSbSelect(id) {
@@ -2244,10 +2368,95 @@ const effectiveVideoDuration = computed(() => Number(selectedSb.value?.duration 
 const batchVideoTotalDuration = computed(() =>
   batchVideoConfirm.value.targets.reduce((sum, sb) => sum + (Number(sb.duration) || 5), 0))
 
+/** Real-API 粗估：视频 ¥0.8/秒、图片 ¥0.5/张；余额按约 7.2 汇率折人民币比对（仅预检） */
+const VIDEO_ESTIMATE_CNY_PER_SEC = 0.8
+const IMAGE_ESTIMATE_CNY_PER_IMAGE = 0.5
+const USD_TO_CNY_ESTIMATE = 7.2
+const REAL_API_HOST_RE = /real-api\.yunfm\.cn/i
+
+function isRealApiConfig(cfg) {
+  if (!cfg) return false
+  const url = String(cfg.base_url || cfg.baseUrl || '')
+  const name = String(cfg.name || '')
+  return REAL_API_HOST_RE.test(url) || /real[\s_-]?api/i.test(name)
+}
+
+const selectedImageConfig = computed(() => {
+  const selected = imageModelOptions.value.find(option => option.key === imageModel.value)
+  if (selected) return imageConfigs.value.find(config => config.id === selected.configId)
+  return [...imageConfigs.value]
+    .filter(config => config.is_active)
+    .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0]
+})
+
+const batchEstimate = ref({
+  applicable: false,
+  loading: false,
+  estimatedCny: 0,
+  balanceUsd: null,
+  balanceCny: null,
+  ok: true,
+})
+const batchImageBalance = ref({ open: false, count: 0 })
+
+async function fetchRealApiBalanceCny() {
+  const account = await aiConfigAPI.getRealApiAccount()
+  if (!account?.username && account?.user_id == null) return null
+  const res = await aiConfigAPI.realApiBalance({
+    user_id: account.user_id,
+    username: account.username,
+    password: account.password || '123456',
+  })
+  const balanceUsd = res?.balance_usd == null ? null : Number(res.balance_usd)
+  if (balanceUsd == null || !Number.isFinite(balanceUsd)) return null
+  return Math.round(balanceUsd * USD_TO_CNY_ESTIMATE * 10) / 10
+}
+
+async function checkRealApiBudget(cfg, estimatedCny) {
+  if (!isRealApiConfig(cfg)) {
+    return { applicable: false, loading: false, estimatedCny: 0, balanceUsd: null, balanceCny: null, ok: true }
+  }
+  const need = Math.round(Number(estimatedCny || 0) * 10) / 10
+  try {
+    const balanceCny = await fetchRealApiBalanceCny()
+    const ok = balanceCny == null ? true : balanceCny + 1e-6 >= need
+    return { applicable: true, loading: false, estimatedCny: need, balanceUsd: null, balanceCny, ok }
+  } catch {
+    return { applicable: true, loading: false, estimatedCny: need, balanceUsd: null, balanceCny: null, ok: true }
+  }
+}
+
+async function refreshBatchBalanceEstimate(targets) {
+  const cfg = selectedVideoConfig.value
+  if (!isRealApiConfig(cfg)) {
+    batchEstimate.value = { applicable: false, loading: false, estimatedCny: 0, balanceUsd: null, balanceCny: null, ok: true }
+    return
+  }
+  const seconds = (targets || []).reduce((sum, sb) => sum + (Number(sb.duration) || 5), 0)
+  const estimatedCny = seconds * VIDEO_ESTIMATE_CNY_PER_SEC
+  batchEstimate.value = { applicable: true, loading: true, estimatedCny, balanceUsd: null, balanceCny: null, ok: true }
+  batchEstimate.value = await checkRealApiBudget(cfg, estimatedCny)
+}
+
+/** Real-API 图片批量：余额不足则弹醒目提醒并阻断；足够或非 Real-API 则放行 */
+async function ensureRealApiImageBatchBudget(imageCount) {
+  const n = Math.max(0, Number(imageCount) || 0)
+  if (!n) return true
+  const cfg = selectedImageConfig.value
+  if (!isRealApiConfig(cfg)) return true
+  const result = await checkRealApiBudget(cfg, n * IMAGE_ESTIMATE_CNY_PER_IMAGE)
+  if (result.applicable && !result.ok) {
+    batchImageBalance.value = { open: true, count: n }
+    return false
+  }
+  return true
+}
+
 function openBatchVideoConfirm(pool) {
   const targets = pool.filter(s => !isPendingVideo(s.id))
   if (!targets.length) { toast.info(t('episode.vid.noneToGenerate')); return }
   batchVideoConfirm.value = { open: true, targets }
+  void refreshBatchBalanceEstimate(targets)
 }
 function batchVideos() {
   // 选择模式且有勾选 → 仅所选（允许重出已完成镜头）；否则全部未完成（待生成+失败）
@@ -2260,7 +2469,23 @@ function batchVideos() {
 async function retryFailedVideos() {
   await Promise.allSettled(sbs.value.filter(sb => canRecoverVideo(sb.id)).map(recoverVideo))
 }
+
+async function goBatchRecharge() {
+  batchVideoConfirm.value = { open: false, targets: [] }
+  batchImageBalance.value = { open: false, count: 0 }
+  await navigateTo('/settings')
+  if (typeof window !== 'undefined') {
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('lotus:open-recharge'))
+    }, 300)
+  }
+}
+
 function confirmBatchVideos() {
+  if (batchEstimate.value.applicable && !batchEstimate.value.ok) {
+    void goBatchRecharge()
+    return
+  }
   const targets = [...batchVideoConfirm.value.targets]
   batchVideoConfirm.value = { open: false, targets: [] }
   if (!targets.length) return
@@ -2268,10 +2493,13 @@ function confirmBatchVideos() {
   targets.forEach(sb => genVid(sb, { silent: true }))
   toast.success(t('episode.vid.batchStarted', { n: ids.length }))
   watchAsyncResult(() => ids.every(id => {
-    const target = sbs.value.find(s => s.id === id)
-    const done = !!getVideoUrl(target)
-    if (done) pendingVideoIds.value = pendingVideoIds.value.filter(item => item !== id)
-    return done
+    if (!isPendingVideo(id)) return true
+    const task = latestVideoTask(id)
+    if (task?.status === 'completed' || task?.status === 'failed') {
+      clearVideoPending(id)
+      return true
+    }
+    return false
   }), 80, 4000)
   if (videoSelectMode.value) toggleVideoSelectMode()
 }
@@ -2295,6 +2523,82 @@ const videoModelMultiCfg = computed(() => hasMultiConfigs(videoModelOptions.valu
 
 // Production step helpers
 // ========== 任务列表面板 ==========
+function latestTaskByEntityId(tasks, idKey) {
+  const latest = new Map()
+  for (const t of tasks) {
+    const eid = t[idKey]
+    if (!eid) continue
+    const prev = latest.get(eid)
+    if (!prev
+      || String(t.created_at || '') > String(prev.created_at || '')
+      || (String(t.created_at || '') === String(prev.created_at || '') && t.id > prev.id)) {
+      latest.set(eid, t)
+    }
+  }
+  return latest
+}
+
+/** 资产图：用 sys_task 收敛「生成中」；失败时退出 pending 并提示（含余额不足弹框） */
+function syncAssetImagePendingFromTasks() {
+  const imageTasks = genTasks.value.filter(t => t.type === 'image')
+  const groups = [
+    {
+      idKey: 'character_id',
+      pendingRef: pendingCharImageIds,
+      hasImage: (id) => {
+        const c = chars.value.find(x => x.id === id)
+        return !!(c?.image_url || c?.imageUrl)
+      },
+    },
+    {
+      idKey: 'scene_id',
+      pendingRef: pendingSceneImageIds,
+      hasImage: (id) => {
+        const s = scenes.value.find(x => x.id === id)
+        return !!(s?.image_url || s?.imageUrl)
+      },
+    },
+    {
+      idKey: 'prop_id',
+      pendingRef: pendingPropImageIds,
+      hasImage: (id) => {
+        const p = propItems.value.find(x => x.id === id)
+        return !!(p?.image_url || p?.imageUrl)
+      },
+    },
+  ]
+
+  const failMsgs = []
+  for (const g of groups) {
+    const latest = latestTaskByEntityId(imageTasks, g.idKey)
+    const wasPending = new Set(g.pendingRef.value)
+    const pending = new Set()
+    for (const [eid, t] of latest) {
+      if (g.hasImage(eid)) continue
+      if (t.status === 'processing') pending.add(eid)
+      else if (t.status === 'failed' && wasPending.has(eid)) {
+        failMsgs.push(t.error_msg || t.errorMsg || 'Generation failed')
+      }
+    }
+    // 刚点击、任务尚未入库时保留本地 pending，避免闪退
+    for (const id of wasPending) if (!latest.has(id)) pending.add(id)
+    const next = [...pending]
+    const prev = g.pendingRef.value
+    if (next.length !== prev.length || next.some((id, i) => id !== prev[i])) {
+      g.pendingRef.value = next
+    }
+  }
+  // 批量失败时余额不足只弹一次；其他错误各提示一次
+  let balanceShown = false
+  for (const msg of failMsgs) {
+    if (classifyError(msg) === 'balance') {
+      if (balanceShown) continue
+      balanceShown = true
+    }
+    toastError(msg)
+  }
+}
+
 async function loadGenTasks() {
   if (!epId.value) return
   try {
@@ -2306,32 +2610,47 @@ async function loadGenTasks() {
     // 否则已失败的镜头刷新后会退化成"待生成"
     const videoTasks = genTasks.value.filter(t => t.type === 'video' && t.storyboard_id)
     // 每个分镜只取最新一条任务(created_at 降序、id 兜底),旧任务不干预当前状态
-    const latestBySb = new Map()
-    for (const t of videoTasks) {
-      const prev = latestBySb.get(t.storyboard_id)
-      if (!prev
-        || String(t.created_at || '') > String(prev.created_at || '')
-        || (String(t.created_at || '') === String(prev.created_at || '') && t.id > prev.id)) {
-        latestBySb.set(t.storyboard_id, t)
-      }
-    }
+    const latestBySb = latestTaskByEntityId(videoTasks, 'storyboard_id')
     // pending/failed 全量重建而非与现有值并集——否则刷新恢复的"生成中"在任务失败后
     // 永不消退(videoTaskState 中 pending 优先于 failed,重试按钮还被禁用)
     const pending = new Set()
     const failed = {}
     for (const [sbId, t] of latestBySb) {
-      // 分镜已有视频(失败后重试成功)时不再报历史错误
-      if (hasVid(sbs.value.find(s => s.id === sbId))) continue
-      if (t.status === 'processing') pending.add(sbId)
-      else if (t.status === 'failed') failed[sbId] = t.error_msg || 'Task failed'
+      if (t.status === 'processing') {
+        // 重绘中：即使旧视频还在，也要保持生成中
+        pending.add(sbId)
+        continue
+      }
+      if (t.status === 'failed') {
+        // 重绘失败：保留失败态（可仍播放旧视频），便于再次重试
+        failed[sbId] = t.error_msg || 'Task failed'
+      }
+      // completed：不进 pending/failed；有成片则列表显示已完成
     }
-    // 刚点击提交、任务记录尚未加载出来的本地状态保留,避免状态闪退
-    for (const id of pendingVideoIds.value) if (!latestBySb.has(id)) pending.add(id)
+    // 刚点击重绘：新任务未入库，或列表仍是旧 completed（id < minTaskId）时保留 pending
+    for (const id of pendingVideoIds.value) {
+      const t = latestBySb.get(id)
+      const minId = Number(pendingVideoMinTaskId.value[id] || 0)
+      if (!t) {
+        pending.add(id)
+        continue
+      }
+      // 仍是点击前的旧完成任务 → 继续显示重绘中；新任务已 completed/failed 则不再保留
+      if (t.status === 'completed' && t.id < minId) pending.add(id)
+    }
     for (const id of Object.keys(failedVideoMessages.value)) {
       if (!latestBySb.has(Number(id))) failed[id] = failedVideoMessages.value[id]
     }
     pendingVideoIds.value = [...pending]
+    // 已不在 pending 的分镜清掉 minTaskId，避免脏数据
+    const nextMin = {}
+    for (const id of pending) {
+      if (pendingVideoMinTaskId.value[id] != null) nextMin[id] = pendingVideoMinTaskId.value[id]
+    }
+    pendingVideoMinTaskId.value = nextMin
     failedVideoMessages.value = failed
+
+    syncAssetImagePendingFromTasks()
   } catch { /* 静默失败,不打断其他刷新 */ }
 }
 
@@ -2438,15 +2757,26 @@ function genTaskDuration(row) {
 }
 
 // 后端任务在刷新/重启后仍可能运行，工作台持续同步，不依赖抽屉是否打开。
+// 资产图「生成中」也要轮询：余额不足等失败后 sys_task 已 failed，但内存 pending 需靠刷新收敛。
 let refreshingTasks = false
-watch(genTaskActiveCount, active => {
-  stopGenTasksPolling()
-  if (active > 0) genTasksTimer = setInterval(async () => {
-    if (refreshingTasks) return
-    refreshingTasks = true
-    try { await refresh() } finally { refreshingTasks = false }
-  }, 4000)
-})
+watch(
+  () => [
+    genTaskActiveCount.value,
+    pendingCharImageIds.value.length,
+    pendingSceneImageIds.value.length,
+    pendingPropImageIds.value.length,
+  ],
+  ([active, charN, sceneN, propN]) => {
+    stopGenTasksPolling()
+    const needPoll = active > 0 || charN > 0 || sceneN > 0 || propN > 0
+    if (!needPoll) return
+    genTasksTimer = setInterval(async () => {
+      if (refreshingTasks) return
+      refreshingTasks = true
+      try { await refresh() } finally { refreshingTasks = false }
+    }, 4000)
+  },
+)
 
 const productionBlockMessage = computed(() => {
   if (!scriptContent.value) return t('episode.prod.scriptFirst')
@@ -2958,14 +3288,63 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-function watchAsyncResult(check, attempts = 24, delay = 2500) {
+function watchAsyncResult(check, attemptsOrOpts = 24, delay = 2500) {
+  const opts = typeof attemptsOrOpts === 'object' && attemptsOrOpts
+    ? attemptsOrOpts
+    : { attempts: attemptsOrOpts, delay }
+  const attempts = opts.attempts ?? 24
+  const wait = opts.delay ?? 2500
+  const onGiveUp = opts.onGiveUp
   void (async () => {
     for (let i = 0; i < attempts; i++) {
-      await sleep(delay)
+      await sleep(wait)
       await refresh()
       if (check()) return
     }
+    onGiveUp?.()
   })()
+}
+
+function clearPendingAssetImage(kind, id) {
+  if (kind === 'character') pendingCharImageIds.value = pendingCharImageIds.value.filter(item => item !== id)
+  else if (kind === 'scene') pendingSceneImageIds.value = pendingSceneImageIds.value.filter(item => item !== id)
+  else if (kind === 'prop') pendingPropImageIds.value = pendingPropImageIds.value.filter(item => item !== id)
+}
+
+function assetImageReady(kind, id) {
+  if (kind === 'character') {
+    const char = chars.value.find(c => c.id === id)
+    return !!(char?.image_url || char?.imageUrl)
+  }
+  if (kind === 'scene') {
+    const scene = scenes.value.find(s => s.id === id)
+    return !!(scene?.image_url || scene?.imageUrl)
+  }
+  const prop = propItems.value.find(p => p.id === id)
+  return !!(prop?.image_url || prop?.imageUrl)
+}
+
+function isPendingAssetImage(kind, id) {
+  return kind === 'character' ? isPendingCharImage(id)
+    : kind === 'scene' ? isPendingSceneImage(id)
+      : isPendingPropImage(id)
+}
+
+/** 出图成功、任务失败（pending 被 loadGenTasks 清掉）、或轮询耗尽都结束等待 */
+function watchAssetImageResult(kind, ids, attempts = 24) {
+  const idList = Array.isArray(ids) ? ids : [ids]
+  watchAsyncResult(() => idList.every((id) => {
+    if (assetImageReady(kind, id) || !isPendingAssetImage(kind, id)) {
+      clearPendingAssetImage(kind, id)
+      return true
+    }
+    return false
+  }), {
+    attempts,
+    onGiveUp: () => {
+      for (const id of idList) clearPendingAssetImage(kind, id)
+    },
+  })
 }
 
 async function genCharImg(id) {
@@ -2981,30 +3360,21 @@ async function genCharImg(id) {
     await characterAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId())
     toast.success(t('episode.image.generatingChar'))
     await refresh()
-    watchAsyncResult(() => {
-      const char = chars.value.find(c => c.id === id)
-      const done = !!(char?.image_url || char?.imageUrl)
-      if (done) pendingCharImageIds.value = pendingCharImageIds.value.filter(item => item !== id)
-      return done
-    })
+    watchAssetImageResult('character', id)
   } catch (e) {
     pendingCharImageIds.value = pendingCharImageIds.value.filter(item => item !== id)
     toastError(e)
   }
 }
-function batchCharImages() {
+async function batchCharImages() {
   const ids = visualChars.value.filter(c => !(c.image_url || c.imageUrl)).map(c => c.id)
   if (!ids.length) { toast.info(t('episode.image.allCharsDone')); return }
+  if (!(await ensureRealApiImageBatchBudget(ids.length))) return
   pendingCharImageIds.value = [...new Set([...pendingCharImageIds.value, ...ids])]
   characterAPI.batchImages(ids, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId()).then(async () => {
     toast.success(t('episode.image.batchGeneratingChar'))
     await refresh()
-    watchAsyncResult(() => ids.every(id => {
-      const char = chars.value.find(c => c.id === id)
-      const done = !!(char?.image_url || char?.imageUrl)
-      if (done) pendingCharImageIds.value = pendingCharImageIds.value.filter(item => item !== id)
-      return done
-    }), 36)
+    watchAssetImageResult('character', ids, 36)
   }).catch(e => {
     pendingCharImageIds.value = pendingCharImageIds.value.filter(item => !ids.includes(item))
     toastError(e)
@@ -3023,12 +3393,7 @@ async function genSceneImg(id) {
     await sceneAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId())
     toast.success(t('episode.image.generatingScene'))
     await refresh()
-    watchAsyncResult(() => {
-      const scene = scenes.value.find(s => s.id === id)
-      const done = !!(scene?.image_url || scene?.imageUrl)
-      if (done) pendingSceneImageIds.value = pendingSceneImageIds.value.filter(item => item !== id)
-      return done
-    })
+    watchAssetImageResult('scene', id)
   } catch (e) {
     pendingSceneImageIds.value = pendingSceneImageIds.value.filter(item => item !== id)
     toastError(e)
@@ -3050,42 +3415,43 @@ async function genPropImg(id) {
     await propAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId())
     toast.success(t('episode.image.generatingProp'))
     await refresh()
-    watchAsyncResult(() => {
-      const prop = propItems.value.find(p => p.id === id)
-      const done = !!(prop?.image_url || prop?.imageUrl)
-      if (done) pendingPropImageIds.value = pendingPropImageIds.value.filter(item => item !== id)
-      return done
-    })
+    watchAssetImageResult('prop', id)
   } catch (e) {
     pendingPropImageIds.value = pendingPropImageIds.value.filter(item => item !== id)
     toastError(e)
   }
 }
-function batchSceneImages() {
+async function batchSceneImages() {
   const ids = scenes.value.filter(s => !(s.image_url || s.imageUrl)).map(s => s.id)
   if (!ids.length) { toast.info(t('episode.image.allScenesDone')); return }
+  if (!(await ensureRealApiImageBatchBudget(ids.length))) return
   pendingSceneImageIds.value = [...new Set([...pendingSceneImageIds.value, ...ids])]
-  ids.forEach(id => { sceneAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId()).then(() => refresh()).catch(e => toastError(e)) })
+  ids.forEach(id => {
+    sceneAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId())
+      .then(() => refresh())
+      .catch((e) => {
+        clearPendingAssetImage('scene', id)
+        toastError(e)
+      })
+  })
   toast.success(t('episode.image.batchGeneratingScene'))
-  watchAsyncResult(() => ids.every(id => {
-    const scene = scenes.value.find(s => s.id === id)
-    const done = !!(scene?.image_url || scene?.imageUrl)
-    if (done) pendingSceneImageIds.value = pendingSceneImageIds.value.filter(item => item !== id)
-    return done
-  }), 36)
+  watchAssetImageResult('scene', ids, 36)
 }
-function batchPropImages() {
+async function batchPropImages() {
   const ids = propItems.value.filter(p => !(p.image_url || p.imageUrl)).map(p => p.id)
   if (!ids.length) { toast.info(t('episode.image.allPropsDone')); return }
+  if (!(await ensureRealApiImageBatchBudget(ids.length))) return
   pendingPropImageIds.value = [...new Set([...pendingPropImageIds.value, ...ids])]
-  ids.forEach(id => { propAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId()).then(() => refresh()).catch(e => toastError(e)) })
+  ids.forEach(id => {
+    propAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId())
+      .then(() => refresh())
+      .catch((e) => {
+        clearPendingAssetImage('prop', id)
+        toastError(e)
+      })
+  })
   toast.success(t('episode.image.batchGeneratingProp'))
-  watchAsyncResult(() => ids.every(id => {
-    const prop = propItems.value.find(p => p.id === id)
-    const done = !!(prop?.image_url || prop?.imageUrl)
-    if (done) pendingPropImageIds.value = pendingPropImageIds.value.filter(item => item !== id)
-    return done
-  }), 36)
+  watchAssetImageResult('prop', ids, 36)
 }
 function getVideoUrl(s) { return s?.video_url || s?.videoUrl || s?.composed_video_url || s?.composedVideoUrl || null }
 function hasVid(s) { return !!getVideoUrl(s) }
@@ -3381,7 +3747,11 @@ async function genVid(sb, opts = {}) {
   if (!opts.forceNew && canRecoverVideo(sb.id)) return recoverVideo(sb)
   const latest = latestVideoTask(sb.id)
   const forceNew = opts.forceNew || latest?.status === 'failed'
-  if (forceNew && !window.confirm(t('episode.recovery.confirmNew'))) return
+  // 批量已有确认框；单条用应用内弹层，避免 window.confirm 与 overlay 互锁卡死
+  if (forceNew && !opts.silent) {
+    const ok = await askRegenConfirm()
+    if (!ok) return
+  }
   const referenceImages = getShotReferenceImages(sb)
   // 参考素材完全来自分镜绑定的角色/场景/道具图片
   const params = {
@@ -3401,13 +3771,16 @@ async function genVid(sb, opts = {}) {
   }
   try {
     delete failedVideoMessages.value[sb.id]
-    if (!isPendingVideo(sb.id)) pendingVideoIds.value.push(sb.id)
+    // 记录点击前最新任务 id，避免 loadGenTasks 把旧 completed 当成「仍在重绘」或完成后又加回 pending
+    const prevTaskId = latestVideoTask(sb.id)?.id || 0
+    markVideoPending(sb.id, prevTaskId + 1)
     const generation = await taskAPI.generate({ type: 'video', ...params, force_new: !!forceNew })
+    if (generation?.id) markVideoPending(sb.id, generation.id)
     if (!opts.silent) toast.success(t('episode.vid.generating'))
     await refresh()
     pollVideoGeneration(generation?.id, sb.id)
   } catch (e) {
-    pendingVideoIds.value = pendingVideoIds.value.filter(item => item !== sb.id)
+    clearVideoPending(sb.id)
     failedVideoMessages.value = {
       ...failedVideoMessages.value,
       [sb.id]: e.message || t('episode.vid.genFailed'),
@@ -3417,11 +3790,16 @@ async function genVid(sb, opts = {}) {
 }
 async function pollVideoGeneration(generationId, storyboardId) {
   if (!generationId) {
+    // 重绘时旧视频仍在，不能用 hasVid 判断结束；看最新任务是否终态
     watchAsyncResult(() => {
-      const target = sbs.value.find(s => s.id === storyboardId)
-      const done = !!(target?.video_url || target?.videoUrl)
-      if (done) pendingVideoIds.value = pendingVideoIds.value.filter(item => item !== storyboardId)
-      return done
+      if (!isPendingVideo(storyboardId)) return true
+      const task = latestVideoTask(storyboardId)
+      const minId = Number(pendingVideoMinTaskId.value[storyboardId] || 0)
+      if (task && task.id >= minId && (task.status === 'completed' || task.status === 'failed')) {
+        clearVideoPending(storyboardId)
+        return true
+      }
+      return false
     }, 60, 4000)
     return
   }
@@ -3431,13 +3809,13 @@ async function pollVideoGeneration(generationId, storyboardId) {
       const res = await taskAPI.get(generationId)
       await refresh()
       if (res?.status === 'completed') {
-        pendingVideoIds.value = pendingVideoIds.value.filter(item => item !== storyboardId)
+        clearVideoPending(storyboardId)
         delete failedVideoMessages.value[storyboardId]
         toast.success(t('episode.vid.genDone'))
         return
       }
       if (res?.status === 'failed') {
-        pendingVideoIds.value = pendingVideoIds.value.filter(item => item !== storyboardId)
+        clearVideoPending(storyboardId)
         const errMsg = res?.error_msg || res?.errorMsg || t('episode.vid.genFailed')
         failedVideoMessages.value = {
           ...failedVideoMessages.value,
@@ -5145,6 +5523,54 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 }
 .batch-video-row strong { color: var(--text-0); font-weight: 600; }
 .batch-video-note { margin: 4px 0 0; font-size: 11px; color: var(--text-3); line-height: 1.6; }
+.batch-balance-alert {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 4px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--warning, #d97706) 35%, var(--surface-outline));
+  background: color-mix(in srgb, var(--warning, #d97706) 12%, var(--surface-raised));
+}
+.batch-balance-alert-icon {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--warning, #d97706) 18%, transparent);
+  color: var(--warning, #d97706);
+}
+.batch-balance-alert-body {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.batch-balance-alert-body strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--warning, #d97706);
+}
+.batch-balance-alert-body p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-1);
+}
+.batch-balance-recharge {
+  margin-top: 10px;
+  background: var(--warning, #d97706);
+  color: #fff;
+  border-color: transparent;
+}
+.batch-balance-recharge:hover {
+  filter: brightness(0.95);
+  color: #fff;
+}
 .video-task-row {
   display: grid;
   grid-template-columns: 56px minmax(0, 1fr) auto;

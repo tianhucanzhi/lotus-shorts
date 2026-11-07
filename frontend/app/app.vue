@@ -3,6 +3,7 @@
     <NuxtPage />
   </NuxtLayout>
   <Toaster position="top-right" :duration="3000" :theme="resolvedTheme" />
+  <ErrorNoticeDialog />
   <MigrateOverlay />
   <ContactFloat />
   <noscript>
@@ -18,6 +19,7 @@ import { onMounted } from 'vue'
 import { Toaster, toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
 import ContactFloat from '~/components/ContactFloat.vue'
+import ErrorNoticeDialog from '~/components/ErrorNoticeDialog.vue'
 import MigrateOverlay from '~/components/MigrateOverlay.vue'
 import { useDesktopBridge } from '~/composables/useDesktopBridge'
 import { useMigrateState } from '~/composables/useMigrateState'
