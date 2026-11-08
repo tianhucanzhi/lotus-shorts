@@ -16,7 +16,7 @@
       </div>
 
       <nav class="header-nav">
-        <NuxtLink to="/" class="nav-link" :class="{ active: route.path === '/' }">
+        <NuxtLink to="/app" class="nav-link" :class="{ active: route.path === '/app' || route.path.startsWith('/app/') }">
           <LayoutGrid :size="15" :stroke-width="1.8" />
           <span>{{ t('layout.nav.projects') }}</span>
         </NuxtLink>
@@ -88,7 +88,7 @@ const footerLinks = computed(() => [
 
 function onLogout() {
   auth.logout()
-  navigateTo('/login')
+  navigateTo('/')
 }
 
 // 渲染时求值，语言切换即时生效（不能模块级常量固化）

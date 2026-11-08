@@ -13,9 +13,85 @@
     "loginDescription": "로그인하고 AI 숏드라마 제작을 이어가세요.",
     "settingsTitle": "설정 - 로터스 쇼츠",
     "projectTitle": "프로젝트 - 로터스 쇼츠",
+    "appTitle": "작업대 - 로터스 쇼츠",
+    "landingTitle": "로터스 쇼츠 - 소설 하나면, 몇 시간 만에 60화 세로형 숏드라마",
+    "landingDescription": "소설에서 대본·스토리보드·이미지/영상 생성·내보내기까지. 실사 5–10만 위안/3주에 비해 수천 위안·수시간 규모를 목표로 합니다.",
     "adminTitle": "관리 - 로터스 쇼츠",
     "noscriptTitle": "로터스 쇼츠 Lotus Shorts",
     "noscriptBody": "AI 숏드라마 제작 도구입니다. 사용하려면 JavaScript가 필요합니다."
+  },
+  "landing": {
+    "brand": "로터스 쇼츠",
+    "nav": { "flow": "흐름", "samples": "샘플", "cost": "비용", "pricing": "요금", "login": "로그인", "start": "무료 시작", "openApp": "작업대 열기" },
+    "hero": {
+      "headline": "소설을 올리면, 몇 시간 만에 60화 세로형 숏드라마.",
+      "support": "대본, 에셋, 스토리보드, 이미지/영상 생성과 병합을 한 작업대에서.",
+      "ctaPrimary": "무료 가입",
+      "ctaSecondary": "샘플 보기",
+      "mockTitle": "持械入宋",
+      "mockSub": "1–5화 · 탭해서 선택 재생"
+    },
+    "flow": {
+      "title": "텍스트에서 완성본까지 3단계",
+      "sub": "큰 제작팀이 없어도 됩니다.",
+      "previewShot": "확대 미리보기: {title}",
+      "s1Title": "소설 / 개요",
+      "s1Desc": "이야기를 붙여 넣고 촬영 가능한 대본으로 재작성.",
+      "s2Title": "대본 · 보드 · 에셋",
+      "s2Desc": "캐릭터/장면/소품 추출, 스토리보드와 비주얼 생성.",
+      "s3Title": "완성 내보내기",
+      "s3Desc": "영상을 일괄 생성하고 회차 병합 후 내보냅니다."
+    },
+    "samples": {
+      "title": "샘플 월",
+      "sub": "실제 파이프라인 결과. 클릭해서 재생.",
+      "noVideo": "이 환경에 샘플 영상이 아직 없습니다. 가입 후 데모를 체험하세요.",
+      "episodePick": "회차 선택",
+      "episodeCount": "{n}화 공개",
+      "episodeN": "{n}화",
+      "playing": "재생 중",
+      "items": {
+        "eps60": "약 60화", "eps40": "약 40화", "epsNow": "5화 공개", "epsNow3": "3화 공개",
+        "i1Title": "持械入宋", "i1Style": "실사 사극",
+        "i2Title": "한문효웅", "i2Style": "실사 사극",
+        "i3Title": "문정", "i3Style": "선협 사극",
+        "i4Title": "환생의 판", "i4Style": "서스펜스 세로",
+        "i5Title": "재벌 대역", "i5Style": "도시 스릴",
+        "i6Title": "검의 강호", "i6Style": "무협 만화"
+      }
+    },
+    "cost": {
+      "title": "비용은 자릿수가 다릅니다",
+      "sub": "같은 세로형 시리즈라도 실사와 AI는 규모가 다릅니다.",
+      "traditionalTitle": "전통 실사",
+      "traditionalMoney": "5–10만 위안 / 편",
+      "traditionalTime": "약 3주",
+      "lotusTitle": "로터스 쇼츠",
+      "lotusMoney": "약 ¥3,000–6,000 / 편",
+      "lotusTime": "수시간부터",
+      "t1": "대본·촬영·출연·후반 전체 비용",
+      "t2": "일정·장소 제약",
+      "t3": "대본 수정에 추가 일수",
+      "l1": "대략: 영상 ¥0.8/초, 이미지 ¥0.5/장",
+      "l2": "60화(회당 약 1.5분)는 보통 수천 위안대",
+      "l3": "컷 단위 재생성 가능",
+      "note": "모델·길이·재시도에 따라 달라집니다. Real-API 기준 추정치입니다."
+    },
+    "pricing": {
+      "title": "요금 3단계",
+      "sub": "먼저 무료로 시작, 출고량만큼 충전.",
+      "trialName": "체험", "trialPrice": "무료", "trialDesc": "가입 후 작업대 진입.",
+      "trialF1": "샘플 프로젝트 포함", "trialF2": "전체 파이프라인", "trialF3": "스타일 검증용", "trialCta": "무료 가입",
+      "creatorName": "크리에이터", "creatorPrice": "종량제", "creatorDesc": "개인·소규모 팀용.",
+      "creatorF1": "이미지/영상 건당 과금", "creatorF2": "60화 세로형 약 수천 위안", "creatorF3": "단일 컷 재실행", "creatorCta": "제작 시작",
+      "teamName": "팀", "teamPrice": "필요 시 확장", "teamDesc": "다건 병렬에 적합.",
+      "teamF1": "다중 프로젝트", "teamF2": "더 높은 동시성", "teamF3": "Real-API 기업 충전", "teamCta": "먼저 가입"
+    },
+    "final": {
+      "title": "다음 소설에 3주는 필요 없습니다",
+      "sub": "가입하고 작업대에서 샘플을 따라가 보세요.",
+      "cta": "무료로 시작"
+    }
   },
   "admin": {
     "title": "관리",

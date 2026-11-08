@@ -1,5 +1,13 @@
 <template>
   <div class="login-page">
+    <NuxtLink class="login-top-brand" to="/" :aria-label="t('auth.brand')">
+      <span class="top-brand-mark">
+        <img v-if="showBrandImage" :src="brandLogo" alt="" class="top-brand-logo" @error="showBrandImage = false" />
+        <span v-else class="top-brand-fallback">莲</span>
+      </span>
+      <span class="top-brand-name">{{ t('auth.brand') }}</span>
+    </NuxtLink>
+
     <div class="login-panel">
       <div class="brand-block">
         <div class="brand-mark">
@@ -67,14 +75,20 @@ const error = ref('')
 
 const allowRegister = computed(() => auth.allowRegister.value)
 
+function defaultAppPath() {
+  return '/app'
+}
+
 onMounted(async () => {
   await auth.ensureReady()
   if (!auth.isSaas.value) {
-    navigateTo('/')
+    navigateTo(defaultAppPath())
     return
   }
+  // 支持 /login?tab=register 从落地页「免费开始」直达注册
+  if (route.query.tab === 'register' && auth.allowRegister.value) tab.value = 'register'
   if (auth.isLoggedIn.value) {
-    navigateTo(typeof route.query.redirect === 'string' ? route.query.redirect : '/')
+    navigateTo(typeof route.query.redirect === 'string' ? route.query.redirect : defaultAppPath())
   }
 })
 
@@ -91,8 +105,8 @@ async function submit() {
         display_name: displayName.value || undefined,
       })
     }
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
-    await navigateTo(redirect || '/')
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : defaultAppPath()
+    await navigateTo(redirect || defaultAppPath())
   } catch (e: any) {
     error.value = e?.data?.message || e?.message || t('auth.failed')
   } finally {
@@ -103,15 +117,54 @@ async function submit() {
 
 <style scoped>
 .login-page {
+  position: relative;
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: 32px 16px;
+  padding: 72px 16px 32px;
   background:
     radial-gradient(ellipse 80% 50% at 20% 10%, rgba(196, 90, 72, 0.14), transparent 55%),
     radial-gradient(ellipse 70% 45% at 90% 80%, rgba(176, 138, 69, 0.12), transparent 50%),
     var(--bg-base, #f6f2e8);
+}
+.login-top-brand {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+.top-brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--accent-bg);
+  flex-shrink: 0;
+}
+.top-brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.top-brand-fallback {
+  font: 700 14px/1 var(--font-display, Georgia, serif);
+  color: var(--accent-text, var(--accent));
+}
+.top-brand-name {
+  font: 700 16px/1 var(--font-display, Georgia, "Noto Serif SC", serif);
+  letter-spacing: -0.02em;
+  background: var(--accent-gradient, linear-gradient(135deg, #c45a48, #b08a45));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 .login-panel {
   width: min(400px, 100%);
@@ -205,7 +258,10 @@ async function submit() {
 }
 @media (max-width: 768px) {
   .login-page {
-    padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+    padding:
+      calc(56px + max(12px, env(safe-area-inset-top)))
+      16px
+      max(24px, env(safe-area-inset-bottom));
   }
   .login-panel { padding: 24px 18px 20px; }
   .input { font-size: 16px; }

@@ -5,7 +5,7 @@
   <Toaster position="top-right" :duration="3000" :theme="resolvedTheme" />
   <ErrorNoticeDialog />
   <MigrateOverlay />
-  <ContactFloat />
+  <ContactFloat v-if="!isLandingPath(route.path)" />
   <noscript>
     <div class="seo-noscript">
       <h1>{{ t('seo.noscriptTitle') }}</h1>
@@ -38,6 +38,10 @@ function isPublicPath(path: string) {
   return path === '/' || path === '/login'
 }
 
+function isLandingPath(path: string) {
+  return path === '/'
+}
+
 // 静态 head 在 nuxt.config（无 JS 也能被抓到）；这里按路由和界面语言覆盖
 useHead(() => {
   const path = route.path
@@ -47,11 +51,24 @@ useHead(() => {
     : path.startsWith('/admin')
       ? t('seo.adminTitle')
       : path.startsWith('/settings')
-      ? t('seo.settingsTitle')
-      : path.startsWith('/drama')
-        ? t('seo.projectTitle')
-        : t('seo.title')
-  const description = path === '/login' ? t('seo.loginDescription') : t('seo.description')
+        ? t('seo.settingsTitle')
+        : path.startsWith('/drama')
+          ? t('seo.projectTitle')
+          : path.startsWith('/app')
+            ? t('seo.appTitle')
+            : isLandingPath(path)
+              ? t('seo.landingTitle')
+              : t('seo.title')
+  const description = path === '/login'
+    ? t('seo.loginDescription')
+    : isLandingPath(path)
+      ? t('seo.landingDescription')
+      : t('seo.description')
+  const ogDescription = path === '/login'
+    ? description
+    : isLandingPath(path)
+      ? t('seo.landingDescription')
+      : t('seo.ogDescription')
   const canonical = `${SITE_ORIGIN}${path === '/' ? '/' : path}`
   return {
     htmlAttrs: { lang: HTML_LANG[locale.value] || 'zh-CN' },
@@ -61,12 +78,12 @@ useHead(() => {
       { name: 'keywords', content: t('seo.keywords') },
       { name: 'robots', content: publicPage ? 'index, follow, max-image-preview:large' : 'noindex, nofollow' },
       { property: 'og:title', content: title },
-      { property: 'og:description', content: path === '/login' ? description : t('seo.ogDescription') },
+      { property: 'og:description', content: ogDescription },
       { property: 'og:url', content: canonical },
       { property: 'og:site_name', content: t('seo.siteName') },
       { property: 'og:locale', content: OG_LOCALE[locale.value] || 'zh_CN' },
       { name: 'twitter:title', content: title },
-      { name: 'twitter:description', content: path === '/login' ? description : t('seo.ogDescription') },
+      { name: 'twitter:description', content: ogDescription },
     ],
     link: [
       { rel: 'canonical', href: canonical },

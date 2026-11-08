@@ -28,11 +28,11 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'zh-CN' },
-      title: '莲花短剧 - AI 短剧与漫剧一站式制作',
+      title: '莲花短剧 - 传一本小说，几小时出一部 60 集竖屏短剧',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
-        { name: 'description', content: '莲花短剧（Lotus Shorts）是 AI 短剧制作工具：小说改剧本、角色场景道具提取、分镜拆解、文生图与文生视频，再到成片拼接导出。支持真人古装、3D 漫剧等多种视觉风格。' },
-        { name: 'keywords', content: '莲花短剧,Lotus Shorts,AI短剧,AI漫剧,短剧制作,剧本改写,分镜,文生视频,真人古装' },
+        { name: 'description', content: '莲花短剧：上传小说，自动改剧本、拆分镜、生图生视频并拼接成片。相对真人短剧 5–10 万/3 周，这里约数千元、数小时起即可出 60 集竖屏短剧。' },
+        { name: 'keywords', content: '莲花短剧,Lotus Shorts,AI短剧,AI漫剧,短剧制作,剧本改写,分镜,文生视频,真人古装,竖屏短剧' },
         { name: 'author', content: '楼图（上海）信息科技有限公司' },
         { name: 'application-name', content: '莲花短剧' },
         { name: 'robots', content: 'index, follow, max-image-preview:large' },
@@ -41,11 +41,11 @@ export default defineNuxtConfig({
         { property: 'og:site_name', content: '莲花短剧' },
         { property: 'og:locale', content: 'zh_CN' },
         { property: 'og:url', content: 'https://shorts.yunfm.cn/' },
-        { property: 'og:title', content: '莲花短剧 - AI 短剧与漫剧一站式制作' },
-        { property: 'og:description', content: '从小说到成片：剧本改写、资产提取、分镜、生图、生视频与拼接导出，一站完成 AI 短剧制作。' },
+        { property: 'og:title', content: '莲花短剧 - 传一本小说，几小时出一部 60 集竖屏短剧' },
+        { property: 'og:description', content: '上传小说，自动改剧本、拆分镜、生图生视频并拼接成片。约数千元、数小时起出 60 集竖屏短剧。' },
         { name: 'twitter:card', content: 'summary' },
-        { name: 'twitter:title', content: '莲花短剧 - AI 短剧与漫剧一站式制作' },
-        { name: 'twitter:description', content: '从小说到成片：剧本改写、资产提取、分镜、生图、生视频与拼接导出，一站完成 AI 短剧制作。' },
+        { name: 'twitter:title', content: '莲花短剧 - 传一本小说，几小时出一部 60 集竖屏短剧' },
+        { name: 'twitter:description', content: '上传小说，自动改剧本、拆分镜、生图生视频并拼接成片。约数千元、数小时起出 60 集竖屏短剧。' },
       ],
       link: [
         { rel: 'canonical', href: 'https://shorts.yunfm.cn/' },

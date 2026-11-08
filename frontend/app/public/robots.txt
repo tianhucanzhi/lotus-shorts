@@ -1,7 +1,9 @@
-# 公开入口可收录；项目内容与设置页不抓取
+# 落地页可收录；登录后工作台与项目内容不抓取
 User-agent: *
 Allow: /
 Allow: /login
+Disallow: /app
+Disallow: /app/
 Disallow: /settings
 Disallow: /admin
 Disallow: /drama/

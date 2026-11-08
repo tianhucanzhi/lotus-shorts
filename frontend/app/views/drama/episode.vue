@@ -2,7 +2,7 @@
   <div class="studio" v-if="drama">
     <header class="studio-topbar">
       <div class="studio-topbar-main">
-        <button type="button" class="studio-brand" :title="t('layout.nav.projects')" @click="navigateTo('/')">
+        <button type="button" class="studio-brand" :title="t('layout.nav.projects')" @click="navigateTo('/app')">
           <div class="studio-brand-mark">
             <img v-if="showBrandImage" :src="brandLogo" alt="莲花短剧" class="studio-brand-logo" @error="showBrandImage = false" />
             <span v-else class="studio-brand-fallback">莲</span>

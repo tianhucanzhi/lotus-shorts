@@ -13,9 +13,85 @@
     "loginDescription": "ログインして AI ショートドラマの制作を続けます。",
     "settingsTitle": "設定 - 蓮花ショートドラマ",
     "projectTitle": "プロジェクト - 蓮花ショートドラマ",
+    "appTitle": "作業台 - 蓮花ショートドラマ",
+    "landingTitle": "蓮花ショートドラマ - 小説を渡せば、数時間で60話の縦型ドラマ",
+    "landingDescription": "小説から脚本・絵コンテ・画像/動画生成・書き出しまで。実写の5〜10万元/3週間に対し、数千元・数時間規模を目指します。",
     "adminTitle": "管理 - 蓮花ショートドラマ",
     "noscriptTitle": "蓮花ショートドラマ Lotus Shorts",
     "noscriptBody": "AI ショートドラマ制作ツールです。利用には JavaScript が必要です。"
+  },
+  "landing": {
+    "brand": "蓮花ショートドラマ",
+    "nav": { "flow": "流れ", "samples": "サンプル", "cost": "コスト", "pricing": "料金", "login": "ログイン", "start": "無料ではじめる", "openApp": "作業台へ" },
+    "hero": {
+      "headline": "小説を渡す。数時間で60話の縦型ショートドラマ。",
+      "support": "脚本、素材、絵コンテ、画像/動画生成から書き出しまでを一つの作業台で。",
+      "ctaPrimary": "無料登録",
+      "ctaSecondary": "サンプルを見る",
+      "mockTitle": "持械入宋",
+      "mockSub": "第1–5話 · タップで選集"
+    },
+    "flow": {
+      "title": "テキストから完成映像まで3ステップ",
+      "sub": "大がかりな制作班は不要です。",
+      "previewShot": "拡大プレビュー：{title}",
+      "s1Title": "小説 / あらすじ",
+      "s1Desc": "物語を貼り付け、撮影可能な脚本へ書き換え。",
+      "s2Title": "脚本 · 絵コンテ · 素材",
+      "s2Desc": "キャラ/場面/小道具を抽出し、絵コンテとビジュアルを生成。",
+      "s3Title": "完成書き出し",
+      "s3Desc": "動画を一括生成し、話ごとに結合して書き出します。"
+    },
+    "samples": {
+      "title": "サンプル壁",
+      "sub": "実際のパイプライン成果。クリックで再生。",
+      "noVideo": "この環境にはサンプル動画が未配置です。登録してデモを体験してください。",
+      "episodePick": "話を選ぶ",
+      "episodeCount": "{n}話公開中",
+      "episodeN": "第{n}話",
+      "playing": "再生中",
+      "items": {
+        "eps60": "約60話", "eps40": "約40話", "epsNow": "5話公開", "epsNow3": "3話公開",
+        "i1Title": "持械入宋", "i1Style": "実写時代劇",
+        "i2Title": "寒門の梟雄", "i2Style": "実写時代劇",
+        "i3Title": "問鼎", "i3Style": "仙侠時代劇",
+        "i4Title": "重生の局", "i4Style": "サスペンス縦型",
+        "i5Title": "令嬢の影", "i5Style": "都市サスペンス",
+        "i6Title": "剣の江湖", "i6Style": "武侠コミック"
+      }
+    },
+    "cost": {
+      "title": "コストは桁違い",
+      "sub": "同じ縦型シリーズでも、実写とAIでは規模が違います。",
+      "traditionalTitle": "従来の実写",
+      "traditionalMoney": "5〜10万元 / 作品",
+      "traditionalTime": "約3週間",
+      "lotusTitle": "蓮花ショートドラマ",
+      "lotusMoney": "約 ¥3,000〜6,000 / 作品",
+      "lotusTime": "数時間から",
+      "t1": "脚本・撮影・出演・編集のフルコスト",
+      "t2": "スケジュールと場所に縛られる",
+      "t3": "脚本変更でさらに日数が増える",
+      "l1": "目安：動画約¥0.8/秒、画像約¥0.5/枚",
+      "l2": "60話（1話約1.5分）は数千元規模になりやすい",
+      "l3": "カット単位で再生成可能",
+      "note": "モデル・尺・再生成回数で変動。Real-API 価格に基づく概算です。"
+    },
+    "pricing": {
+      "title": "3つのプラン",
+      "sub": "まずは無料。出稿に応じてチャージ。",
+      "trialName": "トライアル", "trialPrice": "無料", "trialDesc": "登録して作業台へ。",
+      "trialF1": "サンプルプロジェクト付き", "trialF2": "全工程が使える", "trialF3": "作風検証に最適", "trialCta": "無料登録",
+      "creatorName": "クリエイター", "creatorPrice": "従量課金", "creatorDesc": "個人・少人数向け。",
+      "creatorF1": "画像/動画は都度課金", "creatorF2": "60話縦型で約数千元", "creatorF3": "単カット再実行可", "creatorCta": "制作を開始",
+      "teamName": "チーム", "teamPrice": "必要に応じて拡張", "teamDesc": "複数案件の並行に。",
+      "teamF1": "複数プロジェクト", "teamF2": "より高い同時実行", "teamF3": "Real-API 企業チャージ", "teamCta": "まず登録"
+    },
+    "final": {
+      "title": "次の小説に、3週間は要らない",
+      "sub": "登録して作業台へ。サンプルに沿って進められます。",
+      "cta": "無料ではじめる"
+    }
   },
   "admin": {
     "title": "管理",
