@@ -30,6 +30,8 @@ const route = useRoute()
 const { resolvedTheme } = useTheme()
 
 const SITE_ORIGIN = 'https://shorts.yunfm.cn'
+/** 微信/社交分享封面（绝对地址；换图时 bump 版本号） */
+const OG_IMAGE = `${SITE_ORIGIN}/og-cover.jpg?v=20261110`
 
 const HTML_LANG: Record<string, string> = { zh: 'zh-CN', en: 'en', ja: 'ja', ko: 'ko' }
 const OG_LOCALE: Record<string, string> = { zh: 'zh_CN', en: 'en_US', ja: 'ja_JP', ko: 'ko_KR' }
@@ -77,13 +79,22 @@ useHead(() => {
       { name: 'description', content: description },
       { name: 'keywords', content: t('seo.keywords') },
       { name: 'robots', content: publicPage ? 'index, follow, max-image-preview:large' : 'noindex, nofollow' },
+      { property: 'og:type', content: 'website' },
       { property: 'og:title', content: title },
       { property: 'og:description', content: ogDescription },
       { property: 'og:url', content: canonical },
       { property: 'og:site_name', content: t('seo.siteName') },
       { property: 'og:locale', content: OG_LOCALE[locale.value] || 'zh_CN' },
+      { property: 'og:image', content: OG_IMAGE },
+      { property: 'og:image:secure_url', content: OG_IMAGE },
+      { property: 'og:image:type', content: 'image/jpeg' },
+      { property: 'og:image:width', content: '1200' },
+      { property: 'og:image:height', content: '630' },
+      { property: 'og:image:alt', content: t('seo.siteName') },
+      { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
       { name: 'twitter:description', content: ogDescription },
+      { name: 'twitter:image', content: OG_IMAGE },
     ],
     link: [
       { rel: 'canonical', href: canonical },
