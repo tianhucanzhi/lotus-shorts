@@ -28,7 +28,7 @@
       "support": "Script rewrite, assets, storyboards, image/video generation and merge — one pipeline for costume, urban, and comic styles.",
       "ctaPrimary": "Start free",
       "ctaSecondary": "Watch samples",
-      "mockTitle": "Armed into Song",
+      "mockTitle": "Sample Shorts",
       "mockSub": "Ep.1–5 · tap to pick & play"
     },
     "flow": {
@@ -55,7 +55,7 @@
         "eps40": "~40 episodes",
         "epsNow": "5 episodes live",
         "epsNow3": "3 episodes live",
-        "i1Title": "Armed into Song",
+        "i1Title": "Silly Prince of Beiliang",
         "i1Style": "Live-action costume",
         "i2Title": "Humble Hero",
         "i2Style": "Live-action costume",

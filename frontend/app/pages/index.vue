@@ -282,13 +282,21 @@ const activeSample = ref(null)
 const activeEpisodeId = ref('')
 const shotPreview = ref(null)
 
-/** 持械入宋 · OSS 成片 */
+/** 持械入宋 · OSS 成片（顶部手机位） */
 const SERIES_CHI_XIE = {
   ep1: 'https://medstatic.oss-cn-shanghai.aliyuncs.com/shorts/01_%E6%8C%81%E6%A2%B0%E5%85%A5%E5%AE%8B_%E7%AC%AC1%E9%9B%86_2%E5%88%8615%E7%A7%92.mp4',
   ep2: 'https://medstatic.oss-cn-shanghai.aliyuncs.com/shorts/02_%E6%8C%81%E6%A2%B0%E5%85%A5%E5%AE%8B_%E7%AC%AC2%E9%9B%86_1%E5%88%8645%E7%A7%92.mp4',
   ep3: 'https://medstatic.oss-cn-shanghai.aliyuncs.com/shorts/03_%E6%8C%81%E6%A2%B0%E5%85%A5%E5%AE%8B_%E7%AC%AC3%E9%9B%86_1%E5%88%8655%E7%A7%92.mp4',
   ep4: 'https://medstatic.oss-cn-shanghai.aliyuncs.com/shorts/04_%E6%8C%81%E6%A2%B0%E5%85%A5%E5%AE%8B_%E7%AC%AC4%E9%9B%86_1%E5%88%8659%E7%A7%92.mp4',
   ep5: 'https://medstatic.oss-cn-shanghai.aliyuncs.com/shorts/05_%E6%8C%81%E6%A2%B0%E5%85%A5%E5%AE%8B_%E7%AC%AC5%E9%9B%86_1%E5%88%8648%E7%A7%92.mp4',
+}
+/** 北凉憨世子 · OSS 成片 */
+const SERIES_BEI_LIANG = {
+  ep1: 'https://medstatic.oss-cn-shanghai.aliyuncs.com/shorts/01_%E7%AC%AC1%E9%9B%86.mp4',
+  ep2: 'https://medstatic.oss-cn-shanghai.aliyuncs.com/shorts/02_%E7%AC%AC2%E9%9B%86.mp4',
+  ep3: 'https://medstatic.oss-cn-shanghai.aliyuncs.com/shorts/03_%E7%AC%AC3%E9%9B%86.mp4',
+  ep4: 'https://medstatic.oss-cn-shanghai.aliyuncs.com/shorts/04_%E7%AC%AC4%E9%9B%86.mp4',
+  ep5: 'https://medstatic.oss-cn-shanghai.aliyuncs.com/shorts/05_%E7%AC%AC5%E9%9B%86.mp4',
 }
 /** 寒门枭雄 · OSS 成片 */
 const SERIES_HAN_MEN = {
@@ -551,7 +559,7 @@ const steps = computed(() => [
   { key: 'film', title: t('landing.flow.s3Title'), desc: t('landing.flow.s3Desc'), mock: MockFilm, shot: stepShots.value[2] },
 ])
 
-/** 样片：首部带多集 OSS；其余探测 public/landing/samples/sample-N.* */
+/** 样片墙仅三部：北凉憨世子 / 寒门枭雄 / 问鼎 */
 const samples = ref([
   {
     id: '1',
@@ -559,13 +567,13 @@ const samples = ref([
     styleKey: 'i1Style',
     epsKey: 'epsNow',
     poster: '',
-    video: SERIES_CHI_XIE.ep1,
+    video: SERIES_BEI_LIANG.ep1,
     episodes: [
-      { id: 'ep1', n: 1, duration: '2:15', video: SERIES_CHI_XIE.ep1 },
-      { id: 'ep2', n: 2, duration: '1:45', video: SERIES_CHI_XIE.ep2 },
-      { id: 'ep3', n: 3, duration: '1:55', video: SERIES_CHI_XIE.ep3 },
-      { id: 'ep4', n: 4, duration: '1:59', video: SERIES_CHI_XIE.ep4 },
-      { id: 'ep5', n: 5, duration: '1:48', video: SERIES_CHI_XIE.ep5 },
+      { id: 'ep1', n: 1, duration: '2:17', video: SERIES_BEI_LIANG.ep1 },
+      { id: 'ep2', n: 2, duration: '1:14', video: SERIES_BEI_LIANG.ep2 },
+      { id: 'ep3', n: 3, duration: '1:22', video: SERIES_BEI_LIANG.ep3 },
+      { id: 'ep4', n: 4, duration: '0:55', video: SERIES_BEI_LIANG.ep4 },
+      { id: 'ep5', n: 5, duration: '0:51', video: SERIES_BEI_LIANG.ep5 },
     ],
   },
   {
@@ -594,16 +602,11 @@ const samples = ref([
       { id: 'ep3', n: 3, duration: '1:44', video: SERIES_WEN_DING.ep3 },
     ],
   },
-  { id: '4', titleKey: 'i4Title', styleKey: 'i4Style', epsKey: 'eps60', poster: '', video: '', episodes: [] },
-  { id: '5', titleKey: 'i5Title', styleKey: 'i5Style', epsKey: 'eps60', poster: '', video: '', episodes: [] },
-  { id: '6', titleKey: 'i6Title', styleKey: 'i6Style', epsKey: 'eps40', poster: '', video: '', episodes: [] },
 ])
 
 const sampleCards = computed(() => {
   if (!mediaReady.value) return []
-  const withMedia = samples.value.filter((s) => s.video || s.poster || s.episodes?.length)
-  const list = (withMedia.length ? withMedia : samples.value.slice(0, 4)).slice(0, 6)
-  return list.map((s) => ({
+  return samples.value.map((s) => ({
     ...s,
     title: t(`landing.samples.items.${s.titleKey}`),
     style: t(`landing.samples.items.${s.styleKey}`),
@@ -611,17 +614,22 @@ const sampleCards = computed(() => {
   }))
 })
 
-const heroSample = computed(() => {
-  return sampleCards.value.find((x) => x.id === '1') || {
-    id: '1',
-    title: t('landing.samples.items.i1Title'),
-    style: t('landing.samples.items.i1Style'),
-    eps: t('landing.samples.items.epsNow'),
-    poster: '',
-    video: SERIES_CHI_XIE.ep1,
-    episodes: samples.value[0].episodes,
-  }
-})
+/** 顶部手机位：持械入宋（不进样片墙） */
+const heroSample = computed(() => ({
+  id: 'hero',
+  title: t('landing.hero.mockTitle'),
+  style: t('landing.samples.items.i1Style'),
+  eps: t('landing.samples.items.epsNow'),
+  poster: '',
+  video: SERIES_CHI_XIE.ep1,
+  episodes: [
+    { id: 'ep1', n: 1, duration: '2:15', video: SERIES_CHI_XIE.ep1 },
+    { id: 'ep2', n: 2, duration: '1:45', video: SERIES_CHI_XIE.ep2 },
+    { id: 'ep3', n: 3, duration: '1:55', video: SERIES_CHI_XIE.ep3 },
+    { id: 'ep4', n: 4, duration: '1:59', video: SERIES_CHI_XIE.ep4 },
+    { id: 'ep5', n: 5, duration: '1:48', video: SERIES_CHI_XIE.ep5 },
+  ],
+}))
 
 const traditionalPoints = computed(() => [
   t('landing.cost.t1'),
