@@ -14,9 +14,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const auth = useAuth()
   await auth.ensureReady()
 
-  // 独立版：落地页无意义，首页进工作台
+  // 独立版：落地页无意义，首页进工作台；无多用户，禁止管理后台
   if (!auth.isSaas.value) {
     if (to.path === '/') return navigateTo('/app')
+    if (to.path === '/admin' || to.path.startsWith('/admin/')) return navigateTo('/app')
     return
   }
 

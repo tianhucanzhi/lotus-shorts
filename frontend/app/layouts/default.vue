@@ -78,7 +78,8 @@ import brandLogo from '~/assets/brand-logo.png'
 const { t, locale } = useI18n()
 const route = useRoute()
 const auth = useAuth()
-const showAdmin = computed(() => !auth.isSaas.value || auth.user.value?.role === 'admin')
+// 管理后台仅 SaaS 管理员可见；桌面独立版无多用户，不展示
+const showAdmin = computed(() => auth.isSaas.value && auth.user.value?.role === 'admin')
 const showBrandImage = ref(true)
 const copyrightYear = new Date().getFullYear()
 const footerLinks = computed(() => [
