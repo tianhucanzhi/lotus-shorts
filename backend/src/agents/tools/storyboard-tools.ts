@@ -10,22 +10,7 @@ import { eq } from 'drizzle-orm'
 import { now } from '../../utils/response.js'
 import { logTaskProgress, logTaskSuccess } from '../../utils/task-logger.js'
 import { getDramaId, getEpisodeId } from '../context.js'
-
-async function syncStoryboardCharacters(storyboardId: number, characterIds: number[]) {
-  await db.delete(schema.storyboardCharacters)
-    .where(eq(schema.storyboardCharacters.storyboardId, storyboardId))
-
-
-  const uniqueIds = [...new Set(characterIds.filter(Boolean))]
-  if (!uniqueIds.length) return
-
-  for (const characterId of uniqueIds) {
-    await db.insert(schema.storyboardCharacters).values({
-      storyboardId,
-      characterId,
-    })
-  }
-}
+import { syncStoryboardCharacters } from '../../services/storyboard-bindings.js'
 
 async function syncStoryboardProps(storyboardId: number, propIds: number[]) {
   await db.delete(schema.storyboardProps)

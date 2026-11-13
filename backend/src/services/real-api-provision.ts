@@ -151,7 +151,7 @@ export async function fetchRealApiBalanceUsd(input: {
   }
 
   const username = String(input.username || '').trim()
-  const password = String(input.password || DEFAULT_PASSWORD)
+  const password = String(input.password || '').trim() || DEFAULT_PASSWORD
   if (!username) throw new Error('缺少用户信息，无法查询余额')
 
   const resp = await fetch(`${realApiBase()}/api/user/login`, {
@@ -166,6 +166,52 @@ export async function fetchRealApiBalanceUsd(input: {
   const bal = parseBalance(json.data?.user_info?.balance_usd)
   if (bal == null) throw new Error('未返回余额')
   return bal
+}
+
+/**
+ * 按 API Key 反查 Real-API 账号与余额（openGetAccountByApiKey）。
+ * 仅 Key 场景不知明文密码；password 字段可能为空。
+ */
+export async function resolveRealApiAccountByApiKey(apiKey: string): Promise<RealApiProvisionResult> {
+  const key = String(apiKey || '').trim()
+  if (!key) throw new Error('缺少 API Key')
+
+  const url = `${realApiBase()}/api/lotus/activationCode/openGetAccountByApiKey`
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${openToken()}`,
+    },
+    body: JSON.stringify({ api_key: key }),
+  })
+  const json = await resp.json().catch(() => null) as any
+  if (!resp.ok || !json || json.code !== 1) {
+    throw new Error(json?.msg || `按 Key 查询账号失败 (${resp.status})`)
+  }
+  const data = json.data || {}
+  const username = String(data.username || '').trim()
+  if (!username) throw new Error('未返回用户名')
+
+  const userId = Number(data.user_id) || null
+  let balanceUsd = parseBalance(data.balance_usd)
+  if (balanceUsd == null && userId) {
+    try {
+      balanceUsd = await fetchRealApiBalanceUsd({ userId, username })
+    } catch { /* 余额失败不阻断 */ }
+  }
+
+  const pwd = data.password == null || data.password === '' ? '' : String(data.password)
+  return {
+    username,
+    password: pwd,
+    api_key: String(data.api_key || key).trim(),
+    site_url: String(data.site_url || realApiBase()),
+    user_id: userId,
+    activation_code: data.activation_code || null,
+    user_invite_code: data.user_invite_code || null,
+    balance_usd: balanceUsd,
+  }
 }
 
 /** 按莲花激活码签发 Real-API 一次性自动登录票，返回可打开的 login_url */

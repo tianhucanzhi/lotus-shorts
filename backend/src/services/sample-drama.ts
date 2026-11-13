@@ -315,6 +315,7 @@ function cloneSampleDrama(sourceId: number, userId: number): number {
         tx.insert(schema.storyboardCharacters).values({
           storyboardId: newSbId,
           characterId: newCharId,
+          variantId: null,
         }).run()
       }
       const props = tx.select().from(schema.storyboardProps)

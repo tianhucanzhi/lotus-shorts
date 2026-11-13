@@ -155,13 +155,14 @@ app.get('/:id', async (c) => {
 
   const eps = await db.select().from(schema.episodes)
     .where(and(eq(schema.episodes.dramaId, id), isNull(schema.episodes.deletedAt)))
-  const chars = await db.select().from(schema.characters)
-    .where(eq(schema.characters.dramaId, id))
+  const chars = (await db.select().from(schema.characters)
+    .where(eq(schema.characters.dramaId, id))).filter(ch => !ch.deletedAt)
   const scns = await db.select().from(schema.scenes)
     .where(eq(schema.scenes.dramaId, id))
   const prps = await db.select().from(schema.props)
     .where(eq(schema.props.dramaId, id))
 
+  const { attachVariantsToCharacters } = await import('../services/character-variants.js')
   const meta = parseDramaMeta(drama.metadata)
   return success(c, {
     ...toSnakeCase(drama),
@@ -169,7 +170,7 @@ app.get('/:id', async (c) => {
     metadata: meta,
     is_sample: isSampleDrama(meta),
     episodes: toSnakeCaseArray(eps),
-    characters: toSnakeCaseArray(chars),
+    characters: await attachVariantsToCharacters(chars),
     scenes: toSnakeCaseArray(scns),
     props: toSnakeCaseArray(prps),
   })

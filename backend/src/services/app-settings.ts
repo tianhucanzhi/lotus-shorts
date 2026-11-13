@@ -107,12 +107,14 @@ function sanitizeRealApiAccount(raw: unknown): StoredRealApiAccount | null {
   const o = raw as Record<string, unknown>
   const username = String(o.username || '').trim()
   const apiKey = String(o.api_key || '').trim()
-  if (!username && !apiKey && !o.activation_code) return null
+  if (!username && !apiKey && !o.activation_code && !o.user_id) return null
   const userId = Number(o.user_id)
   const bal = o.balance_usd == null || o.balance_usd === '' ? null : Number(o.balance_usd)
+  // Key 反查场景可能没有明文密码；勿默认写成 123456 以免误导
+  const password = o.password == null || o.password === '' ? '' : String(o.password)
   return {
     username,
-    password: String(o.password || '123456'),
+    password,
     api_key: apiKey,
     site_url: o.site_url ? String(o.site_url) : null,
     user_id: Number.isFinite(userId) && userId > 0 ? userId : null,

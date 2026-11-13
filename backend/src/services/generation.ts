@@ -39,6 +39,8 @@ interface GenerateImageParams {
   dramaId?: number
   sceneId?: number
   characterId?: number
+  /** 写入造型变体而非主形象 */
+  characterVariantId?: number
   propId?: number
   prompt: string
   model?: string
@@ -94,6 +96,7 @@ export async function generateImage(params: GenerateImageParams): Promise<number
     size: params.size || '1920x1080',
     frameType: params.frameType,
     referenceImages: params.referenceImages,
+    ...(params.characterVariantId ? { characterVariantId: params.characterVariantId } : {}),
     ...(params.ownerUserId ? { owner_user_id: params.ownerUserId } : {}),
   })
 
@@ -103,6 +106,7 @@ export async function generateImage(params: GenerateImageParams): Promise<number
     storyboardId: params.storyboardId,
     sceneId: params.sceneId,
     characterId: params.characterId,
+    characterVariantId: params.characterVariantId,
     frameType: params.frameType,
     model: params.model || config.model,
   })
@@ -237,8 +241,8 @@ async function processTask(id: number, config: AIConfig) {
     if (type === 'image') {
       const adapter = getImageAdapter(config.provider)
       const imageModel = record.model || config.model || ''
-      // gpt-image-2.5（Real-API）要求 image_urls 为公网 URL；无 PUBLIC_BASE_URL 时经网关 OSS 中转
-      const usePublicImageRefs = config.provider.toLowerCase() === 'openai' && /^gpt-image-2\.5/i.test(imageModel)
+      // gpt-image-2.5/2.6（Real-API）要求 image_urls 为公网 URL；无 PUBLIC_BASE_URL 时经网关 OSS 中转
+      const usePublicImageRefs = config.provider.toLowerCase() === 'openai' && /^gpt-image-2\.(5|6)/i.test(imageModel)
       const resolvedReferenceImages = usePublicImageRefs
         ? await resolveGatewayPublicUrls(params.referenceImages, 'file', config.baseUrl)
         : await normalizeReferenceImages(params.referenceImages)
@@ -508,7 +512,7 @@ async function handleImageCompleteBase64(record: SysTaskRecord, base64Data: stri
   await writeBackImageAssets(record, localPath)
 }
 
-// 图片完成后回写业务表：分镜(按 frameType)、角色、场景、道具
+// 图片完成后回写业务表：分镜(按 frameType)、角色主形象/造型变体、场景、道具
 async function writeBackImageAssets(record: SysTaskRecord, localPath: string) {
   const params = parseTaskParams(record.params)
   if (record.storyboardId) {
@@ -518,7 +522,19 @@ async function writeBackImageAssets(record: SysTaskRecord, localPath: string) {
     else sbUpdate.composedImage = localPath
     await db.update(schema.storyboards).set(sbUpdate).where(eq(schema.storyboards.id, record.storyboardId))
   }
-  if (record.characterId) {
+  const variantId = Number(params.characterVariantId || 0)
+  if (variantId) {
+    await db.update(schema.characterVariants).set({
+      imageUrl: localPath,
+      localPath,
+      updatedAt: now(),
+    }).where(eq(schema.characterVariants.id, variantId))
+  } else if (record.characterId) {
+    const [char] = await db.select().from(schema.characters).where(eq(schema.characters.id, record.characterId))
+    if (char?.imageUrl && char.imageUrl !== localPath) {
+      const { archivePrimaryImage } = await import('./character-variants.js')
+      await archivePrimaryImage(record.characterId, char.imageUrl)
+    }
     await db.update(schema.characters).set({ imageUrl: localPath, updatedAt: now() }).where(eq(schema.characters.id, record.characterId))
   }
   if (record.sceneId) {

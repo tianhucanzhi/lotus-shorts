@@ -6,30 +6,14 @@ import { db, getInsertId, schema } from '../db/index.js'
 import { success, created, now, badRequest } from '../utils/response.js'
 import { toSnakeCase } from '../utils/transform.js'
 import { logTaskPayload, logTaskStart, logTaskSuccess } from '../utils/task-logger.js'
+import {
+  getStoryboardCharacterIds,
+  getStoryboardCharacterVariantMap,
+  syncStoryboardCharacterVariants,
+  syncStoryboardCharacters,
+} from '../services/storyboard-bindings.js'
 
 const app = new Hono<{ Variables: AuthVariables }>()
-
-async function syncStoryboardCharacters(storyboardId: number, characterIds: number[]) {
-  await db.delete(schema.storyboardCharacters)
-    .where(eq(schema.storyboardCharacters.storyboardId, storyboardId))
-
-
-  const uniqueIds = [...new Set((characterIds || []).filter(Boolean))]
-  if (!uniqueIds.length) return
-
-  for (const characterId of uniqueIds) {
-    await db.insert(schema.storyboardCharacters).values({
-      storyboardId,
-      characterId,
-    })
-  }
-}
-
-async function getStoryboardCharacterIds(storyboardId: number) {
-  const links = await db.select().from(schema.storyboardCharacters)
-    .where(eq(schema.storyboardCharacters.storyboardId, storyboardId))
-  return links.map(link => link.characterId)
-}
 
 async function syncStoryboardProps(storyboardId: number, propIds: number[]) {
   await db.delete(schema.storyboardProps)
@@ -102,10 +86,11 @@ app.post('/', async (c) => {
     createdAt: ts,
     updatedAt: ts,
   })
-  await syncStoryboardCharacters(getInsertId(res), body.character_ids || [])
-  await syncStoryboardProps(getInsertId(res), body.prop_ids || [])
+  const newId = getInsertId(res)
+  await syncStoryboardCharacters(newId, body.character_ids || [], body.character_variant_map)
+  await syncStoryboardProps(newId, body.prop_ids || [])
   const [result] = await db.select().from(schema.storyboards)
-    .where(eq(schema.storyboards.id, getInsertId(res)))
+    .where(eq(schema.storyboards.id, newId))
   logTaskSuccess('StoryboardAPI', 'create', {
     storyboardId: result.id,
     episodeId: result.episodeId,
@@ -114,6 +99,7 @@ app.post('/', async (c) => {
   return created(c, {
     ...toSnakeCase(result),
     character_ids: await getStoryboardCharacterIds(result.id),
+    character_variant_map: await getStoryboardCharacterVariantMap(result.id),
     prop_ids: await getStoryboardPropIds(result.id),
   })
 })
@@ -156,7 +142,11 @@ app.put('/:id', async (c) => {
   )
 
   await db.update(schema.storyboards).set(updates).where(eq(schema.storyboards.id, id))
-  if ('character_ids' in body) await syncStoryboardCharacters(id, body.character_ids || [])
+  if ('character_ids' in body) {
+    await syncStoryboardCharacters(id, body.character_ids || [], body.character_variant_map)
+  } else if ('character_variant_map' in body) {
+    await syncStoryboardCharacterVariants(id, body.character_variant_map)
+  }
   if ('prop_ids' in body) await syncStoryboardProps(id, body.prop_ids || [])
   logTaskSuccess('StoryboardAPI', 'update', {
     storyboardId: id,

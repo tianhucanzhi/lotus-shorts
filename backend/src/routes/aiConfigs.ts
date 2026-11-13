@@ -9,7 +9,7 @@ import { toSnakeCase } from '../utils/transform.js'
 import { joinProviderUrl } from '../services/adapters/url.js'
 import { isOfficialProvider, parseConfigTemperature } from '../services/ai.js'
 import { getRealApiAccount, setRealApiAccount } from '../services/app-settings.js'
-import { createRealApiLoginTicket, fetchRealApiBalanceUsd, provisionRealApiAccount, sanitizeRealApiUsername } from '../services/real-api-provision.js'
+import { createRealApiLoginTicket, fetchRealApiBalanceUsd, provisionRealApiAccount, resolveRealApiAccountByApiKey, sanitizeRealApiUsername } from '../services/real-api-provision.js'
 import { redactUrl, logTaskError, logTaskProgress, logTaskSuccess } from '../utils/task-logger.js'
 
 const app = new Hono<{ Variables: AuthVariables }>()
@@ -176,9 +176,53 @@ app.post('/', async (c) => {
   return created(c, withParsedFields(row))
 })
 
+/** 从已启用的 AI 配置中找一条 Real-API Key（base_url 含 real-api / yunfm） */
+function findRealApiKeyFromConfigs(userId: number | null): string | null {
+  const rows = db.select({
+    apiKey: schema.aiServiceConfigs.apiKey,
+    baseUrl: schema.aiServiceConfigs.baseUrl,
+    userId: schema.aiServiceConfigs.userId,
+    isActive: schema.aiServiceConfigs.isActive,
+  }).from(schema.aiServiceConfigs).all()
+
+  for (const r of rows) {
+    if (!r.isActive) continue
+    if (isSaas() && userId != null && r.userId != null && r.userId !== userId) continue
+    const base = String(r.baseUrl || '').toLowerCase()
+    if (!/real-api\.yunfm\.cn|yunfm\.cn\/api|real-api/.test(base)) continue
+    const key = String(r.apiKey || '').trim()
+    if (key) return key
+  }
+  return null
+}
+
+async function ensureRealApiAccountResolved(userId: number | null) {
+  const existing = getRealApiAccount()
+  if (existing?.username && existing?.user_id) return existing
+
+  const apiKey = String(existing?.api_key || '').trim() || findRealApiKeyFromConfigs(userId)
+  if (!apiKey) return existing
+
+  try {
+    const resolved = await resolveRealApiAccountByApiKey(apiKey)
+    // 已有明文密码则保留（一键开户），Key 反查通常无密码
+    const password = existing?.password || resolved.password || ''
+    return setRealApiAccount({
+      ...resolved,
+      password,
+      activation_code: resolved.activation_code || existing?.activation_code || null,
+      user_invite_code: resolved.user_invite_code || existing?.user_invite_code || null,
+    })
+  } catch {
+    return existing
+  }
+}
+
 // GET /ai-configs/real-api/account — 读取本系统已落库的 Real-API 开户信息（跨浏览器）
+// 若仅有 Key 配置、尚无账号缓存，则按 Key 向 Real-API 反查并落库
 app.get('/real-api/account', async (c) => {
-  return success(c, getRealApiAccount())
+  const account = await ensureRealApiAccountResolved(currentUserId(c))
+  return success(c, account)
 })
 
 // POST /ai-configs/real-api/account — 落库/覆盖 Real-API 开户信息（用于旧版 localStorage 迁移）
@@ -189,6 +233,26 @@ app.post('/real-api/account', async (c) => {
     return success(c, saved)
   } catch (err: any) {
     return badRequest(c, err?.message || '保存账号失败')
+  }
+})
+
+// POST /ai-configs/real-api/resolve-by-key — 按 API Key 反查并落库账号/余额
+app.post('/real-api/resolve-by-key', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  const apiKey = String(body.api_key || body.apiKey || '').trim()
+  if (!apiKey) return badRequest(c, '缺少 api_key')
+  try {
+    const existing = getRealApiAccount()
+    const resolved = await resolveRealApiAccountByApiKey(apiKey)
+    const saved = setRealApiAccount({
+      ...resolved,
+      password: existing?.password || resolved.password || '',
+      activation_code: resolved.activation_code || existing?.activation_code || null,
+      user_invite_code: resolved.user_invite_code || existing?.user_invite_code || null,
+    })
+    return success(c, saved)
+  } catch (err: any) {
+    return badRequest(c, err?.message || '按 Key 查询账号失败')
   }
 })
 

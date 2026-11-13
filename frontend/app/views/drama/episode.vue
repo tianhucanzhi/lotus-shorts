@@ -367,7 +367,41 @@
                       </button>
                     </div>
                   </div>
-                  <div class="asset-final-prompt" :title="c.final_prompt || c.finalPrompt || ''">
+                  <div
+                    v-for="looks in [characterCardLooks(c)]"
+                    v-show="looks.length > 1"
+                    :key="'looks-' + c.id"
+                    class="character-looks"
+                    @click.stop
+                  >
+                    <div class="character-looks-head">
+                      <span class="character-looks-label">{{ t('episode.asset.variantsTitle') }}</span>
+                      <span class="character-looks-count">{{ t('episode.asset.variantsCount', { n: looks.length }) }}</span>
+                    </div>
+                    <div class="character-looks-wall">
+                      <button
+                        v-for="look in looks"
+                        :key="look.key"
+                        type="button"
+                        class="character-look-tile"
+                        :class="{ 'is-primary': look.isPrimary }"
+                        :title="look.label"
+                        @click.stop="openImageViewer(assetImageSrc({ imageUrl: look.imageUrl }), `${c.name} · ${look.label}`)"
+                      >
+                        <img
+                          :src="thumbOf(assetImageSrc({ imageUrl: look.imageUrl }))"
+                          loading="lazy"
+                          @error="thumbFallback($event, assetImageSrc({ imageUrl: look.imageUrl }))"
+                        />
+                        <span>{{ look.label }}</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div
+                    v-if="!getCharacterVariants(c).length"
+                    class="asset-final-prompt"
+                    :title="c.final_prompt || c.finalPrompt || ''"
+                  >
                     <span class="afp-label">{{ t('episode.asset.finalPromptTurnaround') }}</span>
                     <span :class="['afp-text', !(c.final_prompt || c.finalPrompt) && 'dim']">{{ c.final_prompt || c.finalPrompt || t('episode.asset.finalPromptAutoTurnaround') }}</span>
                   </div>
@@ -669,6 +703,31 @@
                                 {{ asset.bound ? (asset.ready ? t('episode.ref.usable') : t('episode.ref.notReady')) : t('episode.ref.unbound') }}
                               </span>
                               <button v-if="asset.bound && !asset.ready" type="button" class="storyboard-ref-goto" @click.stop="prodTab = 'assets'">{{ t('episode.ref.gotoGenerate') }}</button>
+                              <div
+                                v-if="asset.bound && asset.kind === 'character' && characterOutfitOptions(asset.id).length > 1"
+                                class="storyboard-ref-outfits"
+                                @click.stop
+                              >
+                                <span class="storyboard-ref-outfits-label">{{ t('episode.asset.pickOutfit') }}</span>
+                                <div class="storyboard-ref-outfits-row">
+                                  <button
+                                    v-for="opt in characterOutfitOptions(asset.id)"
+                                    :key="opt.key"
+                                    type="button"
+                                    :class="['storyboard-ref-outfit', { active: isShotOutfitSelected(selectedSb, asset.id, opt.variantId) }]"
+                                    :title="opt.label"
+                                    @click="setShotCharacterOutfit(selectedSb, asset.id, opt.variantId)"
+                                  >
+                                    <img
+                                      v-if="opt.imageUrl"
+                                      :src="thumbOf(assetImageSrc({ imageUrl: opt.imageUrl }))"
+                                      loading="lazy"
+                                      @error="thumbFallback($event, assetImageSrc({ imageUrl: opt.imageUrl }))"
+                                    />
+                                    <span>{{ opt.label }}</span>
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1160,6 +1219,114 @@
                     <strong>{{ assetDetail.type === 'character' ? (assetDetail.item.role || t('common.role')) : assetDetail.type === 'prop' ? (assetDetail.item.type || t('common.prop')) : (assetDetail.item.time || t('episode.asset.noTime')) }}</strong>
                   </div>
                 </div>
+
+                <div v-if="assetDetail.type === 'character'" class="asset-variant-panel">
+                  <div class="asset-variant-head">
+                    <div class="asset-variant-head-text">
+                      <strong>{{ t('episode.asset.variantsTitle') }}</strong>
+                      <span class="dim" :title="t('episode.asset.variantsHint')">{{ t('episode.asset.variantsHintShort') }}</span>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-sm asset-variant-upload"
+                      :disabled="!assetImageSrc(assetDetail.item) || isUploadingVariant(assetDetail.item.id)"
+                      :title="assetImageSrc(assetDetail.item) ? t('episode.asset.variantsUpload') : t('episode.asset.variantsNeedPrimary')"
+                      @click="uploadCharacterVariant(assetDetail.item.id)"
+                    >
+                      <Loader2 v-if="isUploadingVariant(assetDetail.item.id)" :size="11" class="animate-spin" />
+                      <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      {{ t('episode.asset.variantsUpload') }}
+                    </button>
+                  </div>
+
+                  <div class="asset-variant-gallery">
+                    <div class="asset-variant-card is-primary">
+                      <button
+                        type="button"
+                        class="asset-variant-thumb"
+                        :disabled="!assetImageSrc(assetDetail.item)"
+                        @click="assetImageSrc(assetDetail.item) && openImageViewer(assetImageSrc(assetDetail.item), t('episode.asset.variantsPrimary'))"
+                      >
+                        <img
+                          v-if="assetImageSrc(assetDetail.item)"
+                          :src="thumbOf(assetImageSrc(assetDetail.item))"
+                          class="previewable-image"
+                          loading="lazy"
+                          @error="thumbFallback($event, assetImageSrc(assetDetail.item))"
+                        />
+                        <span v-else class="asset-variant-empty">—</span>
+                        <span class="asset-variant-badge">{{ t('episode.asset.variantsPrimary') }}</span>
+                      </button>
+                    </div>
+                    <div
+                      v-for="v in getCharacterVariants(assetDetail.item)"
+                      :key="'variant-' + v.id"
+                      class="asset-variant-card"
+                      :class="{ 'is-pending': isPendingVariant(v.id) }"
+                    >
+                      <button
+                        type="button"
+                        class="asset-variant-thumb"
+                        :disabled="!(v.image_url || v.imageUrl) && !isPendingVariant(v.id)"
+                        @click="(v.image_url || v.imageUrl) && openImageViewer(assetImageSrc(v), v.label || t('episode.asset.variantsTitle'))"
+                      >
+                        <Loader2 v-if="isPendingVariant(v.id)" :size="14" class="animate-spin" />
+                        <img
+                          v-else-if="v.image_url || v.imageUrl"
+                          :src="thumbOf(assetImageSrc(v))"
+                          class="previewable-image"
+                          loading="lazy"
+                          @error="thumbFallback($event, assetImageSrc(v))"
+                        />
+                        <span v-else class="asset-variant-empty">…</span>
+                        <span class="asset-variant-badge">{{ v.label || t('episode.asset.variantsTitle') }}</span>
+                      </button>
+                      <div class="asset-variant-actions">
+                        <button
+                          type="button"
+                          class="asset-variant-action"
+                          :disabled="!(v.image_url || v.imageUrl)"
+                          :title="t('episode.asset.variantsSetPrimary')"
+                          @click="setVariantAsPrimary(assetDetail.item.id, v.id)"
+                        >{{ t('episode.asset.variantsSetPrimary') }}</button>
+                        <button
+                          type="button"
+                          class="asset-variant-action is-danger"
+                          :disabled="isPendingVariant(v.id)"
+                          :title="t('episode.asset.variantsDelete')"
+                          @click="deleteCharacterVariant(assetDetail.item.id, v.id)"
+                        >{{ t('episode.asset.variantsDelete') }}</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p v-if="!getCharacterVariants(assetDetail.item).length" class="asset-variant-empty-hint">{{ t('episode.asset.variantsEmpty') }}</p>
+
+                  <div class="asset-variant-presets-block">
+                    <span class="asset-variant-presets-label">{{ t('episode.asset.variantsOneClick') }}</span>
+                    <div class="asset-variant-presets">
+                      <button
+                        v-for="p in OUTFIT_PRESET_KEYS"
+                        :key="p.key"
+                        type="button"
+                        class="asset-variant-chip"
+                        :disabled="!assetImageSrc(assetDetail.item) || isPendingVariantPreset(assetDetail.item.id, p.key)"
+                        :title="assetImageSrc(assetDetail.item) ? p.label : t('episode.asset.variantsNeedPrimary')"
+                        @click="generateCharacterVariant(assetDetail.item.id, p.key)"
+                      >
+                        <Loader2 v-if="isPendingVariantPreset(assetDetail.item.id, p.key)" :size="11" class="animate-spin" />
+                        {{ p.label }}
+                      </button>
+                      <button
+                        type="button"
+                        class="asset-variant-chip is-custom"
+                        :disabled="!assetImageSrc(assetDetail.item) || isPendingVariantPreset(assetDetail.item.id, 'custom')"
+                        :title="assetImageSrc(assetDetail.item) ? t('episode.asset.variantsCustom') : t('episode.asset.variantsNeedPrimary')"
+                        @click="openCustomVariantDialog(assetDetail.item.id)"
+                      >{{ t('episode.asset.variantsCustom') }}</button>
+                    </div>
+                  </div>
+                </div>
               </aside>
 
               <section class="asset-detail-editor-panel">
@@ -1414,6 +1581,44 @@
             <button class="btn btn-primary" :disabled="assetCreate.saving" @click="saveAssetCreate">
               <Loader2 v-if="assetCreate.saving" :size="12" class="animate-spin" />
               {{ t('common.add') }}
+            </button>
+          </footer>
+        </div>
+      </div>
+
+      <div v-if="customVariantDialog.open" class="overlay custom-variant-overlay" @click.self="closeCustomVariantDialog">
+        <div class="dialog asset-create-dialog" role="dialog" aria-modal="true" :aria-label="t('episode.asset.variantsCustomTitle')">
+          <header class="dialog-head">
+            <h2 class="dialog-title">{{ t('episode.asset.variantsCustomTitle') }}</h2>
+            <button class="btn btn-ghost btn-icon" @click="closeCustomVariantDialog">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </header>
+          <div class="dialog-body asset-create-body">
+            <p class="dim" style="margin:0 0 8px;font-size:12px;line-height:1.45">{{ t('episode.asset.variantsCustomHint') }}</p>
+            <label class="field">
+              <span class="field-label">{{ t('episode.asset.variantsCustomTitle') }}</span>
+              <textarea
+                v-model="customVariantDialog.outfit"
+                class="textarea"
+                rows="4"
+                :placeholder="t('episode.asset.variantsCustomPlaceholder')"
+              />
+            </label>
+            <label class="field">
+              <span class="field-label">{{ t('episode.asset.variantsCustomLabel') }}</span>
+              <input
+                v-model="customVariantDialog.label"
+                class="input"
+                :placeholder="t('episode.asset.variantsCustomLabelPlaceholder')"
+              />
+            </label>
+          </div>
+          <footer class="dialog-foot">
+            <button class="btn" @click="closeCustomVariantDialog">{{ t('common.cancel') }}</button>
+            <button class="btn btn-primary" :disabled="customVariantDialog.saving" @click="submitCustomVariant">
+              <Loader2 v-if="customVariantDialog.saving" :size="12" class="animate-spin" />
+              {{ t('episode.asset.generate') }}
             </button>
           </footer>
         </div>
@@ -1695,6 +1900,252 @@ function toggleSidebar() {
 function chatModelOverride() { return resolveTextModelSelection(textModelOptions.value, chatModel.value).model }
 function chatConfigId() { return resolveTextModelSelection(textModelOptions.value, chatModel.value).configId }
 const pendingCharImageIds = ref([])
+const pendingVariantIds = ref([])
+const pendingVariantPresetKeys = ref([])
+const uploadingVariantIds = ref([])
+
+const OUTFIT_PRESET_KEYS = computed(() => ([
+  { key: 'casual', label: t('episode.asset.outfitCasual') },
+  { key: 'formal', label: t('episode.asset.outfitFormal') },
+  { key: 'leisure', label: t('episode.asset.outfitLeisure') },
+  { key: 'sleepwear', label: t('episode.asset.outfitSleepwear') },
+  { key: 'ancient', label: t('episode.asset.outfitAncient') },
+  { key: 'school', label: t('episode.asset.outfitSchool') },
+  { key: 'combat', label: t('episode.asset.outfitCombat') },
+  { key: 'injured', label: t('episode.asset.outfitInjured') },
+]))
+
+function getCharacterVariants(charOrId) {
+  const char = typeof charOrId === 'object' && charOrId
+    ? charOrId
+    : chars.value.find(c => c.id === charOrId)
+  return Array.isArray(char?.variants) ? char.variants.filter(v => !(v.deleted_at || v.deletedAt)) : []
+}
+
+function characterCardLooks(char) {
+  const looks = []
+  const primary = char?.image_url || char?.imageUrl || ''
+  if (primary) {
+    looks.push({
+      key: `primary-${char.id}`,
+      label: t('episode.asset.variantsPrimary'),
+      imageUrl: primary,
+      isPrimary: true,
+    })
+  }
+  for (const v of getCharacterVariants(char)) {
+    const url = v.image_url || v.imageUrl
+    if (!url) continue
+    looks.push({
+      key: `variant-${v.id}`,
+      label: v.label || t('episode.asset.variantsTitle'),
+      imageUrl: url,
+      isPrimary: false,
+    })
+  }
+  return looks
+}
+
+function isPendingVariant(variantId) {
+  return pendingVariantIds.value.includes(variantId)
+}
+
+function isPendingVariantPreset(charId, presetKey) {
+  return pendingVariantPresetKeys.value.includes(`${charId}:${presetKey}`)
+}
+
+function isUploadingVariant(charId) {
+  return uploadingVariantIds.value.includes(charId)
+}
+
+function syncOpenAssetDetailItem() {
+  if (!assetDetail.value.open || !assetDetail.value.item) return
+  const type = assetDetail.value.type
+  const id = assetDetail.value.item.id
+  const list = type === 'character' ? chars.value : type === 'scene' ? scenes.value : propItems.value
+  const fresh = list.find(item => item.id === id)
+  if (fresh) assetDetail.value.item = fresh
+}
+
+const customVariantDialog = ref({ open: false, charId: 0, outfit: '', label: '', saving: false })
+
+function openCustomVariantDialog(charId) {
+  const char = chars.value.find(c => c.id === charId)
+  if (!(char?.image_url || char?.imageUrl)) {
+    toast.warning(t('episode.asset.variantsNeedPrimary'))
+    return
+  }
+  customVariantDialog.value = { open: true, charId, outfit: '', label: '', saving: false }
+}
+
+function closeCustomVariantDialog() {
+  customVariantDialog.value = { open: false, charId: 0, outfit: '', label: '', saving: false }
+}
+
+async function submitCustomVariant() {
+  const outfit = String(customVariantDialog.value.outfit || '').trim()
+  if (!outfit) {
+    toast.warning(t('episode.asset.variantsCustomRequired'))
+    return
+  }
+  const charId = customVariantDialog.value.charId
+  const label = String(customVariantDialog.value.label || '').trim()
+  customVariantDialog.value.saving = true
+  try {
+    await generateCharacterVariant(charId, 'custom', { outfit, label })
+    closeCustomVariantDialog()
+  } catch {
+    // toast 已在 generateCharacterVariant 内处理
+  } finally {
+    if (customVariantDialog.value.open) customVariantDialog.value.saving = false
+  }
+}
+
+async function generateCharacterVariant(charId, presetKey, extra = null) {
+  const char = chars.value.find(c => c.id === charId)
+  if (!(char?.image_url || char?.imageUrl)) {
+    toast.warning(t('episode.asset.variantsNeedPrimary'))
+    return
+  }
+  const presetToken = `${charId}:${presetKey}`
+  if (!pendingVariantPresetKeys.value.includes(presetToken)) pendingVariantPresetKeys.value.push(presetToken)
+  try {
+    const res = await characterAPI.generateVariant(
+      charId,
+      epId.value,
+      presetKey,
+      bareModelName(imageModel.value) || undefined,
+      ownerConfigId(imageModelOptions.value, imageModel.value),
+      chatModelOverride(),
+      chatConfigId(),
+      extra || undefined,
+    )
+    const variantId = res?.variant?.id
+    if (variantId && !pendingVariantIds.value.includes(variantId)) pendingVariantIds.value.push(variantId)
+    toast.success(t('episode.asset.variantsGenStarted'))
+    await refresh()
+    if (variantId) {
+      watchAsyncResult(() => {
+        const fresh = chars.value.find(c => c.id === charId)
+        const variant = getCharacterVariants(fresh).find(v => v.id === variantId)
+        if (variant?.image_url || variant?.imageUrl || !isPendingVariant(variantId)) {
+          pendingVariantIds.value = pendingVariantIds.value.filter(id => id !== variantId)
+          pendingVariantPresetKeys.value = pendingVariantPresetKeys.value.filter(k => k !== presetToken)
+          return true
+        }
+        return false
+      }, {
+        attempts: 36,
+        onGiveUp: () => {
+          pendingVariantIds.value = pendingVariantIds.value.filter(id => id !== variantId)
+          pendingVariantPresetKeys.value = pendingVariantPresetKeys.value.filter(k => k !== presetToken)
+        },
+      })
+    } else {
+      pendingVariantPresetKeys.value = pendingVariantPresetKeys.value.filter(k => k !== presetToken)
+    }
+  } catch (e) {
+    pendingVariantPresetKeys.value = pendingVariantPresetKeys.value.filter(k => k !== presetToken)
+    toastError(e)
+    throw e
+  }
+}
+
+function uploadCharacterVariant(charId) {
+  const char = chars.value.find(c => c.id === charId)
+  if (!(char?.image_url || char?.imageUrl)) {
+    toast.warning(t('episode.asset.variantsNeedPrimary'))
+    return
+  }
+  pickFile('image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp', async (file) => {
+    if (!uploadingVariantIds.value.includes(charId)) uploadingVariantIds.value.push(charId)
+    try {
+      const res = await uploadAPI.image(file)
+      await characterAPI.createVariant(charId, { image_url: res.path, local_path: res.path })
+      toast.success(t('episode.asset.variantsUploaded'))
+      await refresh()
+    } catch (e) {
+      toastError(e)
+    } finally {
+      uploadingVariantIds.value = uploadingVariantIds.value.filter(id => id !== charId)
+    }
+  })
+}
+
+async function setVariantAsPrimary(charId, variantId) {
+  try {
+    await characterAPI.updateVariant(charId, variantId, { set_as_primary: true })
+    toast.success(t('episode.asset.variantsSetPrimaryDone'))
+    await refresh()
+  } catch (e) {
+    toastError(e)
+  }
+}
+
+async function deleteCharacterVariant(charId, variantId) {
+  try {
+    await characterAPI.deleteVariant(charId, variantId)
+    toast.success(t('episode.asset.variantsDeleted'))
+    await refresh()
+  } catch (e) {
+    toastError(e)
+  }
+}
+
+function getStoryboardCharacterVariantMap(sb) {
+  return sb?.character_variant_map || sb?.characterVariantMap || {}
+}
+
+function characterImageForShot(sb, char) {
+  const map = getStoryboardCharacterVariantMap(sb)
+  const variantId = map[String(char.id)] ?? map[char.id]
+  if (variantId) {
+    const variant = getCharacterVariants(char).find(v => Number(v.id) === Number(variantId))
+    const url = variant?.image_url || variant?.imageUrl
+    if (url) return url
+  }
+  return char?.image_url || char?.imageUrl || ''
+}
+
+function characterOutfitOptions(charId) {
+  const char = chars.value.find(c => c.id === charId)
+  if (!char) return []
+  const primary = char.image_url || char.imageUrl || ''
+  const options = []
+  if (primary) {
+    options.push({
+      key: `primary-${charId}`,
+      variantId: null,
+      label: t('episode.asset.variantsPrimary'),
+      imageUrl: primary,
+    })
+  }
+  for (const v of getCharacterVariants(char)) {
+    const url = v.image_url || v.imageUrl
+    if (!url) continue
+    options.push({
+      key: `variant-${v.id}`,
+      variantId: v.id,
+      label: v.label || t('episode.asset.variantsTitle'),
+      imageUrl: url,
+    })
+  }
+  return options
+}
+
+function isShotOutfitSelected(sb, charId, variantId) {
+  const map = getStoryboardCharacterVariantMap(sb)
+  const cur = map[String(charId)] ?? map[charId] ?? null
+  if (variantId == null) return cur == null || cur === ''
+  return Number(cur) === Number(variantId)
+}
+
+function setShotCharacterOutfit(sb, charId, variantId) {
+  const map = { ...getStoryboardCharacterVariantMap(sb) }
+  if (variantId == null) delete map[String(charId)]
+  else map[String(charId)] = variantId
+  updateField(sb, 'character_variant_map', map)
+}
 const pendingSceneImageIds = ref([])
 const pendingPropImageIds = ref([])
 const pendingVideoIds = ref([])
@@ -2967,7 +3418,11 @@ const selectedVideoTaskNumber = computed(() => {
 
 function updateField(sb, field, value) {
   const current = sb[field] ?? sb[toCamel(field)]
-  if (current === value) return
+  if (field === 'character_variant_map') {
+    if (JSON.stringify(current || {}) === JSON.stringify(value || {})) return
+  } else if (current === value) {
+    return
+  }
   sb[field] = value
   const camelField = toCamel(field)
   if (camelField !== field) sb[camelField] = value
@@ -3003,6 +3458,13 @@ function toggleStoryboardCharacter(sb, charId) {
     ? currentIds.filter(id => id !== charId)
     : [...currentIds, charId]
   updateField(sb, 'character_ids', nextIds)
+  if (!nextIds.includes(charId)) {
+    const map = { ...getStoryboardCharacterVariantMap(sb) }
+    if (String(charId) in map || charId in map) {
+      delete map[String(charId)]
+      updateField(sb, 'character_variant_map', map)
+    }
+  }
 }
 
 function getStoryboardPropIds(sb) {
@@ -3062,6 +3524,7 @@ async function refresh() {
       } else {
         selectedSb.value = null
       }
+      syncOpenAssetDetailItem()
 
       const epHasContent = !!(episode.value?.content)
       const epHasScript = !!(episode.value?.script_content || episode.value?.scriptContent)
@@ -3534,7 +3997,7 @@ function getShotReferenceImages(sb) {
   const scene = getStoryboardScene(sb)
   pushRef(scene?.image_url || scene?.imageUrl)
   for (const char of getStoryboardCharacters(sb)) {
-    pushRef(char?.image_url || char?.imageUrl)
+    pushRef(characterImageForShot(sb, char))
   }
   for (const prop of getStoryboardProps(sb)) {
     pushRef(prop?.image_url || prop?.imageUrl)
@@ -3547,7 +4010,8 @@ function getShotReferenceImages(sb) {
 function shotBindableAssets(sb) {
   const out = []
   for (const char of visualChars.value) {
-    const imageUrl = char.image_url || char.imageUrl || ''
+    const bound = getStoryboardCharacterIds(sb).includes(char.id)
+    const imageUrl = bound ? (characterImageForShot(sb, char) || '') : (char.image_url || char.imageUrl || '')
     out.push({
       key: `character-${char.id}`,
       id: char.id,
@@ -3557,7 +4021,7 @@ function shotBindableAssets(sb) {
       meta: char.role || t('episode.asset.charPortrait'),
       imageUrl,
       ready: !!imageUrl,
-      bound: getStoryboardCharacterIds(sb).includes(char.id),
+      bound,
     })
   }
   for (const scene of scenes.value) {
@@ -4964,6 +5428,79 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
   color: var(--text-0);
 }
 .character-gen-btn { flex-shrink: 0; align-self: center; }
+.character-looks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--surface-outline);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+}
+.character-looks-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.character-looks-label {
+  font-size: 10px;
+  font-weight: 780;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+}
+.character-looks-count {
+  font-size: 10px;
+  color: var(--text-3);
+}
+.character-looks-wall {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.character-look-tile {
+  appearance: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--surface-outline);
+  border-radius: calc(var(--radius) - 1px);
+  background: var(--bg);
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+}
+.character-look-tile.is-primary {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--surface-outline));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.character-look-tile img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  background: var(--bg-2);
+}
+.character-look-tile span {
+  display: block;
+  padding: 4px 6px;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.25;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.character-look-tile:hover {
+  border-color: var(--accent);
+}
+.character-look-tile:hover span {
+  color: var(--text-0);
+}
 .studio-model-picks {
   display: flex;
   align-items: center;
@@ -5854,6 +6391,9 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
   z-index: 118;
   padding: 28px;
 }
+.custom-variant-overlay {
+  z-index: 130;
+}
 .asset-detail-dialog {
   width: min(1040px, calc(100vw - 56px));
   max-height: calc(100vh - 56px);
@@ -6054,6 +6594,224 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+.asset-variant-panel {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--surface-outline);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.asset-variant-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.asset-variant-head-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.asset-variant-head-text strong {
+  font-size: 12px;
+  color: var(--text-0);
+  letter-spacing: 0.02em;
+}
+.asset-variant-head-text .dim {
+  font-size: 11px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.asset-variant-upload {
+  flex-shrink: 0;
+  gap: 5px;
+}
+.asset-variant-gallery {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+.asset-variant-card {
+  width: 148px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.asset-variant-card.is-primary .asset-variant-thumb {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--surface-outline));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.asset-variant-card.is-pending .asset-variant-thumb {
+  opacity: 0.75;
+}
+.asset-variant-thumb {
+  position: relative;
+  width: 148px;
+  height: 84px;
+  border: 1px solid var(--surface-outline);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+}
+.asset-variant-thumb:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.asset-variant-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+.asset-variant-badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  max-width: calc(100% - 12px);
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  color: var(--text-0);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.asset-variant-empty {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.asset-variant-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.asset-variant-action {
+  appearance: none;
+  border: 1px solid var(--surface-outline);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--surface-muted);
+  color: var(--text-2);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.2;
+  padding: 4px 2px;
+  cursor: pointer;
+  text-align: center;
+}
+.asset-variant-action:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text-0);
+}
+.asset-variant-action.is-danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--danger, #c44) 55%, var(--surface-outline));
+  color: var(--danger, #c44);
+}
+.asset-variant-action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.asset-variant-empty-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-3);
+}
+.asset-variant-presets-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.asset-variant-presets-label {
+  font-size: 10px;
+  font-weight: 780;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+}
+.asset-variant-presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.asset-variant-chip {
+  appearance: none;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 4px;
+  border: 1px solid var(--surface-outline);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text-1);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.asset-variant-chip:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text-0);
+}
+.asset-variant-chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.asset-variant-chip.is-custom {
+  border-style: dashed;
+}
+.storyboard-ref-outfits {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.storyboard-ref-outfits-label {
+  font-size: 10px;
+  color: var(--text-3);
+  font-weight: 700;
+}
+.storyboard-ref-outfits-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.storyboard-ref-outfit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 2px;
+  border: 1px solid var(--surface-outline);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text-2);
+  font-size: 10px;
+  cursor: pointer;
+}
+.storyboard-ref-outfit img {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.storyboard-ref-outfit.active {
+  border-color: var(--accent);
+  color: var(--text-0);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-muted));
 }
 .asset-detail-meta-item {
   min-width: 0;

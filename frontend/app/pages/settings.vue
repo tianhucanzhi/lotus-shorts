@@ -94,8 +94,9 @@
               </button>
             </div>
 
-            <template v-if="lotusKeyMode === 'existing'">
+            <template v-if="lotusKeyMode === 'existing' && !lotusProvisioned">
               <p class="setup-desc lotus-mode-hint">
+                {{ t('settings.ai.existingKeyOnlyHint') }}
                 <button type="button" class="lotus-site-link" :disabled="lotusConsoleOpening" @click="openRealApiConsole()">
                   {{ lotusConsoleOpening ? t('settings.ai.openingConsole') : t('settings.ai.getKey') }}
                   <ExternalLink :size="12" :stroke-width="1.8" />
@@ -117,7 +118,7 @@
               </div>
             </template>
 
-            <template v-else>
+            <template v-else-if="lotusKeyMode === 'new' && !lotusProvisioned">
               <p class="setup-desc lotus-mode-hint">{{ t('settings.ai.autoRegisterHint') }}</p>
               <label v-if="!auth.isSaas.value" class="lotus-username-field">
                 <span>{{ t('settings.ai.autoRegisterUsername') }}</span>
@@ -130,55 +131,57 @@
                   {{ lotusRegistering ? t('settings.ai.autoRegistering') : t('settings.ai.autoRegisterBtn') }}
                 </button>
               </div>
-              <div v-if="lotusProvisioned" class="lotus-account-card">
-                <div class="lotus-account-title">{{ t('settings.ai.accountCreatedTitle') }}</div>
-                <div class="lotus-account-row">
-                  <span class="lotus-account-label">{{ t('settings.ai.accountUsername') }}</span>
-                  <code class="mono">{{ lotusProvisioned.username }}</code>
-                </div>
-                <div class="lotus-account-row">
-                  <span class="lotus-account-label">{{ t('settings.ai.accountPassword') }}</span>
-                  <code class="mono">{{ lotusProvisioned.password }}</code>
-                </div>
-                <div class="lotus-account-row">
-                  <span class="lotus-account-label">{{ t('settings.ai.accountBalance') }}</span>
-                  <code class="mono">
-                    <template v-if="lotusBalanceLoading">{{ t('settings.ai.accountBalanceLoading') }}</template>
-                    <template v-else-if="lotusProvisioned.balance_usd != null">${{ Number(lotusProvisioned.balance_usd).toFixed(4) }}</template>
-                    <template v-else>—</template>
-                  </code>
-                  <button type="button" class="btn btn-ghost btn-sm" :disabled="lotusBalanceLoading" @click="refreshRealApiBalance">
-                    {{ t('settings.ai.refreshBalance') }}
-                  </button>
-                  <button type="button" class="btn btn-primary btn-sm" :disabled="lotusConsoleOpening" @click="openRealApiConsole('/console/recharge')">
-                    {{ lotusConsoleOpening ? t('settings.ai.openingConsole') : t('settings.ai.goRecharge') }}
-                  </button>
-                </div>
-                <p class="lotus-account-warn">{{ t('settings.ai.accountPasswordHint') }}</p>
-                <p class="lotus-account-filled" v-html="t('settings.ai.accountKeyFilled')"></p>
-                <div class="lotus-account-actions">
-                  <button type="button" class="btn btn-ghost btn-sm" @click="copyProvisionedAccount">{{ t('settings.ai.copyAccount') }}</button>
-                  <button type="button" class="lotus-site-link" :disabled="lotusConsoleOpening" @click="openRealApiConsole()">
-                    {{ lotusConsoleOpening ? t('settings.ai.openingConsole') : t('settings.ai.getKey') }}
-                    <ExternalLink :size="12" :stroke-width="1.8" />
-                  </button>
-                </div>
-                <div class="lotus-quick-row" style="margin-top: 12px">
-                  <div class="lotus-key-wrap">
-                    <input v-model="lotusApiKey" class="input" :type="lotusApiKeyVisible ? 'text' : 'password'" placeholder="Real-API Key" />
-                    <button type="button" class="lotus-key-toggle" :title="lotusApiKeyVisible ? '隐藏' : '查看'" @click="lotusApiKeyVisible = !lotusApiKeyVisible">
-                      <EyeOff v-if="lotusApiKeyVisible" :size="15" :stroke-width="1.8" />
-                      <Eye v-else :size="15" :stroke-width="1.8" />
-                    </button>
-                  </div>
-                  <button class="btn btn-primary" :disabled="lotusSaving" @click="applyLotusQuickConfig">
-                    <Loader2 v-if="lotusSaving" :size="13" class="animate-spin" />
-                    <Sparkles v-else :size="13" />
-                    {{ t('settings.ai.applyQuick') }}
-                  </button>
-                </div>
-              </div>
             </template>
+
+            <!-- 账号/余额：仅开户信息落库后可查；与「只填 Key」无关，两种 Tab 下都显示 -->
+            <div v-if="lotusProvisioned" class="lotus-account-card">
+              <div class="lotus-account-title">{{ t('settings.ai.accountCreatedTitle') }}</div>
+              <div class="lotus-account-row">
+                <span class="lotus-account-label">{{ t('settings.ai.accountUsername') }}</span>
+                <code class="mono">{{ lotusProvisioned.username }}</code>
+              </div>
+              <div class="lotus-account-row">
+                <span class="lotus-account-label">{{ t('settings.ai.accountPassword') }}</span>
+                <code class="mono">{{ lotusProvisioned.password || '—' }}</code>
+              </div>
+              <div class="lotus-account-row">
+                <span class="lotus-account-label">{{ t('settings.ai.accountBalance') }}</span>
+                <code class="mono">
+                  <template v-if="lotusBalanceLoading">{{ t('settings.ai.accountBalanceLoading') }}</template>
+                  <template v-else-if="lotusProvisioned.balance_usd != null">${{ Number(lotusProvisioned.balance_usd).toFixed(4) }}</template>
+                  <template v-else>—</template>
+                </code>
+                <button type="button" class="btn btn-ghost btn-sm" :disabled="lotusBalanceLoading" @click="refreshRealApiBalance">
+                  {{ t('settings.ai.refreshBalance') }}
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" :disabled="lotusConsoleOpening" @click="openRealApiConsole('/console/recharge')">
+                  {{ lotusConsoleOpening ? t('settings.ai.openingConsole') : t('settings.ai.goRecharge') }}
+                </button>
+              </div>
+              <p class="lotus-account-warn">{{ lotusProvisioned.password ? t('settings.ai.accountPasswordHint') : t('settings.ai.accountPasswordUnknownHint') }}</p>
+              <p class="lotus-account-filled" v-html="t('settings.ai.accountKeyFilled')"></p>
+              <div class="lotus-account-actions">
+                <button type="button" class="btn btn-ghost btn-sm" @click="copyProvisionedAccount">{{ t('settings.ai.copyAccount') }}</button>
+                <button type="button" class="lotus-site-link" :disabled="lotusConsoleOpening" @click="openRealApiConsole()">
+                  {{ lotusConsoleOpening ? t('settings.ai.openingConsole') : t('settings.ai.getKey') }}
+                  <ExternalLink :size="12" :stroke-width="1.8" />
+                </button>
+              </div>
+              <div class="lotus-quick-row" style="margin-top: 12px">
+                <div class="lotus-key-wrap">
+                  <input v-model="lotusApiKey" class="input" :type="lotusApiKeyVisible ? 'text' : 'password'" placeholder="Real-API Key" />
+                  <button type="button" class="lotus-key-toggle" :title="lotusApiKeyVisible ? '隐藏' : '查看'" @click="lotusApiKeyVisible = !lotusApiKeyVisible">
+                    <EyeOff v-if="lotusApiKeyVisible" :size="15" :stroke-width="1.8" />
+                    <Eye v-else :size="15" :stroke-width="1.8" />
+                  </button>
+                </div>
+                <button class="btn btn-primary" :disabled="lotusSaving" @click="applyLotusQuickConfig">
+                  <Loader2 v-if="lotusSaving" :size="13" class="animate-spin" />
+                  <Sparkles v-else :size="13" />
+                  {{ t('settings.ai.applyQuick') }}
+                </button>
+              </div>
+            </div>
 
             <div class="lotus-quick-models">
               <div v-for="q in lotusQuickConfigs" :key="q.name" class="hqm-row">
@@ -761,7 +764,7 @@ function clearLegacyLocalRealApiAccount() {
 }
 
 function applyServerRealApiAccount(saved) {
-  if (!saved?.activation_code && !saved?.username) return false
+  if (!saved?.activation_code && !saved?.username && !saved?.user_id) return false
   lotusProvisioned.value = saved
   lotusKeyMode.value = 'new'
   if (saved.api_key) lotusApiKey.value = saved.api_key
@@ -856,6 +859,8 @@ const REAL_API_TEXT_MODELS = [
   'gpt-5.3-codex',
 ]
 const REAL_API_IMAGE_MODELS = [
+  'gpt-image-2.6-sunburst',
+  'gpt-image-2.6-flare',
   'gpt-image-2.5-sunburst',
   'gpt-image-2.5-flare',
   'gpt-image-2-official',
@@ -977,6 +982,14 @@ async function applyLotusQuickConfig() {
       if (existing) await aiConfigAPI.update(existing.id, payload)
       else await aiConfigAPI.create(payload)
     }
+    // 不论一键开户还是只填 Key：只要 Key 有效就反查账号/余额并展示
+    try {
+      const account = await aiConfigAPI.resolveRealApiByKey(apiKey)
+      applyServerRealApiAccount(account)
+      if (account.balance_usd == null) refreshRealApiBalance()
+    } catch (e) {
+      toastError(e, { fallback: 'settings.ai.resolveAccountFailed' })
+    }
     toast.success(t('settings.ai.quickApplied'))
     lotusApiKey.value = ''
     await loadCfgs()
@@ -1014,7 +1027,7 @@ async function refreshRealApiBalance() {
     const res = await aiConfigAPI.realApiBalance({
       user_id: a.user_id,
       username: a.username,
-      password: a.password || '123456',
+      ...(a.password ? { password: a.password } : {}),
     })
     lotusProvisioned.value = { ...a, balance_usd: res.balance_usd }
   } catch (e) {
@@ -1055,7 +1068,7 @@ async function copyProvisionedAccount() {
   const text = [
     `平台：${a.site_url || lotusSiteUrl}`,
     `账号：${a.username}`,
-    `密码：${a.password || '123456'}`,
+    `密码：${a.password || '（未保存，请用 Real-API 控制台登录）'}`,
     `API Key：${a.api_key || ''}`,
   ].join('\n')
   try {

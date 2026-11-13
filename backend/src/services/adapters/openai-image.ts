@@ -1,7 +1,7 @@
 /**
  * OpenAI / Real-API 图片生成 Adapter
  * - 官方 gpt-image-2 / DALL·E：文生图 /v1/images/generations；参考图 /v1/images/edits（multipart）
- * - gpt-image-2.5-*（flare/sunburst 等）：统一 /v1/images/generations，参考图用 image_urls（公网 URL）
+ * - gpt-image-2.5/2.6-*（flare/sunburst 等）：统一 /v1/images/generations，参考图用 image_urls（公网 URL）
  * 响应: { data: [{ url | b64_json }] }；异步 jobs: job_id + /v1/images/generations/jobs/{id}
  */
 import type {
@@ -15,8 +15,9 @@ import type {
 import { joinProviderUrl } from './url'
 import { parseDataUrl } from '../../utils/storage.js'
 
-function isGptImage25(model: string): boolean {
-  return model.toLowerCase().startsWith('gpt-image-2.5')
+/** Real-API 图生图走 image_urls 的模型族（2.5 / 2.6 …） */
+function isRealApiGptImageUrlRefs(model: string): boolean {
+  return /^gpt-image-2\.(5|6)/i.test(model)
 }
 
 export class OpenAIImageAdapter implements ImageProviderAdapter {
@@ -26,7 +27,7 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
     const model = record.model || config.model || 'gpt-image-2'
     const refs = this.parseReferenceImages(record.referenceImages)
 
-    if (isGptImage25(model)) {
+    if (isRealApiGptImageUrlRefs(model)) {
       return this.buildGptImage25Request(config, model, record, refs)
     }
 
@@ -65,7 +66,7 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
     }
   }
 
-  /** Real-API gpt-image-2.5：generations + image_urls */
+  /** Real-API gpt-image-2.5/2.6：generations + image_urls */
   private buildGptImage25Request(
     config: AIConfig,
     model: string,
@@ -75,7 +76,7 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
     const httpRefs = refs.filter((u) => /^https?:\/\//i.test(u))
     if (refs.length && !httpRefs.length) {
       throw new Error(
-        'gpt-image-2.5 参考图须为公网 HTTP(S) URL。请配置 PUBLIC_BASE_URL，或改用已可公网访问的图片地址。',
+        '该图片模型参考图须为公网 HTTP(S) URL。请配置 PUBLIC_BASE_URL，或改用已可公网访问的图片地址。',
       )
     }
 

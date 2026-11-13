@@ -154,9 +154,26 @@ export const storyboards = sqliteTable('storyboards', {
 export const storyboardCharacters = sqliteTable('storyboard_characters', {
   storyboardId: integer('storyboard_id').notNull(),
   characterId: integer('character_id').notNull(),
+  variantId: integer('variant_id'),
 }, (table) => [
   primaryKey({ columns: [table.storyboardId, table.characterId] }),
 ])
+
+/** 同一人物下的造型变体（换装/状态），主形象仍在 characters.image_url */
+export const characterVariants = sqliteTable('character_variants', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  characterId: integer('character_id').notNull(),
+  label: text('label').notNull(),
+  imageUrl: text('image_url'),
+  localPath: text('local_path'),
+  finalPrompt: text('final_prompt'),
+  source: text('source').notNull(), // preset | upload | archive
+  presetKey: text('preset_key'),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+  deletedAt: text('deleted_at'),
+})
 
 export const storyboardProps = sqliteTable('storyboard_props', {
   storyboardId: integer('storyboard_id').notNull(),

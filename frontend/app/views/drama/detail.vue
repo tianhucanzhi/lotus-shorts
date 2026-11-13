@@ -383,6 +383,82 @@
                     <strong>{{ editTarget.kindKey === 'character' ? (editTarget.role || t('common.role')) : editTarget.kindKey === 'prop' ? (editTarget.type || t('common.prop')) : (editTarget.time || t('episode.asset.noTime')) }}</strong>
                   </div>
                 </div>
+
+                <div v-if="editTarget.kindKey === 'character'" class="asset-variant-panel">
+                  <div class="asset-variant-head">
+                    <div class="asset-variant-head-text">
+                      <strong>{{ t('episode.asset.variantsTitle') }}</strong>
+                      <span class="dim" :title="t('episode.asset.variantsHint')">{{ t('episode.asset.variantsHintShort') }}</span>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-sm asset-variant-upload"
+                      :disabled="!matHasImage(editTarget) || isUploadingVariant(editTarget.id)"
+                      :title="matHasImage(editTarget) ? t('episode.asset.variantsUpload') : t('episode.asset.variantsNeedPrimary')"
+                      @click="uploadCharacterVariant(editTarget.id)"
+                    >
+                      <span v-if="isUploadingVariant(editTarget.id)" class="ring-spinner sm"></span>
+                      <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      {{ t('episode.asset.variantsUpload') }}
+                    </button>
+                  </div>
+                  <div class="asset-variant-gallery">
+                    <div class="asset-variant-card is-primary">
+                      <button type="button" class="asset-variant-thumb" :disabled="!matHasImage(editTarget)" @click="matHasImage(editTarget) && openAssetViewer(editTarget)">
+                        <img v-if="matHasImage(editTarget)" :src="thumbOf(assetSrc(editTarget))" @error="thumbFallback($event, assetSrc(editTarget))" />
+                        <span v-else class="asset-variant-empty">—</span>
+                        <span class="asset-variant-badge">{{ t('episode.asset.variantsPrimary') }}</span>
+                      </button>
+                    </div>
+                    <div
+                      v-for="v in getCharacterVariants(editTarget)"
+                      :key="'dv-' + v.id"
+                      class="asset-variant-card"
+                      :class="{ 'is-pending': isPendingVariant(v.id) }"
+                    >
+                      <button
+                        type="button"
+                        class="asset-variant-thumb"
+                        :disabled="!(v.image_url || v.imageUrl) && !isPendingVariant(v.id)"
+                        @click="(v.image_url || v.imageUrl) && (assetViewer = { open: true, src: assetSrc(v), title: v.label || t('episode.asset.variantsTitle') })"
+                      >
+                        <span v-if="isPendingVariant(v.id)" class="ring-spinner sm"></span>
+                        <img v-else-if="v.image_url || v.imageUrl" :src="thumbOf(assetSrc(v))" @error="thumbFallback($event, assetSrc(v))" />
+                        <span v-else class="asset-variant-empty">…</span>
+                        <span class="asset-variant-badge">{{ v.label || t('episode.asset.variantsTitle') }}</span>
+                      </button>
+                      <div class="asset-variant-actions">
+                        <button type="button" class="asset-variant-action" :disabled="!(v.image_url || v.imageUrl)" @click="setVariantAsPrimary(editTarget.id, v.id)">{{ t('episode.asset.variantsSetPrimary') }}</button>
+                        <button type="button" class="asset-variant-action is-danger" :disabled="isPendingVariant(v.id)" @click="deleteCharacterVariant(editTarget.id, v.id)">{{ t('episode.asset.variantsDelete') }}</button>
+                      </div>
+                    </div>
+                  </div>
+                  <p v-if="!getCharacterVariants(editTarget).length" class="asset-variant-empty-hint">{{ t('episode.asset.variantsEmpty') }}</p>
+                  <div class="asset-variant-presets-block">
+                    <span class="asset-variant-presets-label">{{ t('episode.asset.variantsOneClick') }}</span>
+                    <div class="asset-variant-presets">
+                      <button
+                        v-for="p in OUTFIT_PRESET_KEYS"
+                        :key="p.key"
+                        type="button"
+                        class="asset-variant-chip"
+                        :disabled="!matHasImage(editTarget) || isPendingVariantPreset(editTarget.id, p.key)"
+                        :title="matHasImage(editTarget) ? p.label : t('episode.asset.variantsNeedPrimary')"
+                        @click="generateCharacterVariant(editTarget.id, p.key)"
+                      >
+                        <span v-if="isPendingVariantPreset(editTarget.id, p.key)" class="ring-spinner sm"></span>
+                        {{ p.label }}
+                      </button>
+                      <button
+                        type="button"
+                        class="asset-variant-chip is-custom"
+                        :disabled="!matHasImage(editTarget) || isPendingVariantPreset(editTarget.id, 'custom')"
+                        :title="matHasImage(editTarget) ? t('episode.asset.variantsCustom') : t('episode.asset.variantsNeedPrimary')"
+                        @click="openCustomVariantDialog(editTarget.id)"
+                      >{{ t('episode.asset.variantsCustom') }}</button>
+                    </div>
+                  </div>
+                </div>
               </aside>
 
               <!-- 右侧：编辑信息 -->
@@ -505,6 +581,35 @@
             </div>
           </footer>
         </section>
+      </div>
+
+      <div v-if="customVariantDialog.open" class="overlay custom-variant-overlay" @click.self="closeCustomVariantDialog">
+        <div class="dialog" role="dialog" aria-modal="true" :aria-label="t('episode.asset.variantsCustomTitle')" style="width:min(440px,92vw)">
+          <header class="dialog-head">
+            <h2 class="dialog-title">{{ t('episode.asset.variantsCustomTitle') }}</h2>
+            <button class="btn btn-ghost btn-icon" @click="closeCustomVariantDialog">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </header>
+          <div class="dialog-body" style="display:flex;flex-direction:column;gap:12px">
+            <p class="dim" style="margin:0;font-size:12px;line-height:1.45">{{ t('episode.asset.variantsCustomHint') }}</p>
+            <label class="field">
+              <span class="field-label">{{ t('episode.asset.variantsCustomTitle') }}</span>
+              <textarea v-model="customVariantDialog.outfit" class="textarea" rows="4" :placeholder="t('episode.asset.variantsCustomPlaceholder')" />
+            </label>
+            <label class="field">
+              <span class="field-label">{{ t('episode.asset.variantsCustomLabel') }}</span>
+              <input v-model="customVariantDialog.label" class="input" :placeholder="t('episode.asset.variantsCustomLabelPlaceholder')" />
+            </label>
+          </div>
+          <footer class="dialog-foot">
+            <button class="btn" @click="closeCustomVariantDialog">{{ t('common.cancel') }}</button>
+            <button class="btn btn-primary" :disabled="customVariantDialog.saving" @click="submitCustomVariant">
+              <span v-if="customVariantDialog.saving" class="ring-spinner sm"></span>
+              {{ t('episode.asset.generate') }}
+            </button>
+          </footer>
+        </div>
       </div>
 
       <!-- 图片查看器 -->
@@ -865,6 +970,146 @@ function openEdit(m) {
 // 生成/重新生成最终提示词（不生图）：调用各类型 generate-prompt 接口，结果写回 draft
 const finalPromptGen = ref(false)
 const firstEpisodeId = computed(() => drama.value?.episodes?.[0]?.id || null)
+
+const pendingVariantIds = ref([])
+const pendingVariantPresetKeys = ref([])
+const uploadingVariantIds = ref([])
+const OUTFIT_PRESET_KEYS = computed(() => ([
+  { key: 'casual', label: t('episode.asset.outfitCasual') },
+  { key: 'formal', label: t('episode.asset.outfitFormal') },
+  { key: 'leisure', label: t('episode.asset.outfitLeisure') },
+  { key: 'sleepwear', label: t('episode.asset.outfitSleepwear') },
+  { key: 'ancient', label: t('episode.asset.outfitAncient') },
+  { key: 'school', label: t('episode.asset.outfitSchool') },
+  { key: 'combat', label: t('episode.asset.outfitCombat') },
+  { key: 'injured', label: t('episode.asset.outfitInjured') },
+]))
+
+function getCharacterVariants(char) {
+  return Array.isArray(char?.variants) ? char.variants.filter(v => !(v.deleted_at || v.deletedAt)) : []
+}
+function isPendingVariant(variantId) { return pendingVariantIds.value.includes(variantId) }
+function isPendingVariantPreset(charId, presetKey) { return pendingVariantPresetKeys.value.includes(`${charId}:${presetKey}`) }
+function isUploadingVariant(charId) { return uploadingVariantIds.value.includes(charId) }
+
+function syncEditTargetFromDrama() {
+  if (!editTarget.value || editTarget.value.kindKey !== 'character') return
+  const fresh = drama.value?.characters?.find(c => c.id === editTarget.value.id)
+  if (!fresh) return
+  editTarget.value = {
+    ...editTarget.value,
+    ...fresh,
+    kind: editTarget.value.kind,
+    kindKey: 'character',
+    finalPrompt: fresh.final_prompt || fresh.finalPrompt || editTarget.value.finalPrompt,
+  }
+}
+
+const customVariantDialog = ref({ open: false, charId: 0, outfit: '', label: '', saving: false })
+
+function openCustomVariantDialog(charId) {
+  const char = drama.value?.characters?.find(c => c.id === charId)
+  if (!(char?.image_url || char?.imageUrl)) { toast.warning(t('episode.asset.variantsNeedPrimary')); return }
+  customVariantDialog.value = { open: true, charId, outfit: '', label: '', saving: false }
+}
+
+function closeCustomVariantDialog() {
+  customVariantDialog.value = { open: false, charId: 0, outfit: '', label: '', saving: false }
+}
+
+async function submitCustomVariant() {
+  const outfit = String(customVariantDialog.value.outfit || '').trim()
+  if (!outfit) { toast.warning(t('episode.asset.variantsCustomRequired')); return }
+  const charId = customVariantDialog.value.charId
+  const label = String(customVariantDialog.value.label || '').trim()
+  customVariantDialog.value.saving = true
+  try {
+    await generateCharacterVariant(charId, 'custom', { outfit, label })
+    closeCustomVariantDialog()
+  } catch {
+    // toast 已在 generateCharacterVariant 内处理
+  } finally {
+    if (customVariantDialog.value.open) customVariantDialog.value.saving = false
+  }
+}
+
+async function generateCharacterVariant(charId, presetKey, extra = null) {
+  const epId = firstEpisodeId.value
+  if (!epId) { toast.error(t('detail.mat.needEpisodeForImage')); throw new Error('no episode') }
+  const char = drama.value?.characters?.find(c => c.id === charId)
+  if (!(char?.image_url || char?.imageUrl)) { toast.warning(t('episode.asset.variantsNeedPrimary')); throw new Error('no primary') }
+  const presetToken = `${charId}:${presetKey}`
+  if (!pendingVariantPresetKeys.value.includes(presetToken)) pendingVariantPresetKeys.value.push(presetToken)
+  let variantId = 0
+  try {
+    const res = await characterAPI.generateVariant(charId, epId, presetKey, undefined, undefined, undefined, undefined, extra || undefined)
+    variantId = res?.variant?.id || 0
+    if (variantId && !pendingVariantIds.value.includes(variantId)) pendingVariantIds.value.push(variantId)
+    toast.success(t('episode.asset.variantsGenStarted'))
+    for (let i = 0; i < 40; i++) {
+      await sleep(2500)
+      await load()
+      syncEditTargetFromDrama()
+      const fresh = drama.value?.characters?.find(c => c.id === charId)
+      const variant = getCharacterVariants(fresh).find(v => v.id === variantId)
+      if (variant?.image_url || variant?.imageUrl) break
+    }
+  } catch (e) {
+    toastError(e)
+    throw e
+  } finally {
+    pendingVariantPresetKeys.value = pendingVariantPresetKeys.value.filter(k => k !== presetToken)
+    if (variantId) pendingVariantIds.value = pendingVariantIds.value.filter(id => id !== variantId)
+  }
+}
+
+function uploadCharacterVariant(charId) {
+  const char = drama.value?.characters?.find(c => c.id === charId)
+  if (!(char?.image_url || char?.imageUrl)) { toast.warning(t('episode.asset.variantsNeedPrimary')); return }
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp'
+  input.onchange = async () => {
+    const file = input.files?.[0]
+    if (!file) return
+    if (!uploadingVariantIds.value.includes(charId)) uploadingVariantIds.value.push(charId)
+    try {
+      const res = await uploadAPI.image(file)
+      await characterAPI.createVariant(charId, { image_url: res.path, local_path: res.path })
+      toast.success(t('episode.asset.variantsUploaded'))
+      await load()
+      syncEditTargetFromDrama()
+    } catch (e) {
+      toastError(e)
+    } finally {
+      uploadingVariantIds.value = uploadingVariantIds.value.filter(id => id !== charId)
+    }
+  }
+  input.click()
+}
+
+async function setVariantAsPrimary(charId, variantId) {
+  try {
+    await characterAPI.updateVariant(charId, variantId, { set_as_primary: true })
+    toast.success(t('episode.asset.variantsSetPrimaryDone'))
+    await load()
+    syncEditTargetFromDrama()
+  } catch (e) {
+    toastError(e)
+  }
+}
+
+async function deleteCharacterVariant(charId, variantId) {
+  try {
+    await characterAPI.deleteVariant(charId, variantId)
+    toast.success(t('episode.asset.variantsDeleted'))
+    await load()
+    syncEditTargetFromDrama()
+  } catch (e) {
+    toastError(e)
+  }
+}
+
 async function generateFinalPrompt(m) {
   const epId = firstEpisodeId.value
   if (!epId) { toast.error(t('detail.mat.needEpisodeForPrompt')); return }
@@ -1469,6 +1714,7 @@ onMounted(load)
 
 /* ===== 素材详情 / 编辑对话框（与工作台资产卡片同款布局） ===== */
 .mat-detail-overlay { z-index: 118; padding: 28px; }
+.custom-variant-overlay { z-index: 130; }
 .mat-detail-dialog {
   width: min(1040px, calc(100vw - 56px));
   max-height: calc(100vh - 56px);
@@ -1588,6 +1834,66 @@ onMounted(load)
   color: var(--text-0); font-size: 12px;
   line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.asset-variant-panel {
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--surface-outline);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.asset-variant-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.asset-variant-head-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.asset-variant-head-text strong { font-size: 12px; color: var(--text-0); }
+.asset-variant-head-text .dim {
+  font-size: 11px; line-height: 1.35;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.asset-variant-upload { flex-shrink: 0; gap: 5px; }
+.asset-variant-gallery { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.asset-variant-card { width: 148px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; }
+.asset-variant-card.is-primary .asset-variant-thumb {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--surface-outline));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.asset-variant-thumb {
+  position: relative; width: 148px; height: 84px; padding: 0;
+  border: 1px solid var(--surface-outline); border-radius: var(--radius);
+  background: var(--surface-muted); overflow: hidden;
+  display: grid; place-items: center; cursor: pointer;
+}
+.asset-variant-thumb:disabled { cursor: default; opacity: 0.7; }
+.asset-variant-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+.asset-variant-badge {
+  position: absolute; left: 6px; bottom: 6px; max-width: calc(100% - 12px);
+  padding: 2px 6px; border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  color: var(--text-0); font-size: 10px; font-weight: 700; line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none;
+}
+.asset-variant-empty { color: var(--text-3); font-size: 12px; }
+.asset-variant-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.asset-variant-action {
+  appearance: none; border: 1px solid var(--surface-outline);
+  border-radius: calc(var(--radius) - 2px); background: var(--surface-muted);
+  color: var(--text-2); font-size: 10px; font-weight: 650; line-height: 1.2;
+  padding: 4px 2px; cursor: pointer; text-align: center;
+}
+.asset-variant-action:hover:not(:disabled) { border-color: var(--accent); color: var(--text-0); }
+.asset-variant-action.is-danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--danger, #c44) 55%, var(--surface-outline));
+  color: var(--danger, #c44);
+}
+.asset-variant-action:disabled { opacity: 0.45; cursor: default; }
+.asset-variant-empty-hint { margin: 0; font-size: 11px; color: var(--text-3); }
+.asset-variant-presets-block { display: flex; flex-direction: column; gap: 6px; }
+.asset-variant-presets-label { font-size: 10px; font-weight: 780; letter-spacing: 0.04em; color: var(--text-3); }
+.asset-variant-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.asset-variant-chip {
+  appearance: none; min-width: 0; display: inline-flex; align-items: center; justify-content: center;
+  gap: 4px; padding: 6px 4px; border: 1px solid var(--surface-outline); border-radius: 999px;
+  background: var(--surface-muted); color: var(--text-1); font-size: 11px; font-weight: 650; cursor: pointer;
+}
+.asset-variant-chip:hover:not(:disabled) { border-color: var(--accent); color: var(--text-0); }
+.asset-variant-chip:disabled { opacity: 0.45; cursor: default; }
+.asset-variant-chip.is-custom { border-style: dashed; }
 
 /* 编辑区域 */
 .mat-detail-edit-grid {

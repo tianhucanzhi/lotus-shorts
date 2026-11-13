@@ -101,6 +101,11 @@ export const characterAPI = {
   generatePrompt: (id: number, episodeId: number, force = false, textModel?: string, textConfigId?: number) => api.post(`/characters/${id}/generate-prompt`, { episode_id: episodeId, force, text_model: textModel || undefined, text_config_id: textConfigId || undefined }),
   generateImage: (id: number, episodeId: number, model?: string, configId?: number, textModel?: string, textConfigId?: number) => api.post(`/characters/${id}/generate-image`, { episode_id: episodeId, model: model || undefined, config_id: configId || undefined, text_model: textModel || undefined, text_config_id: textConfigId || undefined }),
   batchImages: (ids: number[], episodeId: number, model?: string, configId?: number, textModel?: string, textConfigId?: number) => api.post('/characters/batch-generate-images', { character_ids: ids, episode_id: episodeId, model: model || undefined, config_id: configId || undefined, text_model: textModel || undefined, text_config_id: textConfigId || undefined }),
+  listVariants: (id: number) => api.get(`/characters/${id}/variants`),
+  createVariant: (id: number, data: { image_url: string; label?: string; local_path?: string }) => api.post(`/characters/${id}/variants`, data),
+  generateVariant: (id: number, episodeId: number, presetKey: string, model?: string, configId?: number, textModel?: string, textConfigId?: number, extra?: { outfit?: string; label?: string }) => api.post(`/characters/${id}/variants/generate`, { episode_id: episodeId, preset_key: presetKey, outfit: extra?.outfit || undefined, label: extra?.label || undefined, model: model || undefined, config_id: configId || undefined, text_model: textModel || undefined, text_config_id: textConfigId || undefined }),
+  updateVariant: (id: number, variantId: number, data: any) => api.put(`/characters/${id}/variants/${variantId}`, data),
+  deleteVariant: (id: number, variantId: number) => api.del(`/characters/${id}/variants/${variantId}`),
 }
 
 export const sceneAPI = {
@@ -206,6 +211,17 @@ export const aiConfigAPI = {
   /** 查询 Real-API 账户余额 */
   realApiBalance: (d?: { user_id?: number | null; username?: string; password?: string }) =>
     api.post<{ balance_usd: number | null }>('/ai-configs/real-api/balance', d || {}),
+  /** 按 API Key 反查 Real-API 账号/余额并落库 */
+  resolveRealApiByKey: (apiKey: string) => api.post<{
+    username: string
+    password: string
+    api_key: string
+    site_url?: string | null
+    user_id?: number | null
+    activation_code?: string | null
+    user_invite_code?: string | null
+    balance_usd?: number | null
+  }>('/ai-configs/real-api/resolve-by-key', { api_key: apiKey }),
   /** 按激活码签发 Real-API 自动登录 URL；redirect 如 /console/recharge */
   realApiLoginTicket: (activationCode: string, redirect?: string) => api.post<{
     login_url: string

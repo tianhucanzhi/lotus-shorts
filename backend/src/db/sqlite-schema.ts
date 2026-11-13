@@ -158,9 +158,26 @@ export const sqliteSchemaStatements = [
   `CREATE TABLE IF NOT EXISTS storyboard_characters (
     storyboard_id INTEGER NOT NULL,
     character_id INTEGER NOT NULL,
+    variant_id INTEGER,
     PRIMARY KEY (storyboard_id, character_id)
   )`,
   `CREATE INDEX IF NOT EXISTS idx_storyboard_characters_character_id ON storyboard_characters (character_id)`,
+
+  `CREATE TABLE IF NOT EXISTS character_variants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    character_id INTEGER NOT NULL,
+    label TEXT NOT NULL,
+    image_url TEXT,
+    local_path TEXT,
+    final_prompt TEXT,
+    source TEXT NOT NULL,
+    preset_key TEXT,
+    sort_order INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_character_variants_character_id ON character_variants (character_id)`,
 
   `CREATE TABLE IF NOT EXISTS storyboard_props (
     storyboard_id INTEGER NOT NULL,
@@ -450,6 +467,7 @@ export function initSqliteSchema(sqlite: Database.Database) {
   ensureColumn(sqlite, 'dramas', 'user_id', 'INTEGER')
   ensureColumn(sqlite, 'ai_service_configs', 'user_id', 'INTEGER')
   ensureColumn(sqlite, 'style_presets', 'user_id', 'INTEGER')
+  ensureColumn(sqlite, 'storyboard_characters', 'variant_id', 'INTEGER')
   sqlite.exec('CREATE INDEX IF NOT EXISTS idx_dramas_user_id ON dramas(user_id)')
   sqlite.exec('CREATE INDEX IF NOT EXISTS idx_ai_service_configs_user_id ON ai_service_configs(user_id)')
   sqlite.exec('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)')
