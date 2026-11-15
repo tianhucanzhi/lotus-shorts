@@ -6,6 +6,7 @@
         <button type="button" class="model-select-trigger" :class="{ open: isOpen }">
           <img v-if="triggerIcon" :src="triggerIcon" class="model-select-icon" alt="" />
           <span v-else-if="currentOption?.provider" class="model-select-provider">{{ currentOption.provider }}</span>
+          <span v-if="triggerIsLocal" class="model-select-local">{{ t('common.local') }}</span>
           <span class="model-select-value">{{ currentLabel }}</span>
           <ChevronDown :size="11" class="model-select-arrow" :class="{ open: isOpen }" />
         </button>
@@ -14,6 +15,9 @@
       <AppMenuItem v-if="!hideDefault" :selected="modelValue === ''" @click="pick('')">
         <img v-if="defaultIcon" :src="defaultIcon" class="model-select-icon sm" alt="" />
         <span class="model-select-dim">{{ effectiveDefaultLabel }}</span>
+        <template v-if="isLocalProvider(options[0]?.provider)" #trailing>
+          <span class="model-select-local">{{ t('common.local') }}</span>
+        </template>
       </AppMenuItem>
       <AppMenuItem
         v-for="o in options"
@@ -23,8 +27,9 @@
         @click="pick(o.key || o.model)"
       >
         <span class="model-select-option-name">{{ o.model }}</span>
-        <template v-if="modelIconUrl(o.provider, o.model)" #trailing>
-          <img :src="modelIconUrl(o.provider, o.model)" class="model-select-icon sm" alt="" />
+        <template #trailing>
+          <span v-if="isLocalProvider(o.provider)" class="model-select-local">{{ t('common.local') }}</span>
+          <img v-if="modelIconUrl(o.provider, o.model)" :src="modelIconUrl(o.provider, o.model)" class="model-select-icon sm" alt="" />
         </template>
       </AppMenuItem>
     </AppMenu>
@@ -36,6 +41,9 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronDown } from 'lucide-vue-next'
 import { modelIconUrl } from '~/composables/useProviderIcon'
+
+/** 本机推理：Ollama / ComfyUI */
+const LOCAL_PROVIDERS = new Set(['ollama', 'comfyui'])
 
 const props = defineProps({
   label: { type: String, required: true },          // 改写 / 图片 / 视频
@@ -51,6 +59,10 @@ const { t } = useI18n()
 
 const isOpen = ref(false)
 
+function isLocalProvider(provider) {
+  return LOCAL_PROVIDERS.has(String(provider || '').toLowerCase())
+}
+
 const effectiveDefaultLabel = computed(() => props.defaultLabel || t('common.default'))
 const currentOption = computed(() => props.options.find(o => (o.key || o.model) === props.modelValue) || null)
 const currentLabel = computed(() => currentOption.value?.model || effectiveDefaultLabel.value)
@@ -61,6 +73,9 @@ const triggerIcon = computed(() =>
   currentOption.value
     ? modelIconUrl(currentOption.value.provider, currentOption.value.model)
     : defaultIcon.value)
+const triggerIsLocal = computed(() =>
+  isLocalProvider(currentOption.value?.provider || (!props.modelValue ? props.options[0]?.provider : '')),
+)
 
 function pick(model) {
   emit('update:modelValue', model)
@@ -84,7 +99,7 @@ function pick(model) {
   align-items: center;
   gap: 6px;
   height: 26px;
-  max-width: 210px;
+  max-width: 240px;
   padding: 0 8px 0 10px;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
@@ -124,6 +139,17 @@ function pick(model) {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
+}
+.model-select-local {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--text-1) 10%, transparent);
+  color: var(--text-2);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
 }
 .model-select-arrow {
   flex-shrink: 0;

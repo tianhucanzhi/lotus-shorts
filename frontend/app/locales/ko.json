@@ -124,6 +124,7 @@
     "copy": "복사",
     "download": "다운로드",
     "default": "기본",
+    "local": "로컬",
     "more": "더보기",
     "loading": "로딩 중…",
     "listJoin": ", ",
@@ -372,7 +373,44 @@
       "styles": "스타일 프리셋",
       "storage": "저장 위치",
       "about": "업데이트 정보",
-      "agents": "Agent 설정"
+      "agents": "Agent 설정",
+      "comfyui": "로컬 ComfyUI 워크플로"
+    },
+    "comfyui": {
+      "title": "로컬 ComfyUI 워크플로",
+      "desc": "유형별로 로컬 ComfyUI API 워크플로를 관리합니다(재패키징 불필요).",
+      "kindList": "워크플로 유형",
+      "fileTitle": "워크플로 파일",
+      "importFile": "JSON 가져오기",
+      "nodesTitle": "자동 인식 노드",
+      "nodesEmpty": "인식 결과 없음 — 유효한 워크플로를 검증하거나 저장하세요",
+      "jsonLabel": "워크플로 JSON",
+      "jsonPlaceholder": "API 형식 워크플로 JSON을 붙여넣기…",
+      "validate": "검증",
+      "reset": "기본값 복원",
+      "saved": "워크플로가 저장되었습니다",
+      "resetDone": "기본값으로 복원했습니다",
+      "validateOk": "검증 성공",
+      "validateFail": "검증 실패",
+      "importedHint": "파일을 불러왔습니다. 검증 후 저장하세요",
+      "importFail": "파일 읽기 실패",
+      "kinds": {
+        "t2i": {
+          "label": "텍스트→이미지",
+          "desc": "참조 없는 생성(기본 Qwen-Image-2512).",
+          "hint": "workspace/comfyui/t2i.json. 모델명 qwen-image-2512. 참조 이미지 없을 때 자동 사용."
+        },
+        "i2i": {
+          "label": "이미지 편집",
+          "desc": "이미지→이미지 / 의상 변형(기본 Qwen-Image-Edit-2509).",
+          "hint": "workspace/comfyui/i2i.json. 같은 ComfyUI 설정에 qwen-image-edit-2509 추가. 참조 이미지 있을 때 자동 사용."
+        },
+        "i2v": {
+          "label": "참조→비디오",
+          "desc": "스토리보드 참조 생성 비디오(기본 MiniMax H3 ReferenceToVideo). LoadImage + ReferenceToVideo. ImageToVideo도 가능.",
+          "hint": "workspace/comfyui/i2v.json에 저장. 비디오 제공자는 comfyui. 바인딩 이미지는 <Picture N>으로 주입됩니다."
+        }
+      }
     },
     "common": {
       "disabled": "비활성화됨",
@@ -759,6 +797,8 @@
       "variantsHint": "메인 생성 후 프리셋으로 환복 삼면도 생성; 샷마다 선택 가능",
       "variantsHintShort": "프리셋으로 환복 삼면도 생성",
       "variantsOneClick": "원클릭 환복",
+      "variantsModel": "이미지→이미지 모델",
+      "variantsModelFollow": "상단 이미지 따름: {model}",
       "variantsCustom": "직접 입력",
       "variantsCustomTitle": "커스텀 의상",
       "variantsCustomHint": "의상/스타일링을 적어 주세요. 얼굴은 메인과 맞춥니다",

@@ -148,6 +148,7 @@
     "copy": "Copy",
     "download": "Download",
     "default": "Default",
+    "local": "Local",
     "more": "More",
     "loading": "Loading…",
     "optional": "Optional",
@@ -419,7 +420,44 @@
       "styles": "Style Presets",
       "storage": "Storage",
       "about": "About & Updates",
-      "agents": "Agent Config"
+      "agents": "Agent Config",
+      "comfyui": "Local ComfyUI Workflow"
+    },
+    "comfyui": {
+      "title": "Local ComfyUI Workflows",
+      "desc": "Manage local ComfyUI API workflows by type — no rebuild required.",
+      "kindList": "Workflow types",
+      "fileTitle": "Workflow file",
+      "importFile": "Import JSON",
+      "nodesTitle": "Detected nodes",
+      "nodesEmpty": "No nodes detected yet — validate or save a valid workflow",
+      "jsonLabel": "Workflow JSON",
+      "jsonPlaceholder": "Paste API-format workflow JSON…",
+      "validate": "Validate",
+      "reset": "Reset to default",
+      "saved": "Workflow saved",
+      "resetDone": "Restored default",
+      "validateOk": "Validation passed",
+      "validateFail": "Validation failed",
+      "importedHint": "File loaded — validate, then save",
+      "importFail": "Failed to read file",
+      "kinds": {
+        "t2i": {
+          "label": "Text to Image",
+          "desc": "No-reference image gen (default Qwen-Image-2512).",
+          "hint": "Saved to workspace/comfyui/t2i.json. Add model name qwen-image-2512; used when there is no reference image."
+        },
+        "i2i": {
+          "label": "Image Edit",
+          "desc": "Image-to-image / outfit variants (default Qwen-Image-Edit-2509). Needs LoadImage + TextEncodeQwenImageEditPlus.",
+          "hint": "Saved to workspace/comfyui/i2i.json. Add model name qwen-image-edit-2509 on the same ComfyUI image config; used automatically when reference images are present."
+        },
+        "i2v": {
+          "label": "Reference to Video",
+          "desc": "Storyboard reference-to-video (default MiniMax H3 ReferenceToVideo). Needs LoadImage + ReferenceToVideo; ImageToVideo still works.",
+          "hint": "Saved to workspace/comfyui/i2v.json. Set video provider to comfyui; bound character/scene/prop images map to <Picture N>."
+        }
+      }
     },
     "common": {
       "disabled": "Disabled",
@@ -804,8 +842,10 @@
       "variantsTitle": "Outfit Variants",
       "variantsCount": "{n} looks",
       "variantsHint": "After the primary look exists, tap a preset for an outfit turnaround sheet; pick a look per shot",
-      "variantsHintShort": "Tap a preset for outfit turnaround",
+      "variantsHintShort": "Pick an I2I model, then tap a preset",
       "variantsOneClick": "Quick outfits",
+      "variantsModel": "I2I model",
+      "variantsModelFollow": "Follow top image: {model}",
       "variantsCustom": "Custom",
       "variantsCustomTitle": "Custom Outfit",
       "variantsCustomHint": "Describe the outfit/styling; the face stays aligned with the primary look",

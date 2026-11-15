@@ -58,6 +58,13 @@ ${source}`,
   },
 })
 
+/** 将改写后的剧本写入当前集（工具调用与系统兜底共用） */
+export async function persistEpisodeScript(episodeId: number, content: string) {
+  await db.update(schema.episodes)
+    .set({ scriptContent: content, updatedAt: now() })
+    .where(eq(schema.episodes.id, episodeId))
+}
+
 const saveScript = createTool({
   id: 'save_script',
   description: 'Save the rewritten screenplay content to the current episode.',
@@ -67,10 +74,7 @@ const saveScript = createTool({
   execute: async ({ content }, context) => {
     const episodeId = getEpisodeId(context?.requestContext)
     if (!episodeId) return { error: 'Missing episodeId in request context' }
-    await db.update(schema.episodes)
-      .set({ scriptContent: content, updatedAt: now() })
-      .where(eq(schema.episodes.id, episodeId))
-
+    await persistEpisodeScript(episodeId, content)
     return { message: `Script saved`, word_count: content.length }
   },
 })

@@ -347,6 +347,153 @@
           </section>
         </div>
 
+        <!-- ===== 本地 ComfyUI 工作流（文生图 / 参考生视频） ===== -->
+        <div v-else-if="tab === 'comfyui'" class="skills-layout comfyui-layout">
+          <aside class="skills-agent-list">
+            <div class="skills-agent-title">{{ t('settings.comfyui.kindList') }}</div>
+            <button
+              v-for="k in comfyuiKinds"
+              :key="k.kind"
+              type="button"
+              :class="['skills-agent-item', { active: comfyuiKind === k.kind }]"
+              @click="selectComfyuiKind(k.kind)"
+            >
+              <span class="agent-type-badge comfyui-kind-badge">
+                <ImageIcon v-if="k.kind === 't2i'" :size="14" />
+                <Images v-else-if="k.kind === 'i2i'" :size="14" />
+                <Clapperboard v-else :size="14" />
+              </span>
+              <span class="skills-agent-label">{{ t(`settings.comfyui.kinds.${k.kind}.label`) }}</span>
+            </button>
+          </aside>
+
+          <div class="settings-scroll skills-main">
+            <div class="settings-head skills-head">
+              <div class="provider-badge skills-head-badge" data-provider="comfyui">
+                <ImageIcon v-if="comfyuiKind === 't2i'" :size="16" />
+                <Images v-else-if="comfyuiKind === 'i2i'" :size="16" />
+                <Clapperboard v-else :size="16" />
+              </div>
+              <div class="skills-head-copy">
+                <h2 class="settings-title">{{ t(`settings.comfyui.kinds.${comfyuiKind}.label`) }}</h2>
+                <p class="settings-desc comfyui-head-desc">{{ t(`settings.comfyui.kinds.${comfyuiKind}.desc`) }}</p>
+              </div>
+            </div>
+
+            <section class="card comfyui-panel">
+              <div class="comfyui-meta">
+                <div class="comfyui-meta-main">
+                  <div class="comfyui-meta-line">
+                    <span class="comfyui-meta-title">{{ t('settings.comfyui.fileTitle') }}</span>
+                    <span v-if="comfyuiIsDefault" class="tag">{{ t('common.default') }}</span>
+                    <span v-else class="tag tag-success">{{ t('settings.common.custom') }}</span>
+                  </div>
+                  <div class="comfyui-meta-path mono" :title="comfyuiAbsolutePath">{{ comfyuiAbsolutePath || comfyuiRelPath }}</div>
+                </div>
+                <label class="btn btn-ghost btn-sm comfyui-import">
+                  <Upload :size="13" />
+                  <input type="file" accept="application/json,.json" class="sr-only" @change="onComfyuiFilePick" />
+                  {{ t('settings.comfyui.importFile') }}
+                </label>
+              </div>
+
+              <div class="comfyui-section">
+                <div class="comfyui-section-label">{{ t('settings.comfyui.nodesTitle') }}</div>
+                <div v-if="comfyuiNodes && comfyuiKind === 't2i'" class="comfyui-node-grid">
+                  <div class="comfyui-node-card">
+                    <span class="comfyui-node-key">positive</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.positive }}</span>
+                  </div>
+                  <div v-if="comfyuiNodes.negative" class="comfyui-node-card">
+                    <span class="comfyui-node-key">negative</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.negative }}</span>
+                  </div>
+                  <div class="comfyui-node-card">
+                    <span class="comfyui-node-key">sampler</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.sampler }}</span>
+                  </div>
+                  <div class="comfyui-node-card">
+                    <span class="comfyui-node-key">latent</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.latent }}</span>
+                  </div>
+                </div>
+                <div v-else-if="comfyuiNodes && comfyuiKind === 'i2i'" class="comfyui-node-grid">
+                  <div class="comfyui-node-card">
+                    <span class="comfyui-node-key">loadImage</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.loadImage }}</span>
+                  </div>
+                  <div class="comfyui-node-card">
+                    <span class="comfyui-node-key">positive</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.positive }}</span>
+                  </div>
+                  <div v-if="comfyuiNodes.negative" class="comfyui-node-card">
+                    <span class="comfyui-node-key">negative</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.negative }}</span>
+                  </div>
+                  <div class="comfyui-node-card">
+                    <span class="comfyui-node-key">sampler</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.sampler }}</span>
+                  </div>
+                </div>
+                <div v-else-if="comfyuiNodes && comfyuiKind === 'i2v'" class="comfyui-node-grid">
+                  <div v-if="comfyuiNodes.mode" class="comfyui-node-card">
+                    <span class="comfyui-node-key">mode</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.mode }}</span>
+                  </div>
+                  <div class="comfyui-node-card">
+                    <span class="comfyui-node-key">videoNode</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.videoNode || comfyuiNodes.imageToVideo }}</span>
+                  </div>
+                  <div class="comfyui-node-card">
+                    <span class="comfyui-node-key">loadImages</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.loadImages || comfyuiNodes.loadImage }}</span>
+                  </div>
+                  <div v-if="comfyuiNodes.prompt" class="comfyui-node-card">
+                    <span class="comfyui-node-key">prompt</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.prompt }}</span>
+                  </div>
+                  <div v-if="comfyuiNodes.duration" class="comfyui-node-card">
+                    <span class="comfyui-node-key">duration</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.duration }}</span>
+                  </div>
+                  <div v-if="comfyuiNodes.seed" class="comfyui-node-card">
+                    <span class="comfyui-node-key">seed</span>
+                    <span class="comfyui-node-val mono">{{ comfyuiNodes.seed }}</span>
+                  </div>
+                </div>
+                <div v-else-if="comfyuiParseError" class="comfyui-alert">{{ comfyuiParseError }}</div>
+                <div v-else class="comfyui-alert is-muted">{{ t('settings.comfyui.nodesEmpty') }}</div>
+              </div>
+
+              <div class="comfyui-section comfyui-editor">
+                <div class="comfyui-section-label">{{ t('settings.comfyui.jsonLabel') }}</div>
+                <textarea
+                  v-model="comfyuiContent"
+                  class="textarea comfyui-json mono"
+                  rows="16"
+                  spellcheck="false"
+                  :placeholder="t('settings.comfyui.jsonPlaceholder')"
+                />
+              </div>
+
+              <div class="comfyui-foot">
+                <div class="comfyui-foot-left">
+                  <button class="btn btn-ghost btn-sm" :disabled="comfyuiBusy" @click="validateComfyuiWorkflow">{{ t('settings.comfyui.validate') }}</button>
+                  <button class="btn btn-ghost btn-sm" :disabled="comfyuiBusy || comfyuiIsDefault" @click="resetComfyuiWorkflow">{{ t('settings.comfyui.reset') }}</button>
+                  <span v-if="comfyuiSavedFlash" class="tag tag-success">
+                    <Check :size="10" /> {{ t('common.saved') }}
+                  </span>
+                </div>
+                <button class="btn btn-primary btn-sm" :disabled="comfyuiBusy" @click="saveComfyuiWorkflow">
+                  <Loader2 v-if="comfyuiBusy" :size="12" class="animate-spin" />
+                  {{ t('common.save') }}
+                </button>
+              </div>
+              <p class="comfyui-hint">{{ t(`settings.comfyui.kinds.${comfyuiKind}.hint`) }}</p>
+            </section>
+          </div>
+        </div>
+
         <!-- ===== Agent 配置（左侧 tab 切换，Prompt 与 Skills 整合在同一 Agent 下） ===== -->
         <div v-else-if="tab === 'agents'" class="skills-layout">
           <!-- Agent 左侧 tab 列表 -->
@@ -683,12 +830,12 @@
 </template>
 
 <script setup>
-import { Plus, Pencil, Trash2, FileText, ChevronDown, Check, Loader2, Bot, Cpu, Sparkles, Palette, ExternalLink, Star, HardDrive, Database, Languages, SunMoon, X, Eye, EyeOff } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, FileText, ChevronDown, Check, Loader2, Bot, Cpu, Sparkles, Palette, ExternalLink, Star, HardDrive, Database, Languages, SunMoon, X, Eye, EyeOff, Workflow, Upload, Image as ImageIcon, Clapperboard, Images } from 'lucide-vue-next'
 import BaseSelect from '~/components/BaseSelect.vue'
 import { toast } from 'vue-sonner'
 import { toastError } from '~/composables/useToast'
 import { useI18n } from 'vue-i18n'
-import { aiConfigAPI, promptAPI, skillsAPI, storageAPI, stylePresetAPI, settingsAPI } from '~/composables/useApi'
+import { aiConfigAPI, promptAPI, skillsAPI, storageAPI, stylePresetAPI, settingsAPI, comfyuiWorkflowAPI } from '~/composables/useApi'
 import { useDesktopBridge } from '~/composables/useDesktopBridge'
 import { useMigrateState } from '~/composables/useMigrateState'
 import { useTheme } from '~/composables/useTheme'
@@ -707,6 +854,7 @@ const baseTabs = computed(() => {
     { id: 'general', label: t('settings.tabs.general'), icon: Languages },
     { id: 'styles', label: t('settings.tabs.styles'), icon: Palette },
     { id: 'agents', label: t('settings.tabs.agents'), icon: Bot },
+    { id: 'comfyui', label: t('settings.tabs.comfyui'), icon: Workflow },
   ]
   // SaaS 多租户不开放本地存储位置切换
   if (!auth.isSaas.value) {
@@ -826,7 +974,7 @@ const serviceTypes = computed(() => [
   { type: 'image', label: t('common.serviceType.image') },
   { type: 'video', label: t('common.serviceType.video') },
 ])
-const providers = ['gemini', 'openai', 'volcengine', 'minimax', 'aliyun']
+const providers = ['gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui', 'ollama']
 const providerSelectOptions = computed(() => providers.map(p => ({ label: p, value: p })))
 const serviceMeta = computed(() => ({
   text: { label: t('common.serviceType.text'), desc: t('settings.ai.meta.text') },
@@ -880,17 +1028,20 @@ const providerPresets = {
     'real-api': { label: 'Real-API', baseUrl: REAL_API_BASE, models: [...REAL_API_TEXT_MODELS] },
     gemini: { label: 'Gemini 官方', baseUrl: 'https://generativelanguage.googleapis.com', models: ['gemini-3.8-flash', 'gemini-3.1-pro-preview', 'gemini-3-flash-preview'] },
     openai: { label: 'OpenAI 官方', baseUrl: 'https://api.openai.com', models: ['deepseek-v4-pro', 'gpt-5.6-terra'] },
+    ollama: { label: 'Ollama 本地', baseUrl: 'http://127.0.0.1:11434', models: ['qwen3.5:4b'] },
   },
   image: {
     'real-api': { label: 'Real-API', baseUrl: REAL_API_BASE, models: [...REAL_API_IMAGE_MODELS] },
     gemini: { label: 'Gemini 官方', baseUrl: 'https://generativelanguage.googleapis.com', models: ['gemini-3-pro-image', 'gemini-3.1-flash-image'] },
     openai: { label: 'OpenAI 官方', baseUrl: 'https://api.openai.com', models: ['gpt-image-2'] },
+    comfyui: { label: 'ComfyUI 本地', baseUrl: 'http://127.0.0.1:8188', models: ['qwen-image-2512', 'qwen-image-edit-2509'] },
   },
   video: {
     'real-api': { label: 'Real-API', baseUrl: REAL_API_BASE, models: [...REAL_API_VIDEO_MODELS] },
     aliyun: { label: '阿里云百炼 Wan 3.0', baseUrl: 'https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com', models: ['wan3.0-video', 'wan3.0-video-prime'] },
     volcengine: { label: 'Seedance 2.0 官方', baseUrl: 'https://ark.cn-beijing.volces.com', models: ['doubao-seedance-2-0-mini-260615', 'doubao-seedance-2-0-fast-260128', 'doubao-seedance-2-0-260128'] },
     minimax: { label: 'MiniMax H3 官方', baseUrl: 'https://api.minimaxi.com', models: ['MiniMax-H3'] },
+    comfyui: { label: 'ComfyUI 本地', baseUrl: 'http://127.0.0.1:8188', models: ['minimax-h3-comfy'] },
   },
 }
 const lotusQuickConfigs = computed(() => {
@@ -916,6 +1067,10 @@ function applyProviderPreset(type, provider) {
   cfgForm.provider = provider === 'real-api' ? 'openai' : provider
   cfgForm.base_url = preset.baseUrl
   cfgForm.models = [...preset.models]
+  // Ollama 本地一般无需 Key；SDK 仍要求非空时用占位
+  if (provider === 'ollama' && !String(cfgForm.api_key || '').trim()) {
+    cfgForm.api_key = 'ollama'
+  }
   // 配置名持久化进 DB：用 provider 英文 + 服务类型英文标识拼，不随界面语言漂移
   cfgForm.name = `${preset.label}-${type}`
 }
@@ -1447,6 +1602,135 @@ async function saveStyle() {
   } catch (e) { toastError(e) }
 }
 
+// ===== 本地 ComfyUI 工作流 =====
+const comfyuiKind = ref('t2i')
+const comfyuiKinds = ref([
+  { kind: 't2i', runtime_ready: true },
+  { kind: 'i2i', runtime_ready: true },
+  { kind: 'i2v', runtime_ready: true },
+])
+const comfyuiContent = ref('')
+const comfyuiRelPath = ref('comfyui/t2i.json')
+const comfyuiAbsolutePath = ref('')
+const comfyuiIsDefault = ref(true)
+const comfyuiRuntimeReady = ref(true)
+const comfyuiNodes = ref(null)
+const comfyuiParseError = ref('')
+const comfyuiBusy = ref(false)
+const comfyuiSavedFlash = ref(false)
+const comfyuiLoadedKinds = new Set()
+
+async function loadComfyuiKinds() {
+  try {
+    const list = await comfyuiWorkflowAPI.kinds()
+    if (Array.isArray(list) && list.length) {
+      comfyuiKinds.value = list.map((k) => ({
+        kind: k.kind,
+        runtime_ready: !!k.runtime_ready,
+      }))
+    }
+  } catch {
+    /* 前端已有兜底列表 */
+  }
+}
+
+async function loadComfyuiWorkflow(kind = comfyuiKind.value) {
+  try {
+    const data = await comfyuiWorkflowAPI.get(kind)
+    comfyuiKind.value = data.kind || kind
+    comfyuiContent.value = data.content || ''
+    comfyuiRelPath.value = data.path || `comfyui/${kind}.json`
+    comfyuiAbsolutePath.value = data.absolute_path || ''
+    comfyuiIsDefault.value = !!data.is_default
+    comfyuiRuntimeReady.value = !!data.runtime_ready
+    comfyuiNodes.value = data.nodes || null
+    comfyuiParseError.value = data.parse_error || ''
+    comfyuiLoadedKinds.add(kind)
+  } catch (e) {
+    toastError(e)
+  }
+}
+
+function selectComfyuiKind(kind) {
+  if (comfyuiKind.value === kind) return
+  comfyuiKind.value = kind
+  loadComfyuiWorkflow(kind)
+}
+
+watch(tab, async (id) => {
+  if (id !== 'comfyui') return
+  await loadComfyuiKinds()
+  if (!comfyuiLoadedKinds.has(comfyuiKind.value)) await loadComfyuiWorkflow(comfyuiKind.value)
+})
+
+async function saveComfyuiWorkflow() {
+  comfyuiBusy.value = true
+  try {
+    const data = await comfyuiWorkflowAPI.update(comfyuiKind.value, comfyuiContent.value)
+    comfyuiIsDefault.value = false
+    comfyuiNodes.value = data.nodes || null
+    comfyuiParseError.value = ''
+    comfyuiAbsolutePath.value = data.absolute_path || comfyuiAbsolutePath.value
+    comfyuiSavedFlash.value = true
+    setTimeout(() => { comfyuiSavedFlash.value = false }, 2000)
+    toast.success(t('settings.comfyui.saved'))
+  } catch (e) {
+    toastError(e)
+  } finally {
+    comfyuiBusy.value = false
+  }
+}
+
+async function resetComfyuiWorkflow() {
+  comfyuiBusy.value = true
+  try {
+    const data = await comfyuiWorkflowAPI.reset(comfyuiKind.value)
+    comfyuiContent.value = data.content || ''
+    comfyuiIsDefault.value = true
+    comfyuiNodes.value = data.nodes || null
+    comfyuiParseError.value = data.parse_error || ''
+    comfyuiAbsolutePath.value = data.absolute_path || comfyuiAbsolutePath.value
+    toast.success(t('settings.comfyui.resetDone'))
+  } catch (e) {
+    toastError(e)
+  } finally {
+    comfyuiBusy.value = false
+  }
+}
+
+async function validateComfyuiWorkflow() {
+  comfyuiBusy.value = true
+  try {
+    const data = await comfyuiWorkflowAPI.validate(comfyuiKind.value, comfyuiContent.value)
+    if (data.ok) {
+      comfyuiNodes.value = data.nodes || null
+      comfyuiParseError.value = ''
+      toast.success(t('settings.comfyui.validateOk'))
+    } else {
+      comfyuiNodes.value = null
+      comfyuiParseError.value = data.error || t('settings.comfyui.validateFail')
+      toast.error(comfyuiParseError.value)
+    }
+  } catch (e) {
+    toastError(e)
+  } finally {
+    comfyuiBusy.value = false
+  }
+}
+
+function onComfyuiFilePick(ev) {
+  const file = ev.target?.files?.[0]
+  ev.target.value = ''
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    comfyuiContent.value = String(reader.result || '')
+    toast.info(t('settings.comfyui.importedHint'))
+  }
+  reader.onerror = () => toast.error(t('settings.comfyui.importFail'))
+  reader.readAsText(file)
+}
+
 onMounted(() => { loadCfgs(); loadAgents(); loadAllSkills(); loadAgentPrompt(selectedAgent.value); loadStylePresets() })
 
 // ===== 应用内引导（设置页）：快捷配置 + 手动模板两步 =====
@@ -1867,6 +2151,12 @@ onBeforeUnmount(stopUsagePoll)
   border-bottom: 1px solid var(--border);
 }
 .svc-group-heading { min-width: 0; }
+.svc-group-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 .svc-group-title { font-size: 14px; font-weight: 700; color: var(--text-0); }
 .svc-group-sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
 .config-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; }
@@ -1881,6 +2171,8 @@ onBeforeUnmount(stopUsagePoll)
 .provider-badge[data-provider="openai"] { background: #10a37f; }
 .provider-badge[data-provider="gemini"] { background: #4285f4; }
 .provider-badge[data-provider="volcengine"] { background: #ff5c39; }
+.provider-badge[data-provider="comfyui"] { background: #7c5cff; }
+.provider-badge[data-provider="ollama"] { background: #1a1a1a; }
 /* 有厂商图标时用中性底，彩色图标直接展示 */
 .provider-badge.has-icon { background: var(--bg-2); }
 .provider-badge-icon { width: 20px; height: 20px; object-fit: contain; }
@@ -1962,6 +2254,197 @@ onBeforeUnmount(stopUsagePoll)
 
 /* 编辑器尽量占满剩余视口高度，仍可手动拖拽 */
 .agent-prompt-input { min-height: max(320px, calc(100vh - 340px)); resize: vertical; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.comfyui-layout .skills-head-copy { min-width: 0; }
+.comfyui-head-desc {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.5;
+}
+.comfyui-kind-badge {
+  background: color-mix(in srgb, #7c5cff 18%, var(--bg-2));
+  color: #7c5cff;
+}
+.comfyui-soon {
+  font-size: 9px !important;
+  letter-spacing: 0.02em;
+}
+.comfyui-reserve {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  border: 1px dashed color-mix(in srgb, #7c5cff 40%, var(--border));
+  background: color-mix(in srgb, #7c5cff 6%, var(--bg-1));
+}
+.comfyui-reserve-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, #7c5cff 16%, var(--bg-2));
+  color: #7c5cff;
+}
+.comfyui-reserve-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-0);
+}
+.comfyui-reserve-desc,
+.comfyui-reserve-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+.comfyui-reserve-note { color: var(--text-3); }
+.comfyui-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.comfyui-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.comfyui-meta-main { flex: 1; min-width: 0; }
+.comfyui-meta-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.comfyui-meta-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-0);
+}
+.comfyui-meta-path {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.comfyui-import {
+  flex-shrink: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.comfyui-section {
+  padding: 14px 20px 0;
+}
+.comfyui-section-label {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--text-2);
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+.comfyui-node-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.comfyui-node-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-2);
+  min-width: 0;
+}
+.comfyui-node-key {
+  font-size: 10.5px;
+  font-weight: 650;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.comfyui-node-val {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text-0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.comfyui-alert {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--error) 35%, var(--border));
+  background: var(--error-bg, color-mix(in srgb, var(--error) 10%, transparent));
+  color: var(--error);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.comfyui-alert.is-muted {
+  border-color: var(--border);
+  background: var(--bg-2);
+  color: var(--text-3);
+}
+.comfyui-editor { padding-bottom: 0; }
+.comfyui-json {
+  width: 100%;
+  min-height: max(280px, calc(100vh - 460px));
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  border-radius: 10px;
+}
+.comfyui-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  margin-top: 14px;
+  background: var(--bg-1);
+}
+.comfyui-foot-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.comfyui-hint {
+  margin: 0;
+  padding: 0 20px 16px;
+  font-size: 11.5px;
+  color: var(--text-3);
+  line-height: 1.55;
+}
+@media (max-width: 900px) {
+  .comfyui-node-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .comfyui-meta { flex-wrap: wrap; }
+  .comfyui-import { margin-left: auto; }
+}
 .skill-content-input { min-height: max(300px, calc(100vh - 420px)); resize: vertical; }
 
 /* Skills 布局 */

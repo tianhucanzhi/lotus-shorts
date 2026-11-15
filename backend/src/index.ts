@@ -20,6 +20,7 @@ import prompts from './routes/prompts.js'
 import agent from './routes/agent.js'
 import merge from './routes/merge.js'
 import skills from './routes/skills.js'
+import comfyuiWorkflow from './routes/comfyuiWorkflow.js'
 import props from './routes/props.js'
 import settings from './routes/settings.js'
 import storage from './routes/storage.js'
@@ -73,6 +74,7 @@ api.route('/prompts', prompts)
 api.route('/agent', agent)
 api.route('/merge', merge)
 api.route('/skills', skills)
+api.route('/comfyui-workflow', comfyuiWorkflow)
 api.route('/props', props)
 api.route('/storage', storage)
 api.route('/settings', settings)

@@ -1303,6 +1303,15 @@
                   <p v-if="!getCharacterVariants(assetDetail.item).length" class="asset-variant-empty-hint">{{ t('episode.asset.variantsEmpty') }}</p>
 
                   <div class="asset-variant-presets-block">
+                    <div v-if="imageModelOptions.length" class="asset-variant-model">
+                      <ModelSelect
+                        v-model="variantImageModel"
+                        :label="t('episode.asset.variantsModel')"
+                        :options="imageModelOptions"
+                        :default-label="t('episode.asset.variantsModelFollow', { model: effectiveImageModelLabel })"
+                        :show-config="imageModelMultiCfg"
+                      />
+                    </div>
                     <span class="asset-variant-presets-label">{{ t('episode.asset.variantsOneClick') }}</span>
                     <div class="asset-variant-presets">
                       <button
@@ -1867,7 +1876,13 @@ const imageConfigs = ref([])
 const videoConfigs = ref([])
 const textConfigs = ref([])
 // 生成时可选模型：空串 = 跟随配置默认（models[0]）；选择持久化到 localStorage，刷新页面后保留
-const MODEL_STORE_KEYS = { chat: 'lotus:model:chat', image: 'lotus:model:image', video: 'lotus:model:video' }
+const MODEL_STORE_KEYS = {
+  chat: 'lotus:model:chat',
+  image: 'lotus:model:image',
+  video: 'lotus:model:video',
+  // 造型变体走参考图生图，可与顶栏文生图模型分开（如顶栏 ComfyUI 不支持 i2i）
+  variantImage: 'lotus:model:variant-image',
+}
 function readStoredModel(key, legacyKey = '') {
   try { return localStorage.getItem(key) || (legacyKey && localStorage.getItem(legacyKey)) || '' } catch { return '' }
 }
@@ -1875,6 +1890,7 @@ function readStoredModel(key, legacyKey = '') {
 const chatModel = ref(readStoredModel(MODEL_STORE_KEYS.chat, 'lotus:model:rewrite'))
 const imageModel = ref(readStoredModel(MODEL_STORE_KEYS.image))
 const videoModel = ref(readStoredModel(MODEL_STORE_KEYS.video))
+const variantImageModel = ref(readStoredModel(MODEL_STORE_KEYS.variantImage))
 function persistModel(modelRef, key) {
   watch(modelRef, v => {
     try { v ? localStorage.setItem(key, v) : localStorage.removeItem(key) } catch {}
@@ -1883,6 +1899,7 @@ function persistModel(modelRef, key) {
 persistModel(chatModel, MODEL_STORE_KEYS.chat)
 persistModel(imageModel, MODEL_STORE_KEYS.image)
 persistModel(videoModel, MODEL_STORE_KEYS.video)
+persistModel(variantImageModel, MODEL_STORE_KEYS.variantImage)
 // 左侧菜单栏收起/展开：收起为窄图标栏给内容区让位，持久化到 localStorage
 const SIDEBAR_COLLAPSED_KEY = 'lotus:sidebar-collapsed'
 const sidebarCollapsed = ref((() => {
@@ -2010,12 +2027,13 @@ async function generateCharacterVariant(charId, presetKey, extra = null) {
   const presetToken = `${charId}:${presetKey}`
   if (!pendingVariantPresetKeys.value.includes(presetToken)) pendingVariantPresetKeys.value.push(presetToken)
   try {
+    const variantModelKey = variantImageModel.value || imageModel.value
     const res = await characterAPI.generateVariant(
       charId,
       epId.value,
       presetKey,
-      bareModelName(imageModel.value) || undefined,
-      ownerConfigId(imageModelOptions.value, imageModel.value),
+      bareModelName(variantModelKey) || undefined,
+      ownerConfigId(imageModelOptions.value, variantModelKey),
       chatModelOverride(),
       chatConfigId(),
       extra || undefined,
@@ -2968,9 +2986,16 @@ function pruneStaleModel(modelRef, optionsRef) {
 pruneStaleModel(chatModel, textModelOptions)
 pruneStaleModel(imageModel, imageModelOptions)
 pruneStaleModel(videoModel, videoModelOptions)
+pruneStaleModel(variantImageModel, imageModelOptions)
 const textModelMultiCfg = computed(() => hasMultiConfigs(textModelOptions.value))
 const imageModelMultiCfg = computed(() => hasMultiConfigs(imageModelOptions.value))
 const videoModelMultiCfg = computed(() => hasMultiConfigs(videoModelOptions.value))
+/** 顶栏图片模型生效名（造型变体「跟随」默认项展示） */
+const effectiveImageModelLabel = computed(() => {
+  const explicit = bareModelName(imageModel.value)
+  if (explicit) return explicit
+  return imageModelOptions.value[0]?.model || t('common.default')
+})
 
 // Production step helpers
 // ========== 任务列表面板 ==========
@@ -6735,6 +6760,18 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+.asset-variant-model {
+  width: 100%;
+}
+.asset-variant-model :deep(.model-select) {
+  width: 100%;
+  min-width: 0;
+}
+.asset-variant-model :deep(.model-select-trigger) {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
 }
 .asset-variant-presets-label {
   font-size: 10px;

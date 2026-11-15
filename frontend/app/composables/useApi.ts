@@ -251,6 +251,39 @@ export const skillsAPI = {
   del: (id: string) => api.del(`/skills/${id}`),
 }
 
+export type ComfyuiWorkflowKind = 't2i' | 'i2i' | 'i2v'
+
+export const comfyuiWorkflowAPI = {
+  kinds: () => api.get<Array<{
+    kind: ComfyuiWorkflowKind
+    label: string
+    path: string
+    absolute_path: string
+    is_default: boolean
+    has_content: boolean
+    runtime_ready: boolean
+  }>>('/comfyui-workflow/kinds'),
+  get: (kind: ComfyuiWorkflowKind = 't2i') => api.get<{
+    kind: ComfyuiWorkflowKind
+    label: string
+    path: string
+    absolute_path: string
+    is_default: boolean
+    runtime_ready: boolean
+    content: string
+    nodes: Record<string, string> | null
+    parse_error: string | null
+  }>(`/comfyui-workflow?kind=${kind}`),
+  update: (kind: ComfyuiWorkflowKind, content: string) => api.put('/comfyui-workflow', { kind, content }),
+  reset: (kind: ComfyuiWorkflowKind) => api.post('/comfyui-workflow/reset', { kind }),
+  validate: (kind: ComfyuiWorkflowKind, content: string) => api.post<{
+    ok: boolean
+    kind?: ComfyuiWorkflowKind
+    nodes?: Record<string, string> | null
+    error?: string
+  }>('/comfyui-workflow/validate', { kind, content }),
+}
+
 export const stylePresetAPI = {
   list: (all = false) => api.get(`/style-presets${all ? '?all=1' : ''}`),
   create: (d: any) => api.post('/style-presets', d),

@@ -246,42 +246,61 @@ async function processTask(id: number, config: AIConfig) {
       const resolvedReferenceImages = usePublicImageRefs
         ? await resolveGatewayPublicUrls(params.referenceImages, 'file', config.baseUrl)
         : await normalizeReferenceImages(params.referenceImages)
-      ;({ url, method, headers, body } = adapter.buildGenerateRequest(config, {
+      ;({ url, method, headers, body } = await Promise.resolve(adapter.buildGenerateRequest(config, {
         id: record.id,
         model: record.model,
         prompt: record.prompt,
         size: params.size,
         frameType: params.frameType,
         referenceImages: resolvedReferenceImages.length ? JSON.stringify(resolvedReferenceImages) : null,
-      }))
+      })))
     } else {
       const adapter = getVideoAdapter(config.provider)
       // OpenAI 兼容视频（Real-API）参考素材须公网 URL；无 PUBLIC_BASE_URL 时上传到网关 OSS
-      const usePublicVideoImageRefs = config.provider.toLowerCase() === 'openai'
+      // ComfyUI 本地直传文件，保留本地/相对路径即可
+      const provider = config.provider.toLowerCase()
+      const usePublicVideoImageRefs = provider === 'openai'
+      const keepLocalRefs = provider === 'comfyui'
       const gateway = usePublicVideoImageRefs ? config.baseUrl : null
       const resolvedImageUrl = usePublicVideoImageRefs
         ? await resolveGatewayPublicUrl(params.imageUrl, 'file', gateway)
-        : await normalizeVideoReferenceUrl(params.imageUrl)
+        : keepLocalRefs
+          ? (params.imageUrl || null)
+          : await normalizeVideoReferenceUrl(params.imageUrl)
       const resolvedFirstFrameUrl = usePublicVideoImageRefs
         ? await resolveGatewayPublicUrl(params.firstFrameUrl, 'file', gateway)
-        : await normalizeVideoReferenceUrl(params.firstFrameUrl)
+        : keepLocalRefs
+          ? (params.firstFrameUrl || null)
+          : await normalizeVideoReferenceUrl(params.firstFrameUrl)
       const resolvedLastFrameUrl = usePublicVideoImageRefs
         ? await resolveGatewayPublicUrl(params.lastFrameUrl, 'file', gateway)
-        : await normalizeVideoReferenceUrl(params.lastFrameUrl)
+        : keepLocalRefs
+          ? (params.lastFrameUrl || null)
+          : await normalizeVideoReferenceUrl(params.lastFrameUrl)
       const resolvedReferenceImageUrls = usePublicVideoImageRefs
         ? await resolveGatewayPublicUrls(params.referenceImageUrls, 'file', gateway)
-        : await normalizeVideoReferenceUrls(params.referenceImageUrls)
+        : keepLocalRefs
+          ? (Array.isArray(params.referenceImageUrls)
+            ? params.referenceImageUrls
+            : (params.referenceImageUrls ? (() => { try { return JSON.parse(params.referenceImageUrls) } catch { return [] } })() : []))
+          : await normalizeVideoReferenceUrls(params.referenceImageUrls)
       // 参考视频/音频：有网关则优先 OSS 中转，否则仍要求 PUBLIC_BASE_URL
-      const resolvedReferenceVideoUrls = await resolveGatewayPublicUrls(
-        params.referenceVideoUrls, 'video', gateway || undefined,
-      )
-      const resolvedReferenceAudioUrls = await resolveGatewayPublicUrls(
-        params.referenceAudioUrls, 'audio', gateway || undefined,
-      )
-      const resolvedReferenceFileUrl = await resolveGatewayPublicUrl(
-        params.referenceFileUrl, 'file', gateway || undefined,
-      )
-      ;({ url, method, headers, body } = adapter.buildGenerateRequest(config, {
+      const resolvedReferenceVideoUrls = keepLocalRefs
+        ? []
+        : await resolveGatewayPublicUrls(
+          params.referenceVideoUrls, 'video', gateway || undefined,
+        )
+      const resolvedReferenceAudioUrls = keepLocalRefs
+        ? []
+        : await resolveGatewayPublicUrls(
+          params.referenceAudioUrls, 'audio', gateway || undefined,
+        )
+      const resolvedReferenceFileUrl = keepLocalRefs
+        ? (params.referenceFileUrl || null)
+        : await resolveGatewayPublicUrl(
+          params.referenceFileUrl, 'file', gateway || undefined,
+        )
+      ;({ url, method, headers, body } = await Promise.resolve(adapter.buildGenerateRequest(config, {
         id: record.id,
         model: record.model,
         prompt: record.prompt,
@@ -289,7 +308,9 @@ async function processTask(id: number, config: AIConfig) {
         imageUrl: resolvedImageUrl,
         firstFrameUrl: resolvedFirstFrameUrl,
         lastFrameUrl: resolvedLastFrameUrl,
-        referenceImageUrls: resolvedReferenceImageUrls.length ? JSON.stringify(resolvedReferenceImageUrls) : null,
+        referenceImageUrls: Array.isArray(resolvedReferenceImageUrls) && resolvedReferenceImageUrls.length
+          ? JSON.stringify(resolvedReferenceImageUrls)
+          : null,
         referenceVideoUrls: resolvedReferenceVideoUrls.length ? JSON.stringify(resolvedReferenceVideoUrls) : null,
         referenceAudioUrls: resolvedReferenceAudioUrls.length ? JSON.stringify(resolvedReferenceAudioUrls) : null,
         referenceFileUrl: resolvedReferenceFileUrl,
@@ -301,7 +322,7 @@ async function processTask(id: number, config: AIConfig) {
         seed: params.seed,
         promptExtend: params.promptExtend,
         watermark: params.watermark,
-      }))
+      })))
     }
 
     logTaskProgress(label, 'request', {

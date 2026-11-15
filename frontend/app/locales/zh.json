@@ -204,6 +204,7 @@
     "copy": "复制",
     "download": "下载",
     "default": "默认",
+    "local": "本地",
     "more": "更多",
     "loading": "加载中…",
     "optional": "选填",
@@ -475,7 +476,44 @@
       "styles": "风格预设",
       "storage": "存储位置",
       "about": "关于更新",
-      "agents": "Agent 配置"
+      "agents": "Agent 配置",
+      "comfyui": "本地ComfyUI工作流"
+    },
+    "comfyui": {
+      "title": "本地 ComfyUI 工作流",
+      "desc": "按类型管理本地 ComfyUI API 工作流，无需重打包。",
+      "kindList": "工作流类型",
+      "fileTitle": "工作流文件",
+      "importFile": "导入 JSON",
+      "nodesTitle": "自动识别节点",
+      "nodesEmpty": "暂无识别结果，请先校验或保存有效工作流",
+      "jsonLabel": "工作流 JSON",
+      "jsonPlaceholder": "粘贴 API 格式工作流 JSON…",
+      "validate": "校验",
+      "reset": "恢复默认",
+      "saved": "工作流已保存",
+      "resetDone": "已恢复默认",
+      "validateOk": "校验通过",
+      "validateFail": "校验失败",
+      "importedHint": "已载入文件内容，请先校验再保存",
+      "importFail": "读取文件失败",
+      "kinds": {
+        "t2i": {
+          "label": "文生图",
+          "desc": "用于角色 / 场景 / 道具等无参考图的生图（默认 Qwen-Image-2512）。",
+          "hint": "保存至 workspace/comfyui/t2i.json。图片配置模型可写 qwen-image-2512；无参考图时自动走此工作流。"
+        },
+        "i2i": {
+          "label": "图片编辑",
+          "desc": "图生图 / 造型变体（默认 Qwen-Image-Edit-2509）。需含 LoadImage + TextEncodeQwenImageEditPlus。",
+          "hint": "保存至 workspace/comfyui/i2i.json。同一 ComfyUI 图片配置里再加模型名 qwen-image-edit-2509；有参考图（如造型变体）时自动走此工作流。"
+        },
+        "i2v": {
+          "label": "参考生视频",
+          "desc": "用于分镜参考生视频（默认 MiniMax H3 ReferenceToVideo）。需含 LoadImage + ReferenceToVideo；仍兼容 ImageToVideo。",
+          "hint": "保存至 workspace/comfyui/i2v.json。视频服务商选 comfyui；分镜绑定角色/场景/道具图会按序注入为 <Picture N>。"
+        }
+      }
     },
     "common": {
       "disabled": "已停用",
@@ -860,8 +898,10 @@
       "variantsTitle": "造型变体",
       "variantsCount": "{n} 套",
       "variantsHint": "先有主形象后，点预设一键生成换装三视图；分镜里可点选造型",
-      "variantsHintShort": "点预设生成换装三视图",
+      "variantsHintShort": "选支持图生图的模型，点预设换装",
       "variantsOneClick": "一键换装",
+      "variantsModel": "图生图模型",
+      "variantsModelFollow": "跟随顶栏图片：{model}",
       "variantsCustom": "自定义",
       "variantsCustomTitle": "自定义造型",
       "variantsCustomHint": "描述这身服装/妆造即可，人脸会尽量保持与主形象一致",

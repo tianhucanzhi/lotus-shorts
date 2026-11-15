@@ -124,6 +124,7 @@
     "copy": "コピー",
     "download": "ダウンロード",
     "default": "デフォルト",
+    "local": "ローカル",
     "more": "その他",
     "loading": "読み込み中…",
     "listJoin": "、",
@@ -372,7 +373,44 @@
       "styles": "スタイルプリセット",
       "storage": "保存場所",
       "about": "更新について",
-      "agents": "Agent 設定"
+      "agents": "Agent 設定",
+      "comfyui": "ローカル ComfyUI ワークフロー"
+    },
+    "comfyui": {
+      "title": "ローカル ComfyUI ワークフロー",
+      "desc": "種類別にローカル ComfyUI API ワークフローを管理（再パッケージ不要）。",
+      "kindList": "ワークフロー種類",
+      "fileTitle": "ワークフローファイル",
+      "importFile": "JSON を取り込み",
+      "nodesTitle": "自動認識ノード",
+      "nodesEmpty": "認識結果なし。有効なワークフローを検証または保存してください",
+      "jsonLabel": "ワークフロー JSON",
+      "jsonPlaceholder": "API 形式のワークフロー JSON を貼り付け…",
+      "validate": "検証",
+      "reset": "デフォルトに戻す",
+      "saved": "ワークフローを保存しました",
+      "resetDone": "デフォルトに戻しました",
+      "validateOk": "検証に成功しました",
+      "validateFail": "検証に失敗しました",
+      "importedHint": "ファイルを読み込みました。検証してから保存してください",
+      "importFail": "ファイルの読み込みに失敗しました",
+      "kinds": {
+        "t2i": {
+          "label": "テキスト→画像",
+          "desc": "参照なし生成（既定 Qwen-Image-2512）。",
+          "hint": "workspace/comfyui/t2i.json。モデル名 qwen-image-2512。参照画像がないとき自動使用。"
+        },
+        "i2i": {
+          "label": "画像編集",
+          "desc": "画像→画像 / 衣装バリエーション（既定 Qwen-Image-Edit-2509）。",
+          "hint": "workspace/comfyui/i2i.json。同じ ComfyUI 設定に qwen-image-edit-2509 を追加。参照画像があるとき自動使用。"
+        },
+        "i2v": {
+          "label": "参照→動画",
+          "desc": "絵コンテの参照生動画（既定 MiniMax H3 ReferenceToVideo）。LoadImage + ReferenceToVideo。ImageToVideo も可。",
+          "hint": "workspace/comfyui/i2v.json に保存。動画プロバイダは comfyui。紐付け画像は <Picture N> として注入されます。"
+        }
+      }
     },
     "common": {
       "disabled": "無効",
@@ -759,6 +797,8 @@
       "variantsHint": "メイン作成後、プリセットで着替え三面図を生成。分鏡ごとに選択可能",
       "variantsHintShort": "プリセットで着替え三面図を生成",
       "variantsOneClick": "ワンクリック着替え",
+      "variantsModel": "画像→画像モデル",
+      "variantsModelFollow": "上部の画像に従う：{model}",
       "variantsCustom": "カスタム",
       "variantsCustomTitle": "カスタム衣装",
       "variantsCustomHint": "服装・スタイリングを書いてください。顔はメインに合わせます",

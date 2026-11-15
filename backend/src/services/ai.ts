@@ -40,9 +40,9 @@ export function parseConfigTemperature(settingsRaw: string | null | undefined): 
 }
 
 export const officialProviders: Record<ServiceType, readonly string[]> = {
-  text: ['openai', 'gemini', 'volcengine'],
-  image: ['openai', 'gemini', 'volcengine'],
-  video: ['openai', 'volcengine', 'minimax', 'aliyun'],
+  text: ['openai', 'gemini', 'volcengine', 'ollama'],
+  image: ['openai', 'gemini', 'volcengine', 'comfyui'],
+  video: ['openai', 'volcengine', 'minimax', 'aliyun', 'comfyui'],
 }
 
 export function isOfficialProvider(serviceType?: string | null, provider?: string | null): boolean {
@@ -53,7 +53,8 @@ export function isOfficialProvider(serviceType?: string | null, provider?: strin
 export function getTextProviderBaseUrl(config: AIConfig) {
   const provider = config.provider.toLowerCase()
 
-  if (provider === 'openai') {
+  if (provider === 'openai' || provider === 'ollama') {
+    // Ollama 提供 OpenAI 兼容 /v1（默认 http://127.0.0.1:11434）
     return joinProviderUrl(config.baseUrl, '/v1', '')
   }
 
