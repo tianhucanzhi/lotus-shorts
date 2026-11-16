@@ -23,15 +23,19 @@ function normalizeBase(baseUrl: string) {
   return String(baseUrl || '').replace(/\/+$/, '')
 }
 
-/** Comfy ResolutionSelector 常见标签（R2V 模板用 Widescreen） */
+/**
+ * Comfy ResolutionSelector 合法枚举（与 MiniMax H3 节点一致）
+ * 报错示例：'9:16 (Portrait)' not in ['9:16 (Portrait Widescreen)', ...]
+ */
 const ASPECT_MAP: Record<string, string> = {
   '1:1': '1:1 (Square)',
   '16:9': '16:9 (Widescreen)',
-  '9:16': '9:16 (Portrait)',
-  '4:3': '4:3 (Landscape)',
-  '3:4': '3:4 (Portrait)',
-  '3:2': '3:2 (Landscape)',
-  '2:3': '2:3 (Portrait)',
+  '9:16': '9:16 (Portrait Widescreen)',
+  '4:3': '4:3 (Standard)',
+  '3:4': '3:4 (Portrait Standard)',
+  '3:2': '3:2 (Photo)',
+  '2:3': '2:3 (Portrait Photo)',
+  '21:9': '21:9 (Ultrawide)',
 }
 
 const MAX_REF_IMAGES = 9
