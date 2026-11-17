@@ -12,12 +12,10 @@
 
 [機能](#-機能) • [クイックスタート](#-クイックスタート) • [チュートリアル](#-チュートリアル画像付き) • [デプロイ](#-デプロイ)
 
-<h2>🔑 <a href="https://real-api.yunfm.cn">Real-API Key を取得 👉 今すぐ見る</a></h2>
+<h2>🪷 <a href="https://shorts.yunfm.cn">Lotus · 蓮花短劇 オンライン試用 👉 shorts.yunfm.cn</a></h2>
 
-**テキスト・画像・動画のすべての AI 機能を、1 つの Key で有効化**
+**オンラインで Lotus Shorts の制作フローを試用**
 
-デプロイ後、「設定 → 蓮花クイック設定」に Key を貼るだけで、3 つの推奨設定をワンクリックで書き込み
-<h3>🌐 <a href="https://real-api.yunfm.cn">Real-API 公式サイト</a></h3>
 
 </div>
 

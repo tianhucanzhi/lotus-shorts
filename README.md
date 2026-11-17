@@ -12,21 +12,14 @@
 **中英双语 / Bilingual** | [简体中文](README.zh-CN.md) | [English](README.en.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
 <p>
-  <a href="https://real-api.yunfm.cn">
-    <img src="docs/images/api-key-cta.svg" width="380" alt="立即获取 Real-API Key / Get your Real-API key" />
+  <a href="https://shorts.yunfm.cn">
+    <img src="docs/images/api-key-cta.svg" width="380" alt="Lotus · 莲花短剧线上试用 / shorts.yunfm.cn" />
   </a>
 </p>
 
-**文本 · 图片 · 视频全部 AI 能力，一个 Key 即可开通**<br>
-**Text, image, and video AI capabilities — one key unlocks everything**
+**莲花短剧线上试用：shorts.yunfm.cn**<br>
+**Try Lotus Shorts online: shorts.yunfm.cn**
 
-部署完成后，在「设置 → 莲花快捷配置」粘贴 Key，一键写入三条推荐配置。<br>
-After deploying, paste the key in "Settings → Lotus Quick Setup" to write three recommended configs in one click.
-<p>
-  <a href="https://real-api.yunfm.cn">
-    <img src="docs/images/website-cta.svg" width="320" alt="访问 Real-API 官网 / Visit the Real-API official website" />
-  </a>
-</p>
 
 </div>
 

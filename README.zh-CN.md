@@ -12,12 +12,10 @@
 
 [功能特性](#-功能特性) • [快速开始](#-快速开始) • [图文教程](#-图文教程) • [部署指南](#-部署指南)
 
-<h2>🔑 <a href="https://real-api.yunfm.cn">获取 Real-API Key 👉 立即查看</a></h2>
+<h2>🪷 <a href="https://shorts.yunfm.cn">Lotus · 莲花短剧线上试用 👉 shorts.yunfm.cn</a></h2>
 
-**文本 · 图片 · 视频全部 AI 能力，一个 Key 即可开通**
+**在线试用莲花短剧全流程制作**
 
-部署完成后在「设置 → 莲花快捷配置」粘贴 Key，一键写入三条推荐配置，开箱即用
-<h3>🌐 <a href="https://real-api.yunfm.cn">Real-API 官网</a></h3>
 
 </div>
 

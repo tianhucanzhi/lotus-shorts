@@ -12,12 +12,10 @@
 
 [Features](#-features) • [Quick Start](#-quick-start) • [Walkthrough](#-visual-walkthrough) • [Deployment](#-deployment)
 
-<h2>🔑 <a href="https://real-api.yunfm.cn">Get a Real-API Key 👉 Get started</a></h2>
+<h2>🪷 <a href="https://shorts.yunfm.cn">Lotus Shorts online trial 👉 shorts.yunfm.cn</a></h2>
 
-**Text, image, and video AI capabilities — one key unlocks everything**
+**Try the full Lotus Shorts production flow online**
 
-After deploying, paste the key in "Settings → Lotus Quick Setup" to write three recommended configs in one click
-<h3>🌐 <a href="https://real-api.yunfm.cn">Real-API Official Website</a></h3>
 
 </div>
 

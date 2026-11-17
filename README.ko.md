@@ -12,12 +12,10 @@
 
 [기능](#-기능) • [빠른 시작](#-빠른-시작) • [튜토리얼](#-그림-튜토리얼) • [배포](#-배포)
 
-<h2>🔑 <a href="https://real-api.yunfm.cn">Real-API Key 받기 👉 바로 보기</a></h2>
+<h2>🪷 <a href="https://shorts.yunfm.cn">Lotus · 연화단극 온라인 체험 👉 shorts.yunfm.cn</a></h2>
 
-**텍스트 · 이미지 · 영상 모든 AI 기능, Key 하나로 활성화**
+**온라인에서 Lotus Shorts 제작 플로우를 체험하세요**
 
-배포 후 「설정 → 莲花快捷 설정」에 Key 를 붙여넣으면 추천 설정 3개가 한 번에 입력됩니다
-<h3>🌐 <a href="https://real-api.yunfm.cn">Real-API 공식 사이트</a></h3>
 
 </div>
 
