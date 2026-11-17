@@ -12,9 +12,9 @@
 
 [機能](#-機能) • [クイックスタート](#-クイックスタート) • [チュートリアル](#-チュートリアル画像付き) • [デプロイ](#-デプロイ)
 
-<h2>🪷 <a href="https://shorts.yunfm.cn">Lotus · 蓮花短劇 オンライン試用 👉 shorts.yunfm.cn</a></h2>
+<h2>🪷 <a href="https://shorts.yunfm.cn">Lotus · 蓮花短劇 無料試用 👉 shorts.yunfm.cn</a></h2>
 
-**オンラインで Lotus Shorts の制作フローを試用**
+**オンラインで Lotus Shorts の制作フローを無料試用**
 
 <h3>🌐 <a href="https://real-api.yunfm.cn">Real-API 公式サイト</a></h3>
 

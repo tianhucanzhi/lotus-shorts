@@ -12,9 +12,9 @@
 
 [功能特性](#-功能特性) • [快速开始](#-快速开始) • [图文教程](#-图文教程) • [部署指南](#-部署指南)
 
-<h2>🪷 <a href="https://shorts.yunfm.cn">Lotus · 莲花短剧线上试用 👉 shorts.yunfm.cn</a></h2>
+<h2>🪷 <a href="https://shorts.yunfm.cn">Lotus · 莲花短剧免费试用 👉 shorts.yunfm.cn</a></h2>
 
-**在线试用莲花短剧全流程制作**
+**免费试用莲花短剧全流程制作**
 
 <h3>🌐 <a href="https://real-api.yunfm.cn">Real-API 官网</a></h3>
 

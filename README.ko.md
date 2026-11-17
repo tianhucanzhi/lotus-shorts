@@ -12,7 +12,7 @@
 
 [기능](#-기능) • [빠른 시작](#-빠른-시작) • [튜토리얼](#-그림-튜토리얼) • [배포](#-배포)
 
-<h2>🪷 <a href="https://shorts.yunfm.cn">Lotus · 연화단극 온라인 체험 👉 shorts.yunfm.cn</a></h2>
+<h2>🪷 <a href="https://shorts.yunfm.cn">Lotus · 연화단극 무료 체험 👉 shorts.yunfm.cn</a></h2>
 
 **온라인에서 Lotus Shorts 제작 플로우를 체험하세요**
 

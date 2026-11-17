@@ -13,12 +13,12 @@
 
 <p>
   <a href="https://shorts.yunfm.cn">
-    <img src="docs/images/api-key-cta.svg" width="380" alt="Lotus · 莲花短剧线上试用 / shorts.yunfm.cn" />
+    <img src="docs/images/api-key-cta.svg" width="380" alt="Lotus · 莲花短剧免费试用 / shorts.yunfm.cn" />
   </a>
 </p>
 
-**莲花短剧线上试用：shorts.yunfm.cn**<br>
-**Try Lotus Shorts online: shorts.yunfm.cn**
+**莲花短剧免费试用：shorts.yunfm.cn**<br>
+**Try Lotus Shorts for free: shorts.yunfm.cn**
 
 <p>
   <a href="https://real-api.yunfm.cn">

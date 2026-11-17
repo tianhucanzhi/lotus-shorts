@@ -12,7 +12,7 @@
 
 [Features](#-features) • [Quick Start](#-quick-start) • [Walkthrough](#-visual-walkthrough) • [Deployment](#-deployment)
 
-<h2>🪷 <a href="https://shorts.yunfm.cn">Lotus Shorts online trial 👉 shorts.yunfm.cn</a></h2>
+<h2>🪷 <a href="https://shorts.yunfm.cn">Lotus Shorts free trial 👉 shorts.yunfm.cn</a></h2>
 
 **Try the full Lotus Shorts production flow online**
 
