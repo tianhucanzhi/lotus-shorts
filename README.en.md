@@ -16,6 +16,12 @@
 
 **Try the full Lotus Shorts production flow online**
 
+<h3>🌐 <a href="https://real-api.yunfm.cn">Real-API Official Website</a></h3>
+
+**Text, image, and video AI capabilities — one key unlocks everything**
+
+After deploying, paste the key in "Settings → Lotus Quick Setup" to write three recommended configs in one click
+
 
 </div>
 
