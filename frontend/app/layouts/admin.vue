@@ -95,7 +95,9 @@ function onLogout() {
 .admin-shell {
   display: grid;
   grid-template-columns: 232px 1fr;
-  min-height: 100vh;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
   background:
     radial-gradient(900px 420px at 0% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%),
     var(--bg);
@@ -109,6 +111,8 @@ function onLogout() {
   border-right: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
   backdrop-filter: blur(10px);
+  min-height: 0;
+  overflow: auto;
 }
 .brand {
   display: flex;
@@ -168,13 +172,21 @@ function onLogout() {
   text-decoration: none;
 }
 .back-link:hover { color: var(--text-0); }
-.main { min-width: 0; display: flex; flex-direction: column; }
+.main {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 .topbar {
   display: flex;
   justify-content: space-between;
   gap: 16px;
   align-items: flex-start;
   padding: 18px 24px 10px;
+  flex-shrink: 0;
 }
 .topbar h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
 .topbar p { margin: 4px 0 0; color: var(--text-3); font-size: 12.5px; }
@@ -188,17 +200,23 @@ function onLogout() {
 }
 .content {
   flex: 1;
+  min-height: 0;
   padding: 8px 24px 40px;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 @media (max-width: 900px) {
-  .admin-shell { grid-template-columns: 1fr; }
+  .admin-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
   .sidebar {
     border-right: none;
     border-bottom: 1px solid var(--border);
     padding-bottom: 10px;
+    overflow: visible;
   }
-  .nav { flex-direction: row; overflow-x: auto; }
+  .nav { flex-direction: row; overflow-x: auto; flex: 0; }
   .nav-item { flex-shrink: 0; }
   .sidebar-foot { display: none; }
   .content { padding: 8px 14px 32px; }
