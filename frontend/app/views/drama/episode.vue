@@ -1732,6 +1732,34 @@
         @confirm="confirmDeleteAsset"
         @cancel="assetDelete.open = false"
       />
+
+      <div v-if="breakdownPaceOpen" class="overlay" @click.self="breakdownPaceOpen = false">
+        <div class="dialog batch-video-dialog">
+          <header class="dialog-head">
+            <h2 class="dialog-title">{{ t('episode.sb.paceTitle') }}</h2>
+            <button type="button" class="btn btn-ghost btn-icon" @click="breakdownPaceOpen = false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </header>
+          <div class="dialog-body batch-video-body">
+            <p class="batch-video-note" style="margin:0 0 12px">{{ t('episode.sb.paceHint') }}</p>
+            <div class="pace-options">
+              <button type="button" class="pace-card" :class="{ on: breakdownPace === 'standard' }" @click="breakdownPace = 'standard'">
+                <strong>{{ t('episode.sb.paceStandard') }}</strong>
+                <span>{{ t('episode.sb.paceStandardDesc') }}</span>
+              </button>
+              <button type="button" class="pace-card" :class="{ on: breakdownPace === 'fast' }" @click="breakdownPace = 'fast'">
+                <strong>{{ t('episode.sb.paceFast') }}</strong>
+                <span>{{ t('episode.sb.paceFastDesc') }}</span>
+              </button>
+            </div>
+          </div>
+          <footer class="dialog-foot">
+            <button type="button" class="btn" @click="breakdownPaceOpen = false">{{ t('common.cancel') }}</button>
+            <button type="button" class="btn btn-primary" :disabled="rn" @click="confirmBreakdown">{{ t('episode.sb.paceConfirm') }}</button>
+          </footer>
+        </div>
+      </div>
     </main>
     </div>
   </div>
@@ -3711,7 +3739,17 @@ function pollVideoPromptBatch(attempts = 240) {
   }
   setTimeout(() => tick(attempts), 2500)
 }
+const breakdownPaceOpen = ref(false)
+const breakdownPace = ref('standard') // standard | fast
+
 function doBreakdown() {
+  breakdownPace.value = 'standard'
+  breakdownPaceOpen.value = true
+}
+
+function confirmBreakdown() {
+  const pace = breakdownPace.value === 'fast' ? 'fast' : 'standard'
+  breakdownPaceOpen.value = false
   const charList = chars.value.length
     ? chars.value.map(c => `${c.name}(ID:${c.id})`).join('、')
     : '（当前集还没有角色）'
@@ -3721,8 +3759,21 @@ function doBreakdown() {
   const propList = propItems.value.length
     ? propItems.value.map(p => `${p.name}(ID:${p.id})`).join('、')
     : '（当前集还没有道具）'
+  const paceBlock = pace === 'fast'
+    ? `节奏版本：快速版（相对标准版整体压缩约 1.5 倍时长）
+- 目标总时长 =（剧本字数 ÷ 500字/分钟）÷ 1.5
+- 每个段落时长 6-10 秒；过渡段 6-7 秒；叙事段 7-10 秒；爆点段 8-10 秒
+- 段落数 ≈ 目标总时长 ÷ 8 秒，允许 ±20%
+- 台词下限仍适用；优先压缩空镜与过渡，保留节拍与爆点信息密度`
+    : `节奏版本：标准版
+- 目标总时长 = 剧本字数 ÷ 500字/分钟
+- 每个段落时长 8-15 秒；过渡段 8-10 秒；叙事段 10-15 秒；爆点段 12-15 秒
+- 段落数 ≈ 目标总时长 ÷ 12 秒，允许 ±20%`
+
   runAgent('storyboard_breaker', `请基于当前集剧本拆分分镜，并为每个分镜段落同时生成 video_prompt（视频生成提示词）。
 本次视频模型：${effectiveVideoModelLabel.value}，请按该模型的特性与时长限制生成 video_prompt。
+
+${paceBlock}
 
 当前集已有角色：${charList}
 当前集已有场景：${sceneList}
@@ -6072,6 +6123,16 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 /* 批量生成确认弹窗 */
 .batch-video-dialog { width: 420px; max-width: calc(100vw - 48px); }
 .batch-video-body { display: flex; flex-direction: column; gap: 10px; }
+.pace-options { display: flex; flex-direction: column; gap: 8px; }
+.pace-card {
+  display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+  width: 100%; text-align: left; padding: 12px 14px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface-raised); color: var(--text-0); cursor: pointer;
+}
+.pace-card strong { font-size: 14px; }
+.pace-card span { font-size: 12px; color: var(--text-3); line-height: 1.45; }
+.pace-card.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface-raised)); }
+.pace-card:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
 .batch-video-row {
   display: flex;
   justify-content: space-between;

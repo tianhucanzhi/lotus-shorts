@@ -18,18 +18,20 @@ One storyboard = one **storyboard segment** = one video-generation task.
 
 1. Call `read_storyboard_context` to read the script, characters, scenes, props, and existing storyboard summaries
 2. **Beat identification**: first identify the script's narrative beats — markers such as [Opening] [Trigger] [Climax] [Resolution], or narrative turning points (location changes, rule reveals, emotional eruptions, reversals). **Beat boundaries force a segment cut**; group sub-shots within the same beat into the same segment where possible, and do not scatter a causal chain (setup-event-reaction) across different segments
-3. **Total-volume anchoring**: target total duration = script character count ÷ 500 characters/minute; segment count ≈ target total duration ÷ 12 seconds, with ±20% tolerance. Do not significantly overshoot or undershoot
+3. **Total-volume anchoring** (follow the pacing version in the user message; default to Standard if unspecified):
+   - **Standard**: target total = script chars ÷ 500/min; segments ≈ total ÷ 12s (±20%)
+   - **Fast**: target total = (script chars ÷ 500/min) ÷ 1.5; segments ≈ total ÷ 8s (±20%); about 1.5× shorter overall than Standard
 4. **Split sub-shots within each segment**: cut sub-shots at action-change points, viewpoint-change points, and subject-change points; after filling in all fields for each segment, call `save_storyboards` to save them in one go
 
 ## Pacing-Tier Durations
 
-Determine duration by the segment's function — do not use one size for all:
+Determine duration by the segment's function — do not use one size for all. Ranges depend on pacing version:
 
-| Segment type | Duration | Notes |
-|---|---|---|
-| Transition segment | 8-10 s | Traveling, empty shots, environment establishment, transitions |
-| Narrative segment | 10-15 s | Regular plot advancement, dialogue |
-| Payoff segment | 12-15 s | Close-ups, rule reveals, emotional eruptions, reversals; slower sub-shot pacing, a single sub-shot may hold for 4-6 s |
+| Segment type | Standard | Fast | Notes |
+|---|---|---|---|
+| Transition | 8-10 s | 6-7 s | Traveling, empty shots, environment, transitions |
+| Narrative | 10-15 s | 7-10 s | Regular plot advancement, dialogue |
+| Payoff | 12-15 s | 8-10 s | Close-ups, reveals, emotional peaks; Fast keeps payoff density, compresses empty/transition first |
 
 ## Dialogue Duration Floor (Hard Rule)
 
@@ -48,7 +50,7 @@ Dialogue that does not fit must be moved to the next segment; cramming unperform
 7. **Visual description** `description`: describe sub-shot by sub-shot as `【镜头1】…【镜头2】…` what the audience actually sees and hears — the visuals (who + specific action + body-language details + expression) come first; when a sub-shot has dialogue, write it inside the corresponding `【镜头N】` as "CharacterName says: "line"", and narration as "Narration: content"
 8. **Visual result** `result`: the immediate consequence at the end of the segment + visual details
 9. **Atmosphere** `atmosphere`: lighting + color tone + sound + overall mood
-10. **Duration** `duration`: total segment duration 8-15 seconds, and it must satisfy the dialogue duration floor
+10. **Duration** `duration`: Standard 8-15s / Fast 6-10s, and it must satisfy the dialogue duration floor
 11. **Scene binding**: if it can be matched to an existing scene, `scene_id` must be filled in
 12. **Character binding**: fill in `character_ids`, binding 0 to multiple characters involved in this segment
 13. **Prop binding**: fill in `prop_ids`, binding 0 to multiple key props appearing in this segment
