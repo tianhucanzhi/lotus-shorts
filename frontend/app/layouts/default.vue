@@ -24,7 +24,7 @@
           <Settings :size="15" :stroke-width="1.8" />
           <span>{{ t('layout.nav.settings') }}</span>
         </NuxtLink>
-        <NuxtLink v-if="showAdmin" to="/admin" class="nav-link" :class="{ active: route.path === '/admin' }">
+        <NuxtLink to="/admin" class="nav-link" :class="{ active: route.path === '/admin' || route.path.startsWith('/admin/') }">
           <Shield :size="15" :stroke-width="1.8" />
           <span>{{ t('layout.nav.admin') }}</span>
         </NuxtLink>
@@ -78,8 +78,6 @@ import brandLogo from '~/assets/brand-logo.png'
 const { t, locale } = useI18n()
 const route = useRoute()
 const auth = useAuth()
-// 管理后台仅 SaaS 管理员可见；桌面独立版无多用户，不展示
-const showAdmin = computed(() => auth.isSaas.value && auth.user.value?.role === 'admin')
 const showBrandImage = ref(true)
 const copyrightYear = new Date().getFullYear()
 const footerLinks = computed(() => [

@@ -5,7 +5,7 @@
   <Toaster position="top-right" :duration="3000" :theme="resolvedTheme" />
   <ErrorNoticeDialog />
   <MigrateOverlay />
-  <ContactFloat v-if="!isLandingPath(route.path)" />
+  <ContactFloat v-if="!isLandingPath(route.path) && !route.path.startsWith('/admin')" />
   <noscript>
     <div class="seo-noscript">
       <h1>{{ t('seo.noscriptTitle') }}</h1>
@@ -37,7 +37,7 @@ const HTML_LANG: Record<string, string> = { zh: 'zh-CN', en: 'en', ja: 'ja', ko:
 const OG_LOCALE: Record<string, string> = { zh: 'zh_CN', en: 'en_US', ja: 'ja_JP', ko: 'ko_KR' }
 
 function isPublicPath(path: string) {
-  return path === '/' || path === '/login'
+  return path === '/' || path === '/login' || path === '/admin/login'
 }
 
 function isLandingPath(path: string) {

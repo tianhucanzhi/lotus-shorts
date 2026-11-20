@@ -49,3 +49,16 @@ export function getInsertId(result: unknown) {
 export const db = drizzle(sqlite, { schema })
 export { schema }
 export type DB = typeof db
+
+const SAFE_TABLE = /^[a-z][a-z0-9_]*$/
+
+/** 管理后台等需要 raw SQL 时使用（不对外导出 Database 类型） */
+export function rawCount(table: string): number {
+  if (!SAFE_TABLE.test(table)) return -1
+  try {
+    const row = sqlite.prepare(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }
+    return Number(row?.n ?? 0)
+  } catch {
+    return -1
+  }
+}

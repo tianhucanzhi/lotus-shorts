@@ -1,6 +1,6 @@
 /**
  * SaaS / 独立版认证状态
- * - standalone：无登录，永远放行
+ * - standalone：主站无登录；管理后台可登录（JWT）
  * - saas：JWT 存在 localStorage，请求头带 Bearer
  */
 export type AuthUser = {
@@ -86,7 +86,7 @@ export function useAuth() {
       mode.value = info.saas ? 'saas' : 'standalone'
       allowRegister.value = !!info.allow_register
 
-      if (mode.value === 'saas' && token.value) {
+      if (token.value) {
         try {
           const me = await $fetch<any>('/api/v1/auth/me', {
             headers: { Authorization: `Bearer ${token.value}` },
@@ -100,8 +100,6 @@ export function useAuth() {
         } catch {
           logout()
         }
-      } else if (mode.value === 'standalone') {
-        logout()
       }
     } catch {
       // mode 接口失败时保持 standalone，避免误拦独立版
@@ -126,7 +124,6 @@ export function useAuth() {
       role: data.user.role,
       status: data.user.status,
     })
-    mode.value = 'saas'
     return data.user as AuthUser
   }
 
@@ -144,7 +141,6 @@ export function useAuth() {
       role: data.user.role,
       status: data.user.status,
     })
-    mode.value = 'saas'
     return data.user as AuthUser
   }
 

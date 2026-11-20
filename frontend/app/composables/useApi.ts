@@ -14,10 +14,15 @@ function handleUnauthorized() {
     localStorage.removeItem('lotus:auth_token')
     localStorage.removeItem('lotus:auth_user')
   } catch { /* ignore */ }
-  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-    const redirect = encodeURIComponent(window.location.pathname + window.location.search)
-    window.location.href = `/login?redirect=${redirect}`
+  if (typeof window === 'undefined') return
+  const path = window.location.pathname
+  if (path.startsWith('/admin/login') || path === '/login') return
+  const redirect = encodeURIComponent(path + window.location.search)
+  if (path === '/admin' || path.startsWith('/admin/')) {
+    window.location.href = `/admin/login?redirect=${redirect}`
+    return
   }
+  window.location.href = `/login?redirect=${redirect}`
 }
 
 async function req<T = any>(method: string, path: string, body?: any): Promise<T> {
@@ -300,14 +305,33 @@ export const settingsAPI = {
   setContentLanguage: (language: string) => api.put('/settings/content-language', { language }),
 }
 
-// 服务器/Docker 部署的版本检查与更新（桌面版走 useDesktopBridge，不用此 API）
+function qs(params: Record<string, string | undefined | null>) {
+  const sp = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v != null && v !== '') sp.set(k, v)
+  }
+  const s = sp.toString()
+  return s ? `?${s}` : ''
+}
+
 export const adminAPI = {
   overview: () => api.get('/admin/overview'),
-  users: (q?: string) => api.get(`/admin/users${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  users: (q?: string) => api.get(`/admin/users${qs({ q })}`),
   createUser: (d: { username: string; password: string; display_name?: string; role?: string }) => api.post('/admin/users', d),
   updateUser: (id: number, d: { role?: string; status?: string; display_name?: string; password?: string }) => api.put(`/admin/users/${id}`, d),
-  dramas: (q?: string) => api.get(`/admin/dramas${q ? `?q=${encodeURIComponent(q)}` : ''}`),
-  tasks: (status?: string) => api.get(`/admin/tasks${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+  dramas: (opts?: { q?: string; status?: string }) => api.get(`/admin/dramas${qs(opts || {})}`),
+  deleteDrama: (id: number) => api.del(`/admin/dramas/${id}`),
+  transferDrama: (id: number, user_id: number | null) => api.put(`/admin/dramas/${id}/owner`, { user_id }),
+  tasks: (opts?: { status?: string; type?: string; q?: string }) => api.get(`/admin/tasks${qs(opts || {})}`),
+  task: (id: number) => api.get(`/admin/tasks/${id}`),
+  cancelTask: (id: number) => api.post(`/admin/tasks/${id}/cancel`),
+  styles: () => api.get('/admin/styles'),
+  restoreDefaultStyles: () => api.post('/admin/styles/restore-defaults'),
+  createStyle: (d: any) => api.post('/admin/styles', d),
+  updateStyle: (id: number, d: any) => api.put(`/admin/styles/${id}`, d),
+  deleteStyle: (id: number) => api.del(`/admin/styles/${id}`),
+  aiConfigs: () => api.get('/admin/ai-configs'),
+  system: () => api.get('/admin/system'),
 }
 
 export const serverUpdateAPI = {
