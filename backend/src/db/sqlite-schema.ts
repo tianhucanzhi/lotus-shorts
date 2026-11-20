@@ -473,6 +473,7 @@ export function initSqliteSchema(sqlite: Database.Database) {
   ensureColumn(sqlite, 'ai_service_configs', 'user_id', 'INTEGER')
   ensureColumn(sqlite, 'style_presets', 'user_id', 'INTEGER')
   ensureColumn(sqlite, 'storyboard_characters', 'variant_id', 'INTEGER')
+  ensureColumn(sqlite, 'users', 'admin_menus', 'TEXT')
   sqlite.exec('CREATE INDEX IF NOT EXISTS idx_dramas_user_id ON dramas(user_id)')
   sqlite.exec('CREATE INDEX IF NOT EXISTS idx_ai_service_configs_user_id ON ai_service_configs(user_id)')
   sqlite.exec('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)')

@@ -218,7 +218,14 @@
     "restoringStyles": "Restoring…",
     "restoreDefaultStylesHint": "Built-in styles have a code-level default copy. Restore name, prompt, sort, and active state in one click. Custom styles are kept.",
     "confirmRestoreStyles": "Restore all built-in styles to defaults? Edited built-ins will be overwritten.",
-    "restoredStyles": "Restored {n} built-in styles"
+    "restoredStyles": "Restored {n} built-in styles",
+    "superAdmin": "Super",
+    "menus": "Menus",
+    "menusAll": "All",
+    "menusNone": "None",
+    "assignMenus": "Assign menus",
+    "assignMenusHint": "Checked items become the only admin sidebar menus this user can see.",
+    "menuPermHint": "Only the super admin (admin) can assign menus to other admins. New admins get no menus until assigned."
   },
   "common": {
     "confirm": "Confirm",

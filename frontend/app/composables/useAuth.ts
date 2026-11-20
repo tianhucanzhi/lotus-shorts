@@ -10,6 +10,8 @@ export type AuthUser = {
   display_name?: string | null
   role?: string
   status?: string
+  admin_menus?: string[]
+  is_super_admin?: boolean
 }
 
 export type AuthModeInfo = {
@@ -41,6 +43,19 @@ export function clearAuthStorage() {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USER_KEY)
   } catch { /* ignore */ }
+}
+
+function normalizeUser(raw: any): AuthUser {
+  return {
+    id: raw.id,
+    username: raw.username,
+    email: raw.email,
+    display_name: raw.display_name ?? raw.displayName,
+    role: raw.role,
+    status: raw.status,
+    admin_menus: Array.isArray(raw.admin_menus) ? raw.admin_menus : [],
+    is_super_admin: !!raw.is_super_admin || raw.username === 'admin',
+  }
 }
 
 export function useAuth() {
@@ -80,7 +95,10 @@ export function useAuth() {
     try {
       // 先恢复本地会话，减少闪烁
       if (!token.value) token.value = readStoredToken()
-      if (!user.value) user.value = readStoredUser()
+      if (!user.value) {
+        const stored = readStoredUser()
+        user.value = stored ? normalizeUser(stored) : null
+      }
 
       const info = await $fetch<any>('/api/v1/auth/mode').then(r => r?.data ?? r) as AuthModeInfo
       mode.value = info.saas ? 'saas' : 'standalone'
@@ -92,8 +110,9 @@ export function useAuth() {
             headers: { Authorization: `Bearer ${token.value}` },
           }).then(r => r?.data ?? r)
           if (me?.user) {
-            user.value = me.user
-            try { localStorage.setItem(USER_KEY, JSON.stringify(me.user)) } catch { /* ignore */ }
+            const next = normalizeUser(me.user)
+            user.value = next
+            try { localStorage.setItem(USER_KEY, JSON.stringify(next)) } catch { /* ignore */ }
           } else {
             logout()
           }
@@ -116,15 +135,9 @@ export function useAuth() {
       body: { username, password },
     }).then(r => r?.data ?? r)
     if (!data?.token || !data?.user) throw new Error('登录响应异常')
-    persistSession(data.token, {
-      id: data.user.id,
-      username: data.user.username,
-      email: data.user.email,
-      display_name: data.user.display_name ?? data.user.displayName,
-      role: data.user.role,
-      status: data.user.status,
-    })
-    return data.user as AuthUser
+    const next = normalizeUser(data.user)
+    persistSession(data.token, next)
+    return next
   }
 
   async function register(payload: { username: string; password: string; display_name?: string; email?: string }) {
@@ -133,15 +146,19 @@ export function useAuth() {
       body: payload,
     }).then(r => r?.data ?? r)
     if (!data?.token || !data?.user) throw new Error('注册响应异常')
-    persistSession(data.token, {
-      id: data.user.id,
-      username: data.user.username,
-      email: data.user.email,
-      display_name: data.user.display_name ?? data.user.displayName,
-      role: data.user.role,
-      status: data.user.status,
-    })
-    return data.user as AuthUser
+    const next = normalizeUser(data.user)
+    persistSession(data.token, next)
+    return next
+  }
+
+  const isSuperAdmin = computed(() => !!user.value && (user.value.is_super_admin || user.value.username === 'admin'))
+
+  function hasAdminMenu(key: string) {
+    if (!user.value || user.value.role !== 'admin') return false
+    if (isSuperAdmin.value) return true
+    const menus = user.value.admin_menus
+    if (!Array.isArray(menus)) return true
+    return menus.includes(key)
   }
 
   return {
@@ -152,6 +169,8 @@ export function useAuth() {
     ready,
     isSaas,
     isLoggedIn,
+    isSuperAdmin,
+    hasAdminMenu,
     ensureReady,
     login,
     register,

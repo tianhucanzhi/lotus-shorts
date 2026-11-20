@@ -26,7 +26,8 @@ app.post('/register', async (c) => {
       displayName: body.display_name || body.displayName,
     })
     const token = await signToken(user)
-    return success(c, { token, user: { ...user, display_name: user.displayName } })
+    const row = await findUserById(user.id)
+    return success(c, { token, user: row ? toPublicUser(row) : { ...user, display_name: user.displayName } })
   } catch (err: any) {
     return badRequest(c, err.message || '注册失败')
   }
@@ -38,15 +39,18 @@ app.post('/login', async (c) => {
   try {
     const user = await loginUser(body.username, body.password)
     const token = await signToken(user)
+    const row = await findUserById(user.id)
     return success(c, {
       token,
-      user: {
+      user: row ? toPublicUser(row) : {
         id: user.id,
         username: user.username,
         email: user.email,
         display_name: user.displayName,
         role: user.role,
         status: user.status,
+        admin_menus: [],
+        is_super_admin: false,
       },
     })
   } catch (err: any) {

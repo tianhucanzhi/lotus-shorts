@@ -65,18 +65,20 @@ const { t } = useI18n()
 const route = useRoute()
 const auth = useAuth()
 
-const nav = computed(() => [
-  { to: '/admin', label: t('admin.tabs.overview'), icon: LayoutDashboard },
-  { to: '/admin/users', label: t('admin.tabs.users'), icon: Users },
-  { to: '/admin/projects', label: t('admin.tabs.projects'), icon: Clapperboard },
-  { to: '/admin/tasks', label: t('admin.tabs.tasks'), icon: Activity },
-  { to: '/admin/styles', label: t('admin.tabs.styles'), icon: Palette },
-  { to: '/admin/ai-configs', label: t('admin.tabs.aiConfigs'), icon: Sparkles },
-  { to: '/admin/system', label: t('admin.tabs.system'), icon: Server },
+const allNav = computed(() => [
+  { key: 'overview', to: '/admin', label: t('admin.tabs.overview'), icon: LayoutDashboard },
+  { key: 'users', to: '/admin/users', label: t('admin.tabs.users'), icon: Users },
+  { key: 'projects', to: '/admin/projects', label: t('admin.tabs.projects'), icon: Clapperboard },
+  { key: 'tasks', to: '/admin/tasks', label: t('admin.tabs.tasks'), icon: Activity },
+  { key: 'styles', to: '/admin/styles', label: t('admin.tabs.styles'), icon: Palette },
+  { key: 'aiConfigs', to: '/admin/ai-configs', label: t('admin.tabs.aiConfigs'), icon: Sparkles },
+  { key: 'system', to: '/admin/system', label: t('admin.tabs.system'), icon: Server },
 ])
 
+const nav = computed(() => allNav.value.filter(item => auth.hasAdminMenu(item.key)))
+
 const pageTitle = computed(() => {
-  const hit = nav.value.find(n => isActive(n.to))
+  const hit = allNav.value.find(n => isActive(n.to))
   return hit?.label || t('admin.title')
 })
 
@@ -84,6 +86,26 @@ function isActive(to) {
   if (to === '/admin') return route.path === '/admin'
   return route.path === to || route.path.startsWith(`${to}/`)
 }
+
+function menuKeyForPath(path) {
+  if (path === '/admin') return 'overview'
+  if (path.startsWith('/admin/users')) return 'users'
+  if (path.startsWith('/admin/projects')) return 'projects'
+  if (path.startsWith('/admin/tasks')) return 'tasks'
+  if (path.startsWith('/admin/styles')) return 'styles'
+  if (path.startsWith('/admin/ai-configs')) return 'aiConfigs'
+  if (path.startsWith('/admin/system')) return 'system'
+  return 'overview'
+}
+
+watch(() => route.path, (path) => {
+  if (!path.startsWith('/admin') || path === '/admin/login') return
+  const key = menuKeyForPath(path)
+  if (!auth.hasAdminMenu(key)) {
+    const first = nav.value[0]
+    navigateTo(first?.to || '/admin/login')
+  }
+}, { immediate: true })
 
 function onLogout() {
   auth.logout()

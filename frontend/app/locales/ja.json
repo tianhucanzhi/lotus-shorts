@@ -194,7 +194,14 @@
     "restoringStyles": "復元中…",
     "restoreDefaultStylesHint": "内蔵スタイルはコード内にデフォルト副本があります。名前・プロンプト・並び・有効状態を一括復元できます。自作スタイルは削除しません。",
     "confirmRestoreStyles": "内蔵スタイルをすべてデフォルトに戻しますか？編集済みの内蔵項目は上書きされます。",
-    "restoredStyles": "内蔵スタイルを {n} 件復元しました"
+    "restoredStyles": "内蔵スタイルを {n} 件復元しました",
+    "superAdmin": "超管",
+    "menus": "メニュー権限",
+    "menusAll": "すべて",
+    "menusNone": "未割当",
+    "assignMenus": "メニュー割当",
+    "assignMenusHint": "チェックした項目だけが、その管理者のサイドバーに表示されます。",
+    "menuPermHint": "スーパー管理者（admin）のみが他の管理者にメニューを割り当てできます。新規管理者は割当までメニューなしです。"
   },
   "common": {
     "confirm": "確認",

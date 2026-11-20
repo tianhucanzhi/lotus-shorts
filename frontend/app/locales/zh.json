@@ -226,7 +226,14 @@
     "restoringStyles": "还原中…",
     "restoreDefaultStylesHint": "内置风格有代码级默认副本；改坏后可一键还原名称、提示词、排序与启用状态。自建风格不会被删除。",
     "confirmRestoreStyles": "确认将全部内置风格还原为默认配置？已改动的内置项会被覆盖。",
-    "restoredStyles": "已还原 {n} 个内置风格"
+    "restoredStyles": "已还原 {n} 个内置风格",
+    "superAdmin": "超管",
+    "menus": "菜单权限",
+    "menusAll": "全部",
+    "menusNone": "未分配",
+    "assignMenus": "分配菜单",
+    "assignMenusHint": "勾选后该管理员只能看到对应侧栏菜单。",
+    "menuPermHint": "仅超级管理员（admin）可为其他管理员分配可见菜单；新管理员默认无菜单，需手动勾选。"
   },
   "common": {
     "confirm": "确认",

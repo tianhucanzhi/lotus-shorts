@@ -194,7 +194,14 @@
     "restoringStyles": "복원 중…",
     "restoreDefaultStylesHint": "기본 스타일은 코드에 기본 사본이 있습니다. 이름·프롬프트·정렬·활성 상태를 한 번에 복원할 수 있습니다. 직접 만든 스타일은 삭제되지 않습니다.",
     "confirmRestoreStyles": "모든 기본 스타일을 기본값으로 복원할까요? 수정한 기본 항목은 덮어씁니다.",
-    "restoredStyles": "기본 스타일 {n}개를 복원했습니다"
+    "restoredStyles": "기본 스타일 {n}개를 복원했습니다",
+    "superAdmin": "최고관리자",
+    "menus": "메뉴 권한",
+    "menusAll": "전체",
+    "menusNone": "미할당",
+    "assignMenus": "메뉴 할당",
+    "assignMenusHint": "체크한 항목만 해당 관리자 사이드바에 표시됩니다.",
+    "menuPermHint": "슈퍼 관리자(admin)만 다른 관리자에게 메뉴를 할당할 수 있습니다. 새 관리자는 할당 전까지 메뉴가 없습니다."
   },
   "common": {
     "confirm": "확인",

@@ -1,6 +1,11 @@
 import { Hono } from 'hono'
 import type { AuthVariables } from '../middleware/auth.js'
-import { adminCreateUser, adminPatchUser } from '../services/auth.js'
+import {
+  ADMIN_MENU_KEYS,
+  hasAdminMenu,
+  menuKeyForAdminPath,
+} from '../services/admin-menus.js'
+import { adminCreateUser, adminPatchUser, findUserById } from '../services/auth.js'
 import {
   adminCancelTask,
   adminCreateStyle,
@@ -24,22 +29,44 @@ const app = new Hono<{ Variables: AuthVariables }>()
 
 /** 管理后台一律要求管理员登录（独立版 / SaaS 相同） */
 app.use('*', async (c, next) => {
-  if (c.get('userId') && c.get('role') === 'admin') return next()
-  return forbidden(c, '需要管理员权限')
+  const userId = c.get('userId')
+  if (!userId || c.get('role') !== 'admin') return forbidden(c, '需要管理员权限')
+
+  const row = await findUserById(userId)
+  if (!row || row.status !== 'active' || row.role !== 'admin') {
+    return forbidden(c, '需要管理员权限')
+  }
+
+  const path = new URL(c.req.url).pathname
+  const menu = menuKeyForAdminPath(path)
+  if (menu && !hasAdminMenu({
+    username: row.username,
+    role: row.role,
+    adminMenusRaw: row.adminMenus,
+  }, menu)) {
+    return forbidden(c, '无该菜单权限')
+  }
+
+  return next()
 })
 
 app.get('/overview', async (c) => success(c, await adminOverview()))
 
+app.get('/menu-keys', async (c) => success(c, { items: [...ADMIN_MENU_KEYS] }))
+
 app.get('/users', async (c) => success(c, { items: await adminListUsers(c.req.query('q')) }))
 
 app.post('/users', async (c) => {
+  const actorId = c.get('userId')
+  if (!actorId) return forbidden(c, '需要管理员权限')
   const body = await c.req.json().catch(() => ({}))
   try {
-    const user = await adminCreateUser({
+    const user = await adminCreateUser(actorId, {
       username: body.username,
       password: body.password,
       displayName: body.display_name ?? body.displayName,
       role: body.role,
+      adminMenus: body.admin_menus ?? body.adminMenus,
     })
     return success(c, user)
   } catch (err: any) {
@@ -58,6 +85,7 @@ app.put('/users/:id', async (c) => {
       status: body.status,
       displayName: body.display_name ?? body.displayName,
       password: body.password,
+      adminMenus: body.admin_menus ?? body.adminMenus,
     })
     return success(c, user)
   } catch (err: any) {

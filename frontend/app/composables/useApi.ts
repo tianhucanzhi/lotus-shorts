@@ -317,8 +317,8 @@ function qs(params: Record<string, string | undefined | null>) {
 export const adminAPI = {
   overview: () => api.get('/admin/overview'),
   users: (q?: string) => api.get(`/admin/users${qs({ q })}`),
-  createUser: (d: { username: string; password: string; display_name?: string; role?: string }) => api.post('/admin/users', d),
-  updateUser: (id: number, d: { role?: string; status?: string; display_name?: string; password?: string }) => api.put(`/admin/users/${id}`, d),
+  createUser: (d: { username: string; password: string; display_name?: string; role?: string; admin_menus?: string[] }) => api.post('/admin/users', d),
+  updateUser: (id: number, d: { role?: string; status?: string; display_name?: string; password?: string; admin_menus?: string[] }) => api.put(`/admin/users/${id}`, d),
   dramas: (opts?: { q?: string; status?: string }) => api.get(`/admin/dramas${qs(opts || {})}`),
   deleteDrama: (id: number) => api.del(`/admin/dramas/${id}`),
   transferDrama: (id: number, user_id: number | null) => api.put(`/admin/dramas/${id}/owner`, { user_id }),

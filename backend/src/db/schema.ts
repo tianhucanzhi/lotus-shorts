@@ -14,6 +14,8 @@ export const users = sqliteTable('users', {
   displayName: text('display_name'),
   role: text('role').notNull().default('user'), // user | admin
   status: text('status').notNull().default('active'), // active | disabled
+  /** JSON 数组：管理后台可见菜单；null=未配置（非超管视为全部）；超管账号忽略此字段 */
+  adminMenus: text('admin_menus'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 })

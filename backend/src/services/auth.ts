@@ -4,6 +4,12 @@ import { sign, verify } from 'hono/jwt'
 import { db, getInsertId, schema } from '../db/index.js'
 import { isSaas, jwtExpiresIn, jwtSecret } from '../config/mode.js'
 import { now } from '../utils/response.js'
+import {
+  isSuperAdminUsername,
+  resolveAdminMenus,
+  serializeAdminMenus,
+  type AdminMenuKey,
+} from './admin-menus.js'
 import { ensureSampleDramaForUser } from './sample-drama.js'
 
 const SCRYPT_N = 16384
@@ -159,18 +165,29 @@ export type PublicUser = {
   display_name: string | null
   role: string
   status: string
+  /** 实际可用菜单（已解析；超管为全部） */
+  admin_menus: AdminMenuKey[]
+  /** 是否超级管理员（username=admin） */
+  is_super_admin: boolean
   created_at: string
   updated_at: string
 }
 
 export function toPublicUser(row: typeof schema.users.$inferSelect): PublicUser {
+  const role = row.role || 'user'
   return {
     id: row.id,
     username: row.username,
     email: row.email,
     display_name: row.displayName,
-    role: row.role || 'user',
+    role,
     status: row.status || 'active',
+    admin_menus: resolveAdminMenus({
+      username: row.username,
+      role,
+      adminMenusRaw: row.adminMenus,
+    }),
+    is_super_admin: isSuperAdminUsername(row.username),
     created_at: row.createdAt,
     updated_at: row.updatedAt,
   }
@@ -210,18 +227,33 @@ export async function ensureDefaultAdmin(): Promise<void> {
 }
 
 /** 管理员开户：不走「首个用户认领数据」逻辑 */
-export async function adminCreateUser(input: {
+export async function adminCreateUser(actorId: number, input: {
   username: string
   password: string
   displayName?: string | null
   role?: string
+  adminMenus?: string[] | null
 }): Promise<PublicUser> {
+  const actor = await findUserById(actorId)
+  if (!actor || actor.role !== 'admin' || actor.status !== 'active') throw new Error('需要管理员权限')
+
   const username = String(input.username || '').trim()
   const password = String(input.password || '')
   const role = input.role === 'admin' ? 'admin' : 'user'
   assertUsername(username)
   if (password.length < 6) throw new Error('密码至少 6 位')
   if (await findUserByUsername(username)) throw new Error('用户名已存在')
+  if (role === 'admin' && !isSuperAdminUsername(actor.username)) {
+    throw new Error('仅超级管理员可创建管理员账号')
+  }
+  if (isSuperAdminUsername(username)) throw new Error('不能创建保留的超级管理员用户名')
+
+  let adminMenus: string | null = null
+  if (role === 'admin') {
+    // 新管理员默认无菜单，由超管再分配；若创建时带了 menus 则写入
+    adminMenus = serializeAdminMenus(input.adminMenus ?? [])
+  }
+
   const ts = now()
   const res = await db.insert(schema.users).values({
     username,
@@ -230,6 +262,7 @@ export async function adminCreateUser(input: {
     displayName: input.displayName?.trim() || username,
     role,
     status: 'active',
+    adminMenus,
     createdAt: ts,
     updatedAt: ts,
   })
@@ -246,9 +279,24 @@ export async function adminPatchUser(actorId: number, targetId: number, patch: {
   status?: string
   displayName?: string | null
   password?: string
+  adminMenus?: string[] | null
 }): Promise<PublicUser> {
+  const actor = await findUserById(actorId)
+  if (!actor || actor.role !== 'admin' || actor.status !== 'active') throw new Error('需要管理员权限')
   const target = await findUserById(targetId)
   if (!target) throw new Error('用户不存在')
+
+  const actorIsSuper = isSuperAdminUsername(actor.username)
+  const targetIsSuper = isSuperAdminUsername(target.username)
+  const targetIsAdmin = target.role === 'admin'
+
+  // 非超管不能改其他管理员账号（含角色/停用/密码/菜单）
+  if (!actorIsSuper && targetIsAdmin && actorId !== targetId) {
+    throw new Error('仅超级管理员可管理其他管理员账号')
+  }
+  if (!actorIsSuper && targetIsSuper) {
+    throw new Error('不能修改超级管理员账号')
+  }
 
   const nextRole = patch.role === undefined ? target.role : (patch.role === 'admin' ? 'admin' : 'user')
   const nextStatus = patch.status === undefined
@@ -257,6 +305,18 @@ export async function adminPatchUser(actorId: number, targetId: number, patch: {
 
   if (actorId === targetId && nextStatus !== 'active') throw new Error('不能停用自己的账号')
   if (actorId === targetId && nextRole !== 'admin') throw new Error('不能取消自己的管理员权限')
+  if (targetIsSuper && nextRole !== 'admin') throw new Error('不能取消超级管理员的管理员角色')
+  if (targetIsSuper && nextStatus !== 'active') throw new Error('不能停用超级管理员')
+
+  if (patch.role !== undefined && nextRole === 'admin' && target.role !== 'admin' && !actorIsSuper) {
+    throw new Error('仅超级管理员可提升管理员')
+  }
+  if (patch.adminMenus !== undefined && !actorIsSuper) {
+    throw new Error('仅超级管理员可分配菜单权限')
+  }
+  if (patch.adminMenus !== undefined && targetIsSuper) {
+    throw new Error('超级管理员拥有全部菜单，无需分配')
+  }
 
   const losingAdmin = target.role === 'admin' && target.status === 'active'
     && (nextRole !== 'admin' || nextStatus !== 'active')
@@ -277,6 +337,13 @@ export async function adminPatchUser(actorId: number, targetId: number, patch: {
   if (patch.password !== undefined && patch.password !== '') {
     if (String(patch.password).length < 6) throw new Error('密码至少 6 位')
     updates.passwordHash = hashPassword(String(patch.password))
+  }
+  if (patch.adminMenus !== undefined) {
+    updates.adminMenus = nextRole === 'admin' ? serializeAdminMenus(patch.adminMenus || []) : null
+  } else if (patch.role !== undefined && nextRole !== 'admin') {
+    updates.adminMenus = null
+  } else if (patch.role !== undefined && nextRole === 'admin' && target.role !== 'admin') {
+    updates.adminMenus = serializeAdminMenus([])
   }
 
   await db.update(schema.users).set(updates).where(eq(schema.users.id, targetId))
