@@ -7,6 +7,7 @@
         <span class="lp-brand-name">{{ t('landing.brand') }}</span>
       </button>
       <nav class="lp-nav-links" aria-label="page">
+        <button type="button" class="lp-link" @click="scrollToSection('intro')">{{ t('landing.nav.intro') }}</button>
         <button type="button" class="lp-link" @click="scrollToSection('flow')">{{ t('landing.nav.flow') }}</button>
         <button type="button" class="lp-link" @click="scrollToSection('samples')">{{ t('landing.nav.samples') }}</button>
         <button type="button" class="lp-link" @click="scrollToSection('cost')">{{ t('landing.nav.cost') }}</button>
@@ -31,7 +32,7 @@
           <p class="lp-support">{{ t('landing.hero.support') }}</p>
           <div class="lp-hero-cta">
             <NuxtLink class="btn btn-primary lp-cta-main" to="/login?tab=register">{{ t('landing.hero.ctaPrimary') }}</NuxtLink>
-            <button type="button" class="btn lp-cta-secondary" @click="scrollToSection('samples')">{{ t('landing.hero.ctaSecondary') }}</button>
+            <button type="button" class="btn lp-cta-secondary" @click="scrollToSection('intro')">{{ t('landing.hero.ctaSecondary') }}</button>
           </div>
         </div>
         <div class="lp-hero-stage">
@@ -55,6 +56,54 @@
             </div>
           </button>
           <div class="hero-glow" />
+        </div>
+      </section>
+
+      <!-- 产品介绍片：全幅影院感 -->
+      <section id="intro" class="lp-intro">
+        <div class="intro-aura" aria-hidden="true" />
+        <header class="intro-head">
+          <p class="intro-kicker">{{ t('landing.intro.kicker') }}</p>
+          <h2>{{ t('landing.intro.title') }}</h2>
+          <p>{{ t('landing.intro.sub') }}</p>
+        </header>
+        <div class="intro-stage" :class="{ playing: introPlaying }">
+          <div class="intro-letterbox" aria-hidden="true" />
+          <video
+            ref="introVideoEl"
+            class="intro-video"
+            :src="INTRO_VIDEO"
+            playsinline
+            preload="metadata"
+            @play="introPlaying = true"
+            @pause="introPlaying = false"
+            @ended="onIntroEnded"
+          />
+          <div class="intro-grade" aria-hidden="true" />
+          <div class="intro-grain" aria-hidden="true" />
+          <div class="intro-vignette" aria-hidden="true" />
+          <button
+            v-if="!introPlaying"
+            type="button"
+            class="intro-play"
+            :aria-label="t('landing.intro.play')"
+            @click="playIntro"
+          >
+            <span class="intro-play-ring" />
+            <span class="intro-play-core">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </span>
+            <span class="intro-play-label">{{ t('landing.intro.play') }}</span>
+          </button>
+          <div class="intro-footer">
+            <span class="intro-badge">{{ t('landing.intro.badge') }}</span>
+            <button
+              v-if="introPlaying"
+              type="button"
+              class="intro-mute"
+              @click="toggleIntroMute"
+            >{{ introMuted ? t('landing.intro.unmute') : t('landing.intro.mute') }}</button>
+          </div>
         </div>
       </section>
 
@@ -311,6 +360,44 @@ const SERIES_WEN_DING = {
   ep3: 'https://medstatic.oss-cn-shanghai.aliyuncs.com/shorts/03_%E9%97%AE%E9%BC%8E%E4%BB%99%E9%80%94_%E7%AC%AC3%E9%9B%86_1%E5%88%8644%E7%A7%92.mp4',
 }
 const HERO_SAMPLE_VIDEO = SERIES_CHI_XIE.ep1
+/** 首页产品介绍片 */
+const INTRO_VIDEO = 'https://medstatic.oss-cn-shanghai.aliyuncs.com/shorts/lotus-shorts-2k.mp4'
+
+const introVideoEl = ref(null)
+const introPlaying = ref(false)
+const introMuted = ref(false)
+
+async function playIntro() {
+  const el = introVideoEl.value
+  if (!el) return
+  try {
+    el.muted = false
+    introMuted.value = false
+    await el.play()
+    introPlaying.value = true
+  } catch {
+    // 浏览器限制有声自动播放时退回静音播放
+    el.muted = true
+    introMuted.value = true
+    try {
+      await el.play()
+      introPlaying.value = true
+    } catch { /* ignore */ }
+  }
+}
+
+function toggleIntroMute() {
+  const el = introVideoEl.value
+  if (!el) return
+  el.muted = !el.muted
+  introMuted.value = el.muted
+}
+
+function onIntroEnded() {
+  introPlaying.value = false
+  const el = introVideoEl.value
+  if (el) el.currentTime = 0
+}
 
 /** 步骤真实截图：public/landing/steps/step-1|2|3.(png|jpg|webp) */
 const stepShots = ref(['', '', ''])
@@ -734,6 +821,233 @@ const plans = computed(() => [
 }
 .lp-link:hover { color: var(--text-0); }
 .lp-nav-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+.lp-intro {
+  position: relative;
+  padding: clamp(40px, 7vh, 80px) 0 clamp(56px, 9vh, 100px);
+  overflow: hidden;
+  /* 跟首页米白底一脉，不做整段脏棕黑切块 */
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 18%, rgba(196, 90, 72, 0.08), transparent 60%),
+    radial-gradient(ellipse 55% 40% at 85% 70%, rgba(176, 138, 69, 0.07), transparent 55%),
+    linear-gradient(180deg, transparent 0%, rgba(246, 242, 232, 0.65) 40%, transparent 100%);
+  color: var(--text-0);
+}
+.intro-aura {
+  pointer-events: none;
+  position: absolute;
+  inset: 22% 8% auto;
+  height: 48%;
+  background:
+    radial-gradient(ellipse 55% 70% at 50% 50%, rgba(28, 24, 20, 0.14), transparent 72%),
+    radial-gradient(ellipse 35% 45% at 70% 40%, rgba(196, 90, 72, 0.1), transparent 70%);
+  filter: blur(18px);
+  animation: intro-aura-drift 14s ease-in-out infinite alternate;
+}
+@keyframes intro-aura-drift {
+  from { transform: translate3d(-1.5%, 0, 0) scale(1); opacity: 0.7; }
+  to { transform: translate3d(2%, 3%, 0) scale(1.05); opacity: 1; }
+}
+.intro-head {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto 28px;
+  padding: 0 clamp(16px, 4vw, 40px);
+  text-align: center;
+}
+.intro-kicker {
+  margin: 0 0 10px;
+  font: 650 12px/1.2 var(--font-body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.intro-head h2 {
+  margin: 0 0 10px;
+  font: 750 clamp(26px, 4vw, 40px)/1.15 var(--font-display);
+  letter-spacing: -0.03em;
+  color: var(--text-0);
+}
+.intro-head p {
+  margin: 0;
+  font: 400 15px/1.65 var(--font-body);
+  color: var(--text-1, #5c5348);
+}
+.intro-stage {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  aspect-ratio: 16 / 9;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #161310;
+  box-shadow:
+    0 0 0 1px rgba(40, 32, 24, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 24px 64px rgba(40, 28, 18, 0.22),
+    0 8px 24px rgba(40, 28, 18, 0.12);
+  isolation: isolate;
+}
+.intro-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #161310;
+  /* 压一点白场，避免工作台亮底刺眼 */
+  filter: saturate(0.92) contrast(1.02) brightness(0.92);
+  transition: filter 0.45s ease;
+}
+.intro-stage.playing .intro-video {
+  filter: saturate(1) contrast(1) brightness(1);
+}
+.intro-letterbox {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    linear-gradient(180deg, rgba(22, 19, 16, 0.72) 0%, transparent 16%),
+    linear-gradient(0deg, rgba(22, 19, 16, 0.78) 0%, transparent 20%),
+    linear-gradient(90deg, rgba(22, 19, 16, 0.28) 0%, transparent 12%, transparent 88%, rgba(22, 19, 16, 0.28) 100%);
+  transition: opacity 0.4s ease;
+}
+.intro-grade {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    linear-gradient(145deg, rgba(196, 90, 72, 0.12), transparent 42%),
+    linear-gradient(320deg, rgba(176, 138, 69, 0.1), transparent 45%);
+  mix-blend-mode: soft-light;
+  opacity: 0.85;
+  transition: opacity 0.4s ease;
+}
+.intro-grain {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0.1;
+  mix-blend-mode: soft-light;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.03) 0 1px, transparent 1px 4px);
+  animation: intro-grain-shift 1.2s steps(2) infinite;
+}
+@keyframes intro-grain-shift {
+  from { transform: translateY(0); }
+  to { transform: translateY(-2px); }
+}
+.intro-vignette {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: radial-gradient(ellipse 72% 68% at 50% 46%, transparent 38%, rgba(22, 19, 16, 0.55) 100%);
+  transition: opacity 0.4s ease;
+}
+.intro-play {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  place-content: center;
+  gap: 14px;
+  border: 0;
+  /* 未播放时再压一层，让亮白 UI 不抢戏 */
+  background: rgba(22, 19, 16, 0.28);
+  color: #f7f1e7;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.intro-play:hover { background: rgba(22, 19, 16, 0.18); }
+.intro-play-ring {
+  position: absolute;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 1px solid rgba(247, 241, 231, 0.4);
+  animation: intro-ring-pulse 2.4s ease-out infinite;
+}
+@keyframes intro-ring-pulse {
+  0% { transform: scale(0.92); opacity: 0.9; }
+  70% { transform: scale(1.25); opacity: 0; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+.intro-play-core {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #2a241e 0%, #1a1612 100%);
+  border: 1px solid rgba(247, 241, 231, 0.22);
+  box-shadow:
+    0 12px 36px rgba(22, 19, 16, 0.35),
+    0 0 0 6px rgba(247, 241, 231, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.intro-play:hover .intro-play-core {
+  transform: scale(1.06);
+  box-shadow:
+    0 16px 40px rgba(22, 19, 16, 0.4),
+    0 0 0 8px rgba(196, 90, 72, 0.12);
+}
+.intro-play-label {
+  position: relative;
+  font: 650 13px/1 var(--font-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(247, 241, 231, 0.92);
+  text-shadow: 0 1px 8px rgba(22, 19, 16, 0.45);
+}
+.intro-footer {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.intro-badge {
+  font: 650 11px/1 var(--font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(247, 241, 231, 0.78);
+  padding: 7px 10px;
+  border: 1px solid rgba(247, 241, 231, 0.16);
+  border-radius: 999px;
+  background: rgba(22, 19, 16, 0.55);
+  backdrop-filter: blur(10px);
+}
+.intro-mute {
+  border: 1px solid rgba(247, 241, 231, 0.18);
+  border-radius: 999px;
+  background: rgba(22, 19, 16, 0.55);
+  color: rgba(247, 241, 231, 0.9);
+  font: 650 12px/1 var(--font-body);
+  padding: 8px 12px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+.intro-mute:hover { background: rgba(22, 19, 16, 0.72); }
+.intro-stage.playing .intro-letterbox { opacity: 0.35; }
+.intro-stage.playing .intro-vignette { opacity: 0.45; }
+.intro-stage.playing .intro-grade { opacity: 0.35; }
+@media (max-width: 720px) {
+  .intro-stage { aspect-ratio: 16 / 10; border-radius: 14px; }
+  .intro-play-core { width: 64px; height: 64px; }
+  .intro-play-ring { width: 82px; height: 82px; }
+}
 
 .lp-hero {
   display: grid;

@@ -22,14 +22,23 @@
   },
   "landing": {
     "brand": "蓮花ショートドラマ",
-    "nav": { "flow": "流れ", "samples": "サンプル", "cost": "コスト", "pricing": "料金", "login": "ログイン", "start": "無料ではじめる", "openApp": "作業台へ" },
+    "nav": { "intro": "紹介", "flow": "流れ", "samples": "サンプル", "cost": "コスト", "pricing": "料金", "login": "ログイン", "start": "無料ではじめる", "openApp": "作業台へ" },
     "hero": {
       "headline": "小説を渡す。数時間で60話の縦型ショートドラマ。",
       "support": "脚本、素材、絵コンテ、画像/動画生成から書き出しまでを一つの作業台で。",
       "ctaPrimary": "無料登録",
-      "ctaSecondary": "サンプルを見る",
+      "ctaSecondary": "紹介を見る",
       "mockTitle": "短剧样片",
       "mockSub": "第1–5話 · タップで選集"
+    },
+    "intro": {
+      "kicker": "Product Film",
+      "title": "AI短劇はこう作られる",
+      "sub": "小説から絵コンテ、画像・動画生成、書き出しまで、一つのスタジオパイプラインで。",
+      "play": "紹介を再生",
+      "badge": "Lotus Shorts · Intro",
+      "mute": "ミュート",
+      "unmute": "音声オン"
     },
     "flow": {
       "title": "テキストから完成映像まで3ステップ",

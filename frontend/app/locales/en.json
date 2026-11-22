@@ -22,14 +22,23 @@
   },
   "landing": {
     "brand": "Lotus Shorts",
-    "nav": { "flow": "How it works", "samples": "Samples", "cost": "Cost", "pricing": "Pricing", "login": "Sign in", "start": "Get started", "openApp": "Open workspace" },
+    "nav": { "intro": "Intro", "flow": "How it works", "samples": "Samples", "cost": "Cost", "pricing": "Pricing", "login": "Sign in", "start": "Get started", "openApp": "Open workspace" },
     "hero": {
       "headline": "Upload a novel. Ship a 60-episode vertical drama in hours.",
       "support": "Script rewrite, assets, storyboards, image/video generation and merge — one pipeline for costume, urban, and comic styles.",
       "ctaPrimary": "Start free",
-      "ctaSecondary": "Watch samples",
+      "ctaSecondary": "Watch intro",
       "mockTitle": "Sample Shorts",
       "mockSub": "Ep.1–5 · tap to pick & play"
+    },
+    "intro": {
+      "kicker": "Product Film",
+      "title": "How an AI short drama gets made",
+      "sub": "From novel to storyboard, images and video, then a finished cut — one studio pipeline.",
+      "play": "Play intro",
+      "badge": "Lotus Shorts · Intro",
+      "mute": "Mute",
+      "unmute": "Unmute"
     },
     "flow": {
       "title": "Three steps from text to cut",

@@ -5,7 +5,10 @@
   <Toaster position="top-right" :duration="3000" :theme="resolvedTheme" />
   <ErrorNoticeDialog />
   <MigrateOverlay />
-  <ContactFloat v-if="!isLandingPath(route.path) && !route.path.startsWith('/admin')" />
+  <ContactFloat
+    v-if="!route.path.startsWith('/admin')"
+    :icon-only="isLandingPath(route.path)"
+  />
   <noscript>
     <div class="seo-noscript">
       <h1>{{ t('seo.noscriptTitle') }}</h1>

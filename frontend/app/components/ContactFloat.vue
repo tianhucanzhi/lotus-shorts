@@ -1,8 +1,15 @@
 <template>
   <div class="contact-float">
-    <button type="button" class="contact-btn" @click="open = true">
-      <MessageCircle :size="16" :stroke-width="1.8" />
-      <span>{{ t('layout.contact.label') }}</span>
+    <button
+      type="button"
+      class="contact-btn"
+      :class="{ 'is-icon': iconOnly }"
+      :aria-label="t('layout.contact.label')"
+      :title="t('layout.contact.label')"
+      @click="open = true"
+    >
+      <MessageCircle :size="iconOnly ? 20 : 16" :stroke-width="1.8" />
+      <span v-if="!iconOnly">{{ t('layout.contact.label') }}</span>
     </button>
 
     <div v-if="open" class="overlay contact-overlay" @click.self="open = false">
@@ -27,6 +34,8 @@
 import { onMounted, onUnmounted } from 'vue'
 import { MessageCircle, X } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
+
+withDefaults(defineProps<{ iconOnly?: boolean }>(), { iconOnly: false })
 
 const { t } = useI18n()
 const open = ref(false)
@@ -60,7 +69,20 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   box-shadow: var(--shadow-elevated);
   cursor: pointer;
 }
+.contact-btn.is-icon {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface-raised, #fffdf8);
+  color: var(--text-0);
+}
 .contact-btn:hover { background: var(--bg-hover); }
+.contact-btn.is-icon:hover {
+  background: color-mix(in srgb, var(--accent-bg, #c45a48) 14%, var(--surface-raised, #fffdf8));
+  color: var(--accent, #c45a48);
+}
 .contact-btn:focus-visible { outline: none; box-shadow: 0 0 0 3.5px var(--button-focus); }
 .contact-overlay { z-index: 120; }
 .contact-dialog { width: min(400px, calc(100vw - 32px)); }

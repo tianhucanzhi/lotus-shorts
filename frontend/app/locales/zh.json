@@ -23,6 +23,7 @@
   "landing": {
     "brand": "莲花短剧",
     "nav": {
+      "intro": "介绍片",
       "flow": "怎么做",
       "samples": "看样片",
       "cost": "成本",
@@ -35,9 +36,18 @@
       "headline": "传一本小说，几小时出一部 60 集竖屏短剧",
       "support": "小说改剧本、资产与分镜、生图生视频到成片拼接，一条流水线做完。适合古装、都市、漫剧等竖屏内容。",
       "ctaPrimary": "免费注册开始",
-      "ctaSecondary": "先看样片",
+      "ctaSecondary": "看介绍片",
       "mockTitle": "短剧样片",
       "mockSub": "第 1–5 集 · 点按选集播放"
+    },
+    "intro": {
+      "kicker": "Product Film",
+      "title": "一部 AI 短剧，是怎样做出来的",
+      "sub": "从小说到分镜、生图生视频再到成片——把制作链路压进一个工作台。",
+      "play": "播放介绍",
+      "badge": "Lotus Shorts · Intro",
+      "mute": "静音",
+      "unmute": "开启声音"
     },
     "flow": {
       "title": "三步，从文字到成片",
