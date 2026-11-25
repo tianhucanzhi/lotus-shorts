@@ -65,9 +65,43 @@ app.put('/:id', async (c) => {
   // 手动编辑最终提示词时以传入值为准；未传入则保留原值（修改信息时不再自动置空）
   if (body.final_prompt !== undefined) updates.finalPrompt = body.final_prompt || null
   else if (body.finalPrompt !== undefined) updates.finalPrompt = body.finalPrompt || null
+  if (body.reference_images !== undefined || body.referenceImages !== undefined) {
+    updates.referenceImages = normalizeMediaRefsInput(body.reference_images ?? body.referenceImages)
+  }
   await db.update(schema.scenes).set(updates).where(eq(schema.scenes.id, id))
   return success(c)
 })
+
+/** scenes.reference_images：JSON 数组或单条路径 */
+function parseMediaRefs(raw?: string | null): string[] {
+  if (!raw) return []
+  const s = String(raw).trim()
+  if (!s) return []
+  try {
+    const v = JSON.parse(s)
+    if (Array.isArray(v)) return v.map((x) => String(x || '').trim()).filter(Boolean)
+    if (typeof v === 'string' && v.trim()) return [v.trim()]
+  } catch { /* 非 JSON 当作单路径 */ }
+  return [s]
+}
+
+function normalizeMediaRefsInput(raw: unknown): string | null {
+  if (raw == null) return null
+  if (Array.isArray(raw)) {
+    const list = raw.map((x) => String(x || '').trim()).filter(Boolean)
+    return list.length ? JSON.stringify(list) : null
+  }
+  const s = String(raw).trim()
+  if (!s) return null
+  try {
+    const v = JSON.parse(s)
+    if (Array.isArray(v)) {
+      const list = v.map((x) => String(x || '').trim()).filter(Boolean)
+      return list.length ? JSON.stringify(list) : null
+    }
+  } catch { /* ignore */ }
+  return JSON.stringify([s])
+}
 
 // POST /scenes/:id/generate-image
 app.post('/:id/generate-image', async (c) => {
@@ -92,10 +126,23 @@ app.post('/:id/generate-image', async (c) => {
     scene.lighting || '电影感光影',
     '画面中没有任何人物，空场景，只有场景本身',
   ].filter(Boolean).join(', ')
+  const bodyRefs = Array.isArray(body.reference_image_urls)
+    ? body.reference_image_urls.map((x: unknown) => String(x || '').trim()).filter(Boolean)
+    : Array.isArray(body.referenceImageUrls)
+      ? body.referenceImageUrls.map((x: unknown) => String(x || '').trim()).filter(Boolean)
+      : []
+  const referenceImages = bodyRefs.length ? bodyRefs : parseMediaRefs(scene.referenceImages)
   try {
-    logTaskStart('SceneImage', 'generate', { sceneId: id, episodeId: ep.id, dramaId: scene.dramaId, location: scene.location })
+    logTaskStart('SceneImage', 'generate', { sceneId: id, episodeId: ep.id, dramaId: scene.dramaId, location: scene.location, refs: referenceImages.length })
     await db.update(schema.scenes).set({ status: 'processing', updatedAt: now() }).where(eq(schema.scenes.id, id))
-    const genId = await generateImage({ sceneId: id, dramaId: scene.dramaId, prompt, model: body.model, configId: body.config_id ?? ep.imageConfigId ?? undefined })
+    const genId = await generateImage({
+      sceneId: id,
+      dramaId: scene.dramaId,
+      prompt,
+      model: body.model,
+      configId: body.config_id ?? ep.imageConfigId ?? undefined,
+      referenceImages: referenceImages.length ? referenceImages : undefined,
+    })
     logTaskSuccess('SceneImage', 'generate', { sceneId: id, generationId: genId })
     return success(c, { image_generation_id: genId })
   } catch (err: any) {

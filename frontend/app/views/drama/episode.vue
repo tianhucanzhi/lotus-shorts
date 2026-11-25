@@ -350,6 +350,7 @@
                         <div class="character-name-row">
                           <strong class="character-name">{{ c.name }}</strong>
                           <span class="tag">{{ c.role || t('common.role') }}</span>
+                          <span v-if="characterHasVoice(c)" class="tag tag-voice" :title="t('episode.asset.voiceBadgeHint')">{{ t('episode.asset.voiceBadge') }}</span>
                         </div>
                         <div class="character-visual-summary" :title="characterVisualSummary(c)">
                           <span>{{ t('episode.asset.appearance') }}{{ characterAppearanceValue(c) }}</span>
@@ -867,7 +868,10 @@
                       >
                         <img v-if="asset.ready" :src="thumbOf(assetImageSrc({ imageUrl: asset.imageUrl }))" :alt="asset.name" loading="lazy" @error="thumbFallback($event, assetImageSrc({ imageUrl: asset.imageUrl }))" />
                         <span v-else class="video-bound-ref-empty">{{ asset.kind === 'scene' ? t('episode.ref.shortScene') : asset.kind === 'prop' ? t('episode.ref.shortProp') : t('episode.ref.shortChar') }}</span>
-                        <small>{{ asset.name }}</small>
+                        <small>
+                          {{ asset.name }}
+                          <span v-if="asset.hasVoice" class="video-bound-ref-voice">{{ t('episode.asset.voiceBadge') }}</span>
+                        </small>
                       </button>
                     </div>
                     <div v-else class="video-bound-refs-empty">{{ t('episode.inspector.noBoundRefs') }}</div>
@@ -1395,43 +1399,81 @@
                   </label>
                 </div>
 
-                <div v-if="assetDetail.type === 'character'" class="asset-ref-panel">
+                <div class="asset-ref-panel">
                   <div class="asset-detail-section-title">
                     <span>{{ t('episode.asset.refImageTitle') }}</span>
                     <span class="dim">{{ t('episode.asset.refImageHint') }}</span>
                   </div>
                   <div class="asset-ref-row">
                     <button
-                      v-if="characterRefImageSrc(assetDetail.item)"
+                      v-if="assetRefImageSrc(assetDetail.item)"
                       type="button"
                       class="asset-ref-thumb"
-                      @click="openImageViewer(characterRefImageSrc(assetDetail.item), t('episode.asset.refImageTitle'))"
+                      @click="openImageViewer(assetRefImageSrc(assetDetail.item), t('episode.asset.refImageTitle'))"
                     >
                       <img
-                        :src="thumbOf(characterRefImageSrc(assetDetail.item))"
+                        :src="thumbOf(assetRefImageSrc(assetDetail.item))"
                         class="previewable-image"
                         loading="lazy"
-                        @error="thumbFallback($event, characterRefImageSrc(assetDetail.item))"
+                        @error="thumbFallback($event, assetRefImageSrc(assetDetail.item))"
                       />
                     </button>
                     <div v-else class="asset-ref-empty">{{ t('episode.asset.refImageEmpty') }}</div>
                     <div class="asset-ref-actions">
                       <button
                         class="btn btn-sm"
-                        :disabled="isUploadingCharRef(assetDetail.item.id)"
-                        @click="uploadCharacterRefImage(assetDetail.item.id)"
+                        :disabled="isUploadingAssetRef(assetDetail.type, assetDetail.item.id)"
+                        @click="uploadAssetRefImage(assetDetail.type, assetDetail.item.id)"
                       >
-                        <Loader2 v-if="isUploadingCharRef(assetDetail.item.id)" :size="11" class="animate-spin" />
-                        {{ characterRefImageSrc(assetDetail.item) ? t('episode.asset.refImageReplace') : t('episode.asset.refImageUpload') }}
+                        <Loader2 v-if="isUploadingAssetRef(assetDetail.type, assetDetail.item.id)" :size="11" class="animate-spin" />
+                        {{ assetRefImageSrc(assetDetail.item) ? t('episode.asset.refImageReplace') : t('episode.asset.refImageUpload') }}
                       </button>
                       <button
-                        v-if="characterRefImageSrc(assetDetail.item)"
+                        v-if="assetRefImageSrc(assetDetail.item)"
                         class="btn btn-ghost btn-sm"
-                        :disabled="isUploadingCharRef(assetDetail.item.id)"
-                        @click="clearCharacterRefImage(assetDetail.item.id)"
+                        :disabled="isUploadingAssetRef(assetDetail.type, assetDetail.item.id)"
+                        @click="clearAssetRefImage(assetDetail.type, assetDetail.item.id)"
                       >{{ t('episode.asset.refImageClear') }}</button>
                     </div>
                   </div>
+                </div>
+
+                <div v-if="assetDetail.type === 'character'" class="asset-ref-panel asset-voice-panel">
+                  <div class="asset-detail-section-title">
+                    <span>{{ t('episode.asset.voiceTitle') }}</span>
+                    <span class="dim">{{ t('episode.asset.voiceHint') }}</span>
+                  </div>
+                  <div class="asset-ref-row">
+                    <div v-if="characterRefAudioSrc(assetDetail.item)" class="asset-voice-player">
+                      <audio :src="characterRefAudioSrc(assetDetail.item)" controls preload="metadata" />
+                    </div>
+                    <div v-else class="asset-ref-empty">{{ t('episode.asset.voiceEmpty') }}</div>
+                    <div class="asset-ref-actions">
+                      <button
+                        class="btn btn-sm"
+                        :disabled="isUploadingCharVoice(assetDetail.item.id)"
+                        @click="uploadCharacterRefAudio(assetDetail.item.id)"
+                      >
+                        <Loader2 v-if="isUploadingCharVoice(assetDetail.item.id)" :size="11" class="animate-spin" />
+                        {{ characterRefAudioSrc(assetDetail.item) ? t('episode.asset.voiceReplace') : t('episode.asset.voiceUpload') }}
+                      </button>
+                      <button
+                        v-if="characterRefAudioSrc(assetDetail.item)"
+                        class="btn btn-ghost btn-sm"
+                        :disabled="isUploadingCharVoice(assetDetail.item.id)"
+                        @click="clearCharacterRefAudio(assetDetail.item.id)"
+                      >{{ t('episode.asset.voiceClear') }}</button>
+                    </div>
+                  </div>
+                  <label class="asset-detail-edit-field">
+                    <span>{{ t('episode.asset.voiceStyleField') }}</span>
+                    <textarea
+                      v-model="assetDetailDraft.voiceStyle"
+                      class="input"
+                      rows="2"
+                      :placeholder="t('episode.asset.voiceStylePlaceholder')"
+                    />
+                  </label>
                 </div>
 
               </section>
@@ -2273,15 +2315,17 @@ async function toggleExportDone() {
   }
 }
 const assetDetail = ref({ open: false, type: '', item: null })
-const assetDetailDraft = ref({ appearance: '', styling: '', prompt: '', lighting: '', description: '' })
+const assetDetailDraft = ref({ appearance: '', styling: '', prompt: '', lighting: '', description: '', voiceStyle: '' })
 // 最终提示词手动编辑：dirty 时才随保存提交，避免无修改保存误清空 Agent 生成的提示词
 const assetPromptDraft = ref('')
 const assetPromptDirty = ref(false)
 const savingAssetDetail = ref(false)
-const uploadingCharRefIds = ref([])
+const uploadingAssetRefKeys = ref([])
+const uploadingCharVoiceIds = ref([])
+/** 本会话内「未设音色」轻提示只弹一次 */
+let voiceMissingHintShown = false
 
-function parseCharacterReferenceImages(item) {
-  const raw = item?.reference_images ?? item?.referenceImages
+function parseAssetMediaRefs(raw) {
   if (!raw) return []
   if (Array.isArray(raw)) return raw.map((x) => String(x || '').trim()).filter(Boolean)
   const s = String(raw).trim()
@@ -2294,52 +2338,145 @@ function parseCharacterReferenceImages(item) {
   return [s]
 }
 
-function characterRefImageSrc(item) {
-  const first = parseCharacterReferenceImages(item)[0]
+function parseAssetReferenceImages(item) {
+  return parseAssetMediaRefs(item?.reference_images ?? item?.referenceImages)
+}
+
+function parseCharacterReferenceAudios(item) {
+  return parseAssetMediaRefs(item?.reference_audios ?? item?.referenceAudios)
+}
+
+function characterVoiceStyle(item) {
+  return String(item?.voice_style || item?.voiceStyle || '').trim()
+}
+
+function characterHasVoice(item) {
+  return parseCharacterReferenceAudios(item).length > 0 || !!characterVoiceStyle(item)
+}
+
+function characterHasVoiceAudio(item) {
+  return parseCharacterReferenceAudios(item).length > 0
+}
+
+function assetRefImageSrc(item) {
+  const first = parseAssetReferenceImages(item)[0]
   return first ? assetImageSrc({ imageUrl: first }) : ''
 }
 
-function isUploadingCharRef(id) {
-  return uploadingCharRefIds.value.includes(id)
+function characterRefAudioSrc(item) {
+  const first = parseCharacterReferenceAudios(item)[0]
+  return first ? assetImageSrc({ imageUrl: first }) : ''
 }
 
-function patchCharacterRefLocal(id, refs) {
-  const encoded = refs.length ? JSON.stringify(refs) : null
-  const patch = { reference_images: encoded, referenceImages: encoded }
-  const listItem = chars.value.find((c) => c.id === id)
+function assetRefKey(type, id) {
+  return `${type}:${id}`
+}
+
+function isUploadingAssetRef(type, id) {
+  return uploadingAssetRefKeys.value.includes(assetRefKey(type, id))
+}
+
+function isUploadingCharVoice(id) {
+  return uploadingCharVoiceIds.value.includes(id)
+}
+
+function patchAssetLocal(type, id, patch) {
+  const list = type === 'character' ? chars.value : type === 'scene' ? scenes.value : propItems.value
+  const listItem = list.find((x) => x.id === id)
   if (listItem) Object.assign(listItem, patch)
-  if (assetDetail.value.open && assetDetail.value.type === 'character' && assetDetail.value.item?.id === id) {
+  if (assetDetail.value.open && assetDetail.value.type === type && assetDetail.value.item?.id === id) {
     Object.assign(assetDetail.value.item, patch)
   }
 }
 
-function uploadCharacterRefImage(id) {
+function patchCharacterLocal(id, patch) {
+  patchAssetLocal('character', id, patch)
+}
+
+function patchAssetRefLocal(type, id, refs) {
+  const encoded = refs.length ? JSON.stringify(refs) : null
+  patchAssetLocal(type, id, { reference_images: encoded, referenceImages: encoded })
+}
+
+function patchCharacterAudioLocal(id, refs) {
+  const encoded = refs.length ? JSON.stringify(refs) : null
+  patchCharacterLocal(id, { reference_audios: encoded, referenceAudios: encoded })
+}
+
+function uploadAssetRefImage(type, id) {
   pickFile('image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp', async (file) => {
-    if (!uploadingCharRefIds.value.includes(id)) uploadingCharRefIds.value.push(id)
+    const key = assetRefKey(type, id)
+    if (!uploadingAssetRefKeys.value.includes(key)) uploadingAssetRefKeys.value.push(key)
     try {
       const res = await uploadAPI.image(file)
       const refs = [res.path]
-      await characterAPI.update(id, { reference_images: refs })
-      patchCharacterRefLocal(id, refs)
+      if (type === 'character') await characterAPI.update(id, { reference_images: refs })
+      else if (type === 'scene') await sceneAPI.update(id, { reference_images: refs })
+      else await propAPI.update(id, { reference_images: refs })
+      patchAssetRefLocal(type, id, refs)
       toast.success(t('episode.asset.refImageUploaded'))
     } catch (e) {
       toastError(e)
     } finally {
-      uploadingCharRefIds.value = uploadingCharRefIds.value.filter((x) => x !== id)
+      uploadingAssetRefKeys.value = uploadingAssetRefKeys.value.filter((x) => x !== key)
     }
   })
 }
 
-async function clearCharacterRefImage(id) {
-  if (!uploadingCharRefIds.value.includes(id)) uploadingCharRefIds.value.push(id)
+async function clearAssetRefImage(type, id) {
+  const key = assetRefKey(type, id)
+  if (!uploadingAssetRefKeys.value.includes(key)) uploadingAssetRefKeys.value.push(key)
   try {
-    await characterAPI.update(id, { reference_images: [] })
-    patchCharacterRefLocal(id, [])
+    if (type === 'character') await characterAPI.update(id, { reference_images: [] })
+    else if (type === 'scene') await sceneAPI.update(id, { reference_images: [] })
+    else await propAPI.update(id, { reference_images: [] })
+    patchAssetRefLocal(type, id, [])
     toast.success(t('episode.asset.refImageCleared'))
   } catch (e) {
     toastError(e)
   } finally {
-    uploadingCharRefIds.value = uploadingCharRefIds.value.filter((x) => x !== id)
+    uploadingAssetRefKeys.value = uploadingAssetRefKeys.value.filter((x) => x !== key)
+  }
+}
+
+function uploadCharacterRefAudio(id) {
+  pickFile('audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/aac,.mp3,.wav,.m4a,.aac', async (file) => {
+    if (!uploadingCharVoiceIds.value.includes(id)) uploadingCharVoiceIds.value.push(id)
+    try {
+      const res = await uploadAPI.audio(file)
+      const refs = [res.path]
+      const payload = { reference_audios: refs }
+      // 上传音色时一并落库当前声线描述草稿，避免用户以为还要再点保存
+      if (assetDetail.value.open && assetDetail.value.type === 'character' && assetDetail.value.item?.id === id) {
+        const draftVoice = String(assetDetailDraft.value.voiceStyle || '').trim()
+        if (draftVoice !== characterVoiceStyle(assetDetail.value.item)) {
+          payload.voice_style = draftVoice
+        }
+      }
+      await characterAPI.update(id, payload)
+      patchCharacterAudioLocal(id, refs)
+      if (payload.voice_style !== undefined) {
+        patchCharacterLocal(id, { voice_style: payload.voice_style, voiceStyle: payload.voice_style })
+      }
+      toast.success(t('episode.asset.voiceUploaded'))
+    } catch (e) {
+      toastError(e)
+    } finally {
+      uploadingCharVoiceIds.value = uploadingCharVoiceIds.value.filter((x) => x !== id)
+    }
+  })
+}
+
+async function clearCharacterRefAudio(id) {
+  if (!uploadingCharVoiceIds.value.includes(id)) uploadingCharVoiceIds.value.push(id)
+  try {
+    await characterAPI.update(id, { reference_audios: [] })
+    patchCharacterAudioLocal(id, [])
+    toast.success(t('episode.asset.voiceCleared'))
+  } catch (e) {
+    toastError(e)
+  } finally {
+    uploadingCharVoiceIds.value = uploadingCharVoiceIds.value.filter((x) => x !== id)
   }
 }
 
@@ -2365,6 +2502,7 @@ function openAssetDetail(type, item) {
     prompt: item.prompt || (type === 'prop' ? '' : item.description) || '',
     lighting: item.lighting || '',
     description: item.description || '',
+    voiceStyle: characterVoiceStyle(item),
   }
   assetPromptDraft.value = item.final_prompt || item.finalPrompt || ''
   assetPromptDirty.value = false
@@ -2372,7 +2510,7 @@ function openAssetDetail(type, item) {
 
 function closeAssetDetail() {
   assetDetail.value = { open: false, type: '', item: null }
-  assetDetailDraft.value = { appearance: '', styling: '', prompt: '', lighting: '', description: '' }
+  assetDetailDraft.value = { appearance: '', styling: '', prompt: '', lighting: '', description: '', voiceStyle: '' }
   assetPromptDraft.value = ''
   assetPromptDirty.value = false
 }
@@ -2540,6 +2678,8 @@ async function saveAssetDetail() {
   if (detail.type === 'character') {
     if (assetDetailDraft.value.appearance !== (item.appearance || '')) payload.appearance = assetDetailDraft.value.appearance
     if (assetDetailDraft.value.styling !== (item.styling || '')) payload.styling = assetDetailDraft.value.styling
+    const draftVoice = String(assetDetailDraft.value.voiceStyle || '').trim()
+    if (draftVoice !== characterVoiceStyle(item)) payload.voice_style = draftVoice
   } else if (detail.type === 'scene') {
     if (assetDetailDraft.value.prompt !== (item.prompt || '')) payload.prompt = assetDetailDraft.value.prompt
     if (assetDetailDraft.value.lighting !== (item.lighting || '')) payload.lighting = assetDetailDraft.value.lighting
@@ -2550,7 +2690,11 @@ async function saveAssetDetail() {
   // 手动编辑过最终提示词才提交；空串视为清空
   if (assetPromptDirty.value) payload.final_prompt = assetPromptDraft.value.trim() || ''
   if (!infoChanged && !assetPromptDirty.value) {
-    toast.info(t('episode.asset.noChanges'))
+    if (detail.type === 'character' && characterHasVoiceAudio(item)) {
+      toast.info(t('episode.asset.voiceAlreadySaved'))
+    } else {
+      toast.info(t('episode.asset.noChanges'))
+    }
     return
   }
   savingAssetDetail.value = true
@@ -2558,9 +2702,14 @@ async function saveAssetDetail() {
     if (detail.type === 'character') await characterAPI.update(item.id, payload)
     else if (detail.type === 'scene') await sceneAPI.update(item.id, payload)
     else await propAPI.update(item.id, payload)
-    // 本地同步：手动编辑的提示词以草稿为准；仅信息字段变更时提示词已被后端置空
+    // 本地同步：手动编辑的提示词以草稿为准；样貌/妆造等视觉信息变更时旧提示词作废（音色不影响定妆提示词）
     const { final_prompt, ...infoPatch } = payload
-    const promptValue = assetPromptDirty.value ? (payload.final_prompt || null) : (infoChanged ? null : (item.final_prompt || item.finalPrompt || null))
+    if (infoPatch.voice_style !== undefined) infoPatch.voiceStyle = infoPatch.voice_style
+    const visualInfoChanged = !!(infoPatch.appearance !== undefined || infoPatch.styling !== undefined
+      || infoPatch.prompt !== undefined || infoPatch.lighting !== undefined || infoPatch.description !== undefined)
+    const promptValue = assetPromptDirty.value
+      ? (payload.final_prompt || null)
+      : (visualInfoChanged ? null : (item.final_prompt || item.finalPrompt || null))
     Object.assign(item, infoPatch, { final_prompt: promptValue, finalPrompt: promptValue })
     const list = detail.type === 'character' ? chars.value : detail.type === 'scene' ? scenes.value : propItems.value
     const target = list.find(x => x.id === item.id)
@@ -2954,6 +3103,17 @@ const isWan3Video = computed(() => selectedVideoConfig.value?.provider === 'aliy
 
 // 参考图上限（Wan 3.0 官方 10 张，其他模型 9 张），绑定素材收集与 @名字 映射统一读取
 const refImageLimit = computed(() => isWan3Video.value ? 10 : 9)
+
+const isComfyVideo = computed(() => {
+  const p = String(selectedVideoConfig.value?.provider || '').toLowerCase()
+  return p === 'comfyui' || p === 'comfyui_cloud'
+})
+
+// 参考音频上限：Wan ≤5，其余云模型 ≤3；Comfy 不支持
+const refAudioLimit = computed(() => {
+  if (isComfyVideo.value) return 0
+  return isWan3Video.value ? 5 : 3
+})
 
 // 本次生成的生效配置（模型/分辨率/时长），用于右侧小结与批量确认弹窗
 const effectiveVideoModelLabel = computed(() => {
@@ -4233,6 +4393,53 @@ function getShotReferenceImages(sb) {
   return refs
 }
 
+/** 本镜绑定角色的参考音频（按绑定顺序）；超限时 toast 标明跳过角色 */
+function getShotReferenceAudios(sb, { notifySkip = false } = {}) {
+  const limit = refAudioLimit.value
+  if (limit <= 0) return []
+  const refs = []
+  const skipped = []
+  for (const char of getStoryboardCharacters(sb)) {
+    const url = parseCharacterReferenceAudios(char)[0]
+    if (!url) continue
+    if (refs.includes(url)) continue
+    if (refs.length >= limit) {
+      skipped.push(char.name || t('episode.asset.unnamedChar'))
+      continue
+    }
+    refs.push(url)
+  }
+  if (notifySkip && skipped.length) {
+    toast.info(t('episode.vid.voiceAudioSkipped', { names: skipped.join('、'), n: limit }))
+  }
+  return refs
+}
+
+/** 生成时追加 Voice lock，不改库内 video_prompt */
+function buildVoiceLockPrompt(sb) {
+  const parts = []
+  for (const char of getStoryboardCharacters(sb)) {
+    const name = String(char.name || '').trim()
+    if (!name) continue
+    const style = characterVoiceStyle(char)
+    const hasAudio = characterHasVoiceAudio(char)
+    if (!style && !hasAudio) continue
+    const detail = style
+      ? (hasAudio ? `${style}（match reference audio）` : style)
+      : 'match reference audio'
+    parts.push(`@${name} — ${detail}`)
+  }
+  if (!parts.length) return ''
+  return `Voice lock: ${parts.join('; ')}`
+}
+
+function resolveVideoPromptWithVoice(sb) {
+  const base = resolveVideoPromptRefs(sb)
+  const voice = buildVoiceLockPrompt(sb)
+  if (!voice) return base
+  return base ? `${base}\n\n${voice}` : voice
+}
+
 // 右侧参考素材面板：本集全部可绑定素材（场景单选、角色/道具多选），bound 标记是否已绑定
 // kind 为英文 code（逻辑值）；typeLabel 为显示名（渲染时求值）
 function shotBindableAssets(sb) {
@@ -4250,6 +4457,7 @@ function shotBindableAssets(sb) {
       imageUrl,
       ready: !!imageUrl,
       bound,
+      hasVoice: characterHasVoiceAudio(char),
     })
   }
   for (const scene of scenes.value) {
@@ -4445,17 +4653,33 @@ async function genVid(sb, opts = {}) {
     if (!ok) return
   }
   const referenceImages = getShotReferenceImages(sb)
-  // 参考素材完全来自分镜绑定的角色/场景/道具图片
+  const boundChars = getStoryboardCharacters(sb)
+  const anyVoiceConfigured = boundChars.some(c => characterHasVoice(c))
+  const anyVoiceAudio = boundChars.some(c => characterHasVoiceAudio(c))
+  if (!opts.silent && boundChars.length && !anyVoiceConfigured && !voiceMissingHintShown) {
+    voiceMissingHintShown = true
+    toast.info(t('episode.vid.voiceMissingHint'))
+  }
+  if (anyVoiceAudio && isComfyVideo.value && !opts.silent) {
+    toast.info(t('episode.vid.voiceComfyUnsupported'))
+  }
+  const referenceAudios = getShotReferenceAudios(sb, { notifySkip: !opts.silent })
+  if (referenceAudios.length && !referenceImages.length) {
+    toast.error(t('episode.vid.voiceNeedImage'))
+    return
+  }
+  // 参考图来自分镜绑定的角色/场景/道具；参考音频来自绑定角色的音色样本
   const params = {
     storyboard_id: sb.id,
     drama_id: dramaId,
-    prompt: resolveVideoPromptRefs(sb),
+    prompt: resolveVideoPromptWithVoice(sb),
     duration: Number(sb.duration || 10),
     aspect_ratio: dramaAspectRatio.value,
     generate_audio: true,
     model: bareModelName(videoModel.value) || undefined,
     config_id: ownerConfigId(videoModelOptions.value, videoModel.value),
     reference_image_urls: referenceImages,
+    reference_audio_urls: referenceAudios.length ? referenceAudios : undefined,
   }
   if (!params.prompt && !referenceImages.length) {
     toast.error(t('episode.vid.needRefOrPrompt'))
@@ -6733,6 +6957,34 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+.asset-voice-panel .asset-detail-edit-field {
+  margin-top: 2px;
+}
+.asset-voice-player {
+  flex: 1;
+  min-width: 180px;
+  max-width: 360px;
+}
+.asset-voice-player audio {
+  width: 100%;
+  height: 36px;
+}
+.tag-voice {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  border: none;
+}
+.video-bound-ref-voice {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  font-size: 9px;
+  font-weight: 760;
+  vertical-align: middle;
 }
 .asset-detail-preview-panel {
   position: sticky;

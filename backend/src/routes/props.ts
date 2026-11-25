@@ -69,9 +69,43 @@ app.put('/:id', async (c) => {
   // 手动编辑最终提示词时以传入值为准；未传入则保留原值（修改信息时不再自动置空）
   if (body.final_prompt !== undefined) updates.finalPrompt = body.final_prompt || null
   else if (body.finalPrompt !== undefined) updates.finalPrompt = body.finalPrompt || null
+  if (body.reference_images !== undefined || body.referenceImages !== undefined) {
+    updates.referenceImages = normalizeMediaRefsInput(body.reference_images ?? body.referenceImages)
+  }
   await db.update(schema.props).set(updates).where(eq(schema.props.id, id))
   return success(c)
 })
+
+/** props.reference_images：JSON 数组或单条路径 */
+function parseMediaRefs(raw?: string | null): string[] {
+  if (!raw) return []
+  const s = String(raw).trim()
+  if (!s) return []
+  try {
+    const v = JSON.parse(s)
+    if (Array.isArray(v)) return v.map((x) => String(x || '').trim()).filter(Boolean)
+    if (typeof v === 'string' && v.trim()) return [v.trim()]
+  } catch { /* 非 JSON 当作单路径 */ }
+  return [s]
+}
+
+function normalizeMediaRefsInput(raw: unknown): string | null {
+  if (raw == null) return null
+  if (Array.isArray(raw)) {
+    const list = raw.map((x) => String(x || '').trim()).filter(Boolean)
+    return list.length ? JSON.stringify(list) : null
+  }
+  const s = String(raw).trim()
+  if (!s) return null
+  try {
+    const v = JSON.parse(s)
+    if (Array.isArray(v)) {
+      const list = v.map((x) => String(x || '').trim()).filter(Boolean)
+      return list.length ? JSON.stringify(list) : null
+    }
+  } catch { /* ignore */ }
+  return JSON.stringify([s])
+}
 
 /** 本地兜底提示词：白底单品，不掺杂其他元素 */
 function propImagePrompt(prop: typeof schema.props.$inferSelect, stylePrompt = '') {
@@ -126,9 +160,23 @@ app.post('/:id/generate-image', async (c) => {
   const stylePrompt = await getDramaStylePrompt(prop.dramaId)
   const finalPrompt = await ensurePropFinalPrompt(prop, ep.id, false, { model: body.text_model, configId: body.text_config_id ?? undefined })
   const prompt = finalPrompt || propImagePrompt(prop, stylePrompt)
+  const bodyRefs = Array.isArray(body.reference_image_urls)
+    ? body.reference_image_urls.map((x: unknown) => String(x || '').trim()).filter(Boolean)
+    : Array.isArray(body.referenceImageUrls)
+      ? body.referenceImageUrls.map((x: unknown) => String(x || '').trim()).filter(Boolean)
+      : []
+  const referenceImages = bodyRefs.length ? bodyRefs : parseMediaRefs(prop.referenceImages)
   try {
-    logTaskStart('PropImage', 'generate', { propId: id, episodeId: ep.id, dramaId: prop.dramaId })
-    const genId = await generateImage({ propId: id, dramaId: prop.dramaId, prompt, model: body.model, size: PROP_IMAGE_SIZE, configId: body.config_id ?? ep.imageConfigId ?? undefined })
+    logTaskStart('PropImage', 'generate', { propId: id, episodeId: ep.id, dramaId: prop.dramaId, refs: referenceImages.length })
+    const genId = await generateImage({
+      propId: id,
+      dramaId: prop.dramaId,
+      prompt,
+      model: body.model,
+      size: PROP_IMAGE_SIZE,
+      configId: body.config_id ?? ep.imageConfigId ?? undefined,
+      referenceImages: referenceImages.length ? referenceImages : undefined,
+    })
     logTaskSuccess('PropImage', 'generate', { propId: id, generationId: genId })
     return success(c, { image_generation_id: genId })
   } catch (err: any) {

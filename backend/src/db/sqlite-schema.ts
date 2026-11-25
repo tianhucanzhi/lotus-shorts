@@ -70,6 +70,8 @@ export const sqliteSchemaStatements = [
     personality TEXT,
     image_url TEXT,
     reference_images TEXT,
+    reference_audios TEXT,
+    voice_style TEXT,
     seed_value TEXT,
     sort_order INTEGER,
     local_path TEXT,
@@ -89,6 +91,7 @@ export const sqliteSchemaStatements = [
     final_prompt TEXT,
     storyboard_count INTEGER DEFAULT 1,
     image_url TEXT,
+    reference_images TEXT,
     status TEXT DEFAULT 'pending',
     local_path TEXT,
     created_at TEXT NOT NULL,
@@ -481,6 +484,10 @@ export function initSqliteSchema(sqlite: Database.Database) {
   ensureColumn(sqlite, 'ai_service_configs', 'user_id', 'INTEGER')
   ensureColumn(sqlite, 'style_presets', 'user_id', 'INTEGER')
   ensureColumn(sqlite, 'storyboard_characters', 'variant_id', 'INTEGER')
+  ensureColumn(sqlite, 'characters', 'reference_audios', 'TEXT')
+  ensureColumn(sqlite, 'characters', 'voice_style', 'TEXT')
+  ensureColumn(sqlite, 'scenes', 'reference_images', 'TEXT')
+  ensureColumn(sqlite, 'props', 'reference_images', 'TEXT')
   ensureColumn(sqlite, 'users', 'admin_menus', 'TEXT')
   sqlite.exec('CREATE INDEX IF NOT EXISTS idx_dramas_user_id ON dramas(user_id)')
   sqlite.exec('CREATE INDEX IF NOT EXISTS idx_ai_service_configs_user_id ON ai_service_configs(user_id)')

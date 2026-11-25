@@ -64,8 +64,8 @@ function characterImagePrompt(char: typeof schema.characters.$inferSelect, style
   ].filter(Boolean).join(', ')
 }
 
-/** characters.reference_images：JSON 数组或单条路径 */
-function parseCharacterReferenceImages(raw?: string | null): string[] {
+/** characters.reference_images / reference_audios：JSON 数组或单条路径 */
+function parseCharacterMediaRefs(raw?: string | null): string[] {
   if (!raw) return []
   const s = String(raw).trim()
   if (!s) return []
@@ -77,7 +77,11 @@ function parseCharacterReferenceImages(raw?: string | null): string[] {
   return [s]
 }
 
-function normalizeReferenceImagesInput(raw: unknown): string | null {
+function parseCharacterReferenceImages(raw?: string | null): string[] {
+  return parseCharacterMediaRefs(raw)
+}
+
+function normalizeMediaRefsInput(raw: unknown): string | null {
   if (raw == null) return null
   if (Array.isArray(raw)) {
     const list = raw.map((x) => String(x || '').trim()).filter(Boolean)
@@ -95,6 +99,10 @@ function normalizeReferenceImagesInput(raw: unknown): string | null {
   return JSON.stringify([s])
 }
 
+function normalizeReferenceImagesInput(raw: unknown): string | null {
+  return normalizeMediaRefsInput(raw)
+}
+
 // PUT /characters/:id
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
@@ -104,7 +112,7 @@ app.put('/:id', async (c) => {
   const [char] = await db.select().from(schema.characters).where(eq(schema.characters.id, id))
   if (!char) return badRequest(c, '角色不存在')
   const updates: Record<string, any> = { updatedAt: now() }
-  for (const key of ['name', 'role', 'description', 'appearance', 'styling', 'imageUrl', 'localPath']) {
+  for (const key of ['name', 'role', 'description', 'appearance', 'styling', 'voiceStyle', 'imageUrl', 'localPath']) {
     const snakeKey = key.replace(/[A-Z]/g, m => '_' + m.toLowerCase())
     if (snakeKey in body) updates[key] = body[snakeKey]
     else if (key in body) updates[key] = body[key]
@@ -114,6 +122,9 @@ app.put('/:id', async (c) => {
   else if (body.finalPrompt !== undefined) updates.finalPrompt = body.finalPrompt || null
   if (body.reference_images !== undefined || body.referenceImages !== undefined) {
     updates.referenceImages = normalizeReferenceImagesInput(body.reference_images ?? body.referenceImages)
+  }
+  if (body.reference_audios !== undefined || body.referenceAudios !== undefined) {
+    updates.referenceAudios = normalizeMediaRefsInput(body.reference_audios ?? body.referenceAudios)
   }
   const nextImage = updates.imageUrl as string | undefined
   if (nextImage && char.imageUrl && nextImage !== char.imageUrl) {
