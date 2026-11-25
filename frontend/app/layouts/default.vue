@@ -24,7 +24,12 @@
           <Settings :size="15" :stroke-width="1.8" />
           <span>{{ t('layout.nav.settings') }}</span>
         </NuxtLink>
-        <NuxtLink to="/admin" class="nav-link" :class="{ active: route.path === '/admin' || route.path.startsWith('/admin/') }">
+        <NuxtLink
+          v-if="showAdminNav"
+          to="/admin"
+          class="nav-link"
+          :class="{ active: route.path === '/admin' || route.path.startsWith('/admin/') }"
+        >
           <Shield :size="15" :stroke-width="1.8" />
           <span>{{ t('layout.nav.admin') }}</span>
         </NuxtLink>
@@ -78,6 +83,8 @@ import brandLogo from '~/assets/brand-logo.png'
 const { t, locale } = useI18n()
 const route = useRoute()
 const auth = useAuth()
+/** 仅已登录且 role=admin 时露出；桌面独立版普通使用不显示 */
+const showAdminNav = computed(() => auth.isLoggedIn.value && auth.user.value?.role === 'admin')
 const showBrandImage = ref(true)
 const copyrightYear = new Date().getFullYear()
 const footerLinks = computed(() => [

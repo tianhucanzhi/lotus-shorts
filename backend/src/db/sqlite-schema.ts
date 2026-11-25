@@ -347,8 +347,8 @@ export const stylePresetSeeds = [
   },
   {
     name: '3D 漫剧', value: '3d', sortOrder: 3,
-    prompt: 'high-quality 3D CG animation still, modern game-engine cinematic render, Unreal Engine and Pixar grade quality, semi-realistic stylized characters with refined facial features, clean sculpted anatomy, detailed skin shader with subtle subsurface scattering, PBR materials with crisp detailed textures, volumetric cinematic lighting with soft rim light, rich depth of field, polished film color grading, detailed environment art, sharp focus, consistent character design across shots, avoid flat lighting, avoid plastic waxy skin, avoid low-poly blurry look, avoid 2D flat cel shading, avoid anime line art',
-    description: '游戏引擎级 3D 渲染，半写实角色，当前短剧主流的 3D 漫剧质感',
+    prompt: 'Chinese 3D anime / donghua manju key art, stylized 3D cartoon animation character clearly not a real person, anime-like large expressive eyes and simplified cute-handsome facial features, smooth porcelain-like stylized skin with no pores freckles or real makeup, soft toon-shaded 3D look with gentle cel-inspired color blocks plus subtle ambient occlusion, slightly exaggerated anime proportions, glossy anime hair strands, colorful costume with clean readable shapes, soft studio rim light, vivid anime color grading, sharp focus, consistent 3D anime character design across shots, premium vertical short-drama 3D anime still, avoid photorealism, avoid live-action film still, avoid real human photography, avoid hyperreal Unreal skin SSS, avoid documentary bokeh and film grain, avoid western comic ink, avoid low-poly blurry look',
+    description: '竖屏 3D 动漫漫剧：偏二次元 CG，非真人写实',
   },
   {
     name: '日漫赛璐璐', value: 'anime', sortOrder: 4,
@@ -388,11 +388,17 @@ export const stylePresetSeeds = [
 ]
 
 /**
- * 旧版种子 prompt（v1 一句话风格描述）— 用于内容寻址升级：
+ * 旧版种子 prompt — 用于内容寻址升级：
  * 仅当库中行的 prompt 仍等于旧种子值（未被用户在设置页编辑过）才覆盖为新 prompt
  */
-const LEGACY_SEED_PROMPTS: Record<string, string> = {
-  '3d': '3D CG animation style, game-engine quality render, semi-realistic stylized characters, refined facial features, detailed materials and textures, cinematic lighting, high detail',
+const LEGACY_SEED_PROMPTS: Record<string, string | string[]> = {
+  '3d': [
+    '3D CG animation style, game-engine quality render, semi-realistic stylized characters, refined facial features, detailed materials and textures, cinematic lighting, high detail',
+    // v2：半写实 + SSS 容易漂成真脸
+    'high-quality 3D CG animation still, modern game-engine cinematic render, Unreal Engine and Pixar grade quality, semi-realistic stylized characters with refined facial features, clean sculpted anatomy, detailed skin shader with subtle subsurface scattering, PBR materials with crisp detailed textures, volumetric cinematic lighting with soft rim light, rich depth of field, polished film color grading, detailed environment art, sharp focus, consistent character design across shots, avoid flat lighting, avoid plastic waxy skin, avoid low-poly blurry look, avoid 2D flat cel shading, avoid anime line art',
+    // v3：非真人但仍偏写实 CG → 再往二次元动漫靠
+    'stylized Chinese 3D manju / donghua CG animation still, clearly animated 3D character not a real person, game-cinematic Unreal-style render with stylized proportions, slightly larger expressive eyes, simplified smooth skin without pores freckles or real makeup texture, clean sculpted cartoon-realistic facial planes, PBR costume materials with crisp fabric detail, soft studio key light plus rim light, polished cinematic color grading, sharp focus, consistent 3D character design across shots, look like premium vertical short-drama 3D animation key art, avoid photorealism, avoid live-action film still, avoid real human photography, avoid skin pores and subsurface-scattering hyperreal faces, avoid documentary camera bokeh and film grain, avoid 2D flat cel shading, avoid anime line art, avoid low-poly blurry look',
+  ],
   anime: 'Japanese anime style, cel shading, clean crisp line art, vivid saturated colors, expressive character designs, detailed painted backgrounds',
   ghibli: 'Studio Ghibli style, hand-drawn animation, soft watercolor painted backgrounds, warm nostalgic lighting, gentle natural palette, whimsical cozy atmosphere',
   watercolor: 'watercolor illustration style, soft translucent washes, visible paper texture, delicate fluid brushwork, light airy atmosphere, hand-painted storybook feel',
@@ -485,10 +491,11 @@ export function initSqliteSchema(sqlite: Database.Database) {
   for (const s of stylePresetSeeds) {
     const ts = new Date().toISOString()
     insertSeed.run(s.name, s.value, s.prompt, s.description, s.sortOrder, ts, ts, s.value)
-    const legacyPrompt = LEGACY_SEED_PROMPTS[s.value]
-    if (legacyPrompt) {
+    const legacy = LEGACY_SEED_PROMPTS[s.value]
+    const legacyList = !legacy ? [] : Array.isArray(legacy) ? legacy : [legacy]
+    for (const legacyPrompt of legacyList) {
       const res = upgradeSeed.run(s.name, s.prompt, s.description, s.sortOrder, ts, s.value, legacyPrompt)
-      if (res.changes > 0) console.log(`🎨 风格预设「${s.name}」已升级为结构化提示词`)
+      if (res.changes > 0) console.log(`🎨 风格预设「${s.name}」已升级为最新种子提示词`)
     }
     sortSeed.run(s.sortOrder, ts, s.value)
   }
