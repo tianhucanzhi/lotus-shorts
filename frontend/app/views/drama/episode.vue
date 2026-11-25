@@ -340,8 +340,8 @@
                       <div v-else class="character-portrait-empty">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                       </div>
-                      <span class="asset-cover-badge" :class="(c.image_url || c.imageUrl) ? 'is-ready' : (isPendingCharImage(c.id) ? 'is-pending' : '')">
-                        {{ (c.image_url || c.imageUrl) ? t('episode.asset.portraitReady') : (isPendingCharImage(c.id) ? t('episode.asset.portraitPending') : t('episode.asset.portraitTodo')) }}
+                      <span class="asset-cover-badge" :class="isPendingCharImage(c.id) ? 'is-pending' : ((c.image_url || c.imageUrl) ? 'is-ready' : '')">
+                        {{ isPendingCharImage(c.id) ? t('episode.asset.portraitPending') : ((c.image_url || c.imageUrl) ? t('episode.asset.portraitReady') : t('episode.asset.portraitTodo')) }}
                       </span>
                     </div>
 
@@ -358,7 +358,7 @@
                       </div>
                       <button class="btn btn-sm character-gen-btn" :disabled="isPendingCharImage(c.id)" @click.stop="genCharImg(c.id)">
                         <Loader2 v-if="isPendingCharImage(c.id)" :size="11" class="animate-spin" />
-                        {{ (c.image_url || c.imageUrl) ? t('episode.asset.regen') : (isPendingCharImage(c.id) ? t('episode.asset.generating') : t('episode.asset.generate')) }}
+                        {{ isPendingCharImage(c.id) ? t('episode.asset.generating') : ((c.image_url || c.imageUrl) ? t('episode.asset.regen') : t('episode.asset.generate')) }}
                       </button>
                       <button class="btn btn-sm" :title="t('episode.asset.uploadCharImage')" :disabled="isUploadingAsset('character', c.id)" @click.stop="uploadAssetImage('character', c.id)">
                         <Loader2 v-if="isUploadingAsset('character', c.id)" :size="11" class="animate-spin" />
@@ -439,7 +439,7 @@
                   <div v-else class="asset-cover-empty">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                   </div>
-                  <span class="asset-cover-badge" :class="(s.image_url || s.imageUrl) ? 'is-ready' : (isPendingSceneImage(s.id) ? 'is-pending' : '')">{{ (s.image_url || s.imageUrl) ? t('episode.asset.ready') : (isPendingSceneImage(s.id) ? t('episode.asset.generating') : t('episode.asset.todo')) }}</span>
+                  <span class="asset-cover-badge" :class="isPendingSceneImage(s.id) ? 'is-pending' : ((s.image_url || s.imageUrl) ? 'is-ready' : '')">{{ isPendingSceneImage(s.id) ? t('episode.asset.generating') : ((s.image_url || s.imageUrl) ? t('episode.asset.ready') : t('episode.asset.todo')) }}</span>
                 </div>
                 <div class="asset-body">
                   <div class="asset-name" :title="s.location">{{ s.location }}</div>
@@ -459,7 +459,7 @@
                   </button>
                   <button class="btn btn-sm" :disabled="isPendingSceneImage(s.id)" @click.stop="genSceneImg(s.id)">
                     <Loader2 v-if="isPendingSceneImage(s.id)" :size="11" class="animate-spin" />
-                    {{ (s.image_url || s.imageUrl) ? t('episode.asset.regen') : (isPendingSceneImage(s.id) ? t('episode.asset.generating') : t('episode.asset.generate')) }}
+                    {{ isPendingSceneImage(s.id) ? t('episode.asset.generating') : ((s.image_url || s.imageUrl) ? t('episode.asset.regen') : t('episode.asset.generate')) }}
                   </button>
                 </div>
               </div>
@@ -494,7 +494,7 @@
                   <div v-else class="asset-cover-empty">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
                   </div>
-                  <span class="asset-cover-badge" :class="(p.image_url || p.imageUrl) ? 'is-ready' : (isPendingPropImage(p.id) ? 'is-pending' : '')">{{ (p.image_url || p.imageUrl) ? t('episode.asset.ready') : (isPendingPropImage(p.id) ? t('episode.asset.generating') : t('episode.asset.todo')) }}</span>
+                  <span class="asset-cover-badge" :class="isPendingPropImage(p.id) ? 'is-pending' : ((p.image_url || p.imageUrl) ? 'is-ready' : '')">{{ isPendingPropImage(p.id) ? t('episode.asset.generating') : ((p.image_url || p.imageUrl) ? t('episode.asset.ready') : t('episode.asset.todo')) }}</span>
                 </div>
                 <div class="asset-body">
                   <div class="prop-name-row">
@@ -516,7 +516,7 @@
                   </button>
                   <button class="btn btn-sm" :disabled="isPendingPropImage(p.id)" @click.stop="genPropImg(p.id)">
                     <Loader2 v-if="isPendingPropImage(p.id)" :size="11" class="animate-spin" />
-                    {{ (p.image_url || p.imageUrl) ? t('episode.asset.regen') : (isPendingPropImage(p.id) ? t('episode.asset.generating') : t('episode.asset.generate')) }}
+                    {{ isPendingPropImage(p.id) ? t('episode.asset.generating') : ((p.image_url || p.imageUrl) ? t('episode.asset.regen') : t('episode.asset.generate')) }}
                   </button>
                 </div>
               </div>
@@ -1185,8 +1185,8 @@
               <aside class="asset-detail-preview-panel">
                 <div class="asset-detail-section-title">
                   <span>{{ t('episode.asset.visualPreview') }}</span>
-                  <span :class="['asset-detail-state', assetImageSrc(assetDetail.item) ? 'is-ready' : '']">
-                    {{ assetImageSrc(assetDetail.item) ? t('episode.asset.ready') : t('episode.asset.todo') }}
+                  <span :class="['asset-detail-state', isAssetImagePending(assetDetail.type, assetDetail.item.id) ? 'is-pending' : (assetImageSrc(assetDetail.item) ? 'is-ready' : '')]">
+                    {{ isAssetImagePending(assetDetail.type, assetDetail.item.id) ? t('episode.asset.generating') : (assetImageSrc(assetDetail.item) ? t('episode.asset.ready') : t('episode.asset.todo')) }}
                   </span>
                 </div>
 
@@ -1395,6 +1395,45 @@
                   </label>
                 </div>
 
+                <div v-if="assetDetail.type === 'character'" class="asset-ref-panel">
+                  <div class="asset-detail-section-title">
+                    <span>{{ t('episode.asset.refImageTitle') }}</span>
+                    <span class="dim">{{ t('episode.asset.refImageHint') }}</span>
+                  </div>
+                  <div class="asset-ref-row">
+                    <button
+                      v-if="characterRefImageSrc(assetDetail.item)"
+                      type="button"
+                      class="asset-ref-thumb"
+                      @click="openImageViewer(characterRefImageSrc(assetDetail.item), t('episode.asset.refImageTitle'))"
+                    >
+                      <img
+                        :src="thumbOf(characterRefImageSrc(assetDetail.item))"
+                        class="previewable-image"
+                        loading="lazy"
+                        @error="thumbFallback($event, characterRefImageSrc(assetDetail.item))"
+                      />
+                    </button>
+                    <div v-else class="asset-ref-empty">{{ t('episode.asset.refImageEmpty') }}</div>
+                    <div class="asset-ref-actions">
+                      <button
+                        class="btn btn-sm"
+                        :disabled="isUploadingCharRef(assetDetail.item.id)"
+                        @click="uploadCharacterRefImage(assetDetail.item.id)"
+                      >
+                        <Loader2 v-if="isUploadingCharRef(assetDetail.item.id)" :size="11" class="animate-spin" />
+                        {{ characterRefImageSrc(assetDetail.item) ? t('episode.asset.refImageReplace') : t('episode.asset.refImageUpload') }}
+                      </button>
+                      <button
+                        v-if="characterRefImageSrc(assetDetail.item)"
+                        class="btn btn-ghost btn-sm"
+                        :disabled="isUploadingCharRef(assetDetail.item.id)"
+                        @click="clearCharacterRefImage(assetDetail.item.id)"
+                      >{{ t('episode.asset.refImageClear') }}</button>
+                    </div>
+                  </div>
+                </div>
+
               </section>
             </div>
 
@@ -1465,7 +1504,7 @@
                 :disabled="isPendingCharImage(assetDetail.item.id)"
                 @click="genCharImg(assetDetail.item.id)"
               >
-                {{ assetImageSrc(assetDetail.item) ? t('episode.asset.regenPortrait') : (isPendingCharImage(assetDetail.item.id) ? t('episode.asset.generating') : t('episode.asset.genPortrait')) }}
+                {{ isPendingCharImage(assetDetail.item.id) ? t('episode.asset.generating') : (assetImageSrc(assetDetail.item) ? t('episode.asset.regenPortrait') : t('episode.asset.genPortrait')) }}
               </button>
               <button
                 v-else-if="assetDetail.type === 'scene'"
@@ -1473,7 +1512,7 @@
                 :disabled="isPendingSceneImage(assetDetail.item.id)"
                 @click="genSceneImg(assetDetail.item.id)"
               >
-                {{ assetImageSrc(assetDetail.item) ? t('episode.asset.regenScene') : (isPendingSceneImage(assetDetail.item.id) ? t('episode.asset.generating') : t('episode.asset.genScene')) }}
+                {{ isPendingSceneImage(assetDetail.item.id) ? t('episode.asset.generating') : (assetImageSrc(assetDetail.item) ? t('episode.asset.regenScene') : t('episode.asset.genScene')) }}
               </button>
               <button
                 v-else-if="assetDetail.type === 'prop'"
@@ -1481,7 +1520,7 @@
                 :disabled="isPendingPropImage(assetDetail.item.id)"
                 @click="genPropImg(assetDetail.item.id)"
               >
-                {{ assetImageSrc(assetDetail.item) ? t('episode.asset.regenProp') : (isPendingPropImage(assetDetail.item.id) ? t('episode.asset.generating') : t('episode.asset.genProp')) }}
+                {{ isPendingPropImage(assetDetail.item.id) ? t('episode.asset.generating') : (assetImageSrc(assetDetail.item) ? t('episode.asset.regenProp') : t('episode.asset.genProp')) }}
               </button>
               <button class="btn btn-primary" :disabled="savingAssetDetail" @click="saveAssetDetail">
                 <Loader2 v-if="savingAssetDetail" :size="12" class="animate-spin" />
@@ -2194,6 +2233,8 @@ function setShotCharacterOutfit(sb, charId, variantId) {
 }
 const pendingSceneImageIds = ref([])
 const pendingPropImageIds = ref([])
+/** 重绘中：等待的图片任务 id 下限（旧图仍在时不能靠 hasImage 结束 pending） */
+const pendingImageMinTaskId = ref({})
 const pendingVideoIds = ref([])
 /** 重绘中：等待的任务 id 下限（须出现更新的 processing/completed 才结束 pending） */
 const pendingVideoMinTaskId = ref({})
@@ -2237,6 +2278,70 @@ const assetDetailDraft = ref({ appearance: '', styling: '', prompt: '', lighting
 const assetPromptDraft = ref('')
 const assetPromptDirty = ref(false)
 const savingAssetDetail = ref(false)
+const uploadingCharRefIds = ref([])
+
+function parseCharacterReferenceImages(item) {
+  const raw = item?.reference_images ?? item?.referenceImages
+  if (!raw) return []
+  if (Array.isArray(raw)) return raw.map((x) => String(x || '').trim()).filter(Boolean)
+  const s = String(raw).trim()
+  if (!s) return []
+  try {
+    const v = JSON.parse(s)
+    if (Array.isArray(v)) return v.map((x) => String(x || '').trim()).filter(Boolean)
+    if (typeof v === 'string' && v.trim()) return [v.trim()]
+  } catch { /* 单路径 */ }
+  return [s]
+}
+
+function characterRefImageSrc(item) {
+  const first = parseCharacterReferenceImages(item)[0]
+  return first ? assetImageSrc({ imageUrl: first }) : ''
+}
+
+function isUploadingCharRef(id) {
+  return uploadingCharRefIds.value.includes(id)
+}
+
+function patchCharacterRefLocal(id, refs) {
+  const encoded = refs.length ? JSON.stringify(refs) : null
+  const patch = { reference_images: encoded, referenceImages: encoded }
+  const listItem = chars.value.find((c) => c.id === id)
+  if (listItem) Object.assign(listItem, patch)
+  if (assetDetail.value.open && assetDetail.value.type === 'character' && assetDetail.value.item?.id === id) {
+    Object.assign(assetDetail.value.item, patch)
+  }
+}
+
+function uploadCharacterRefImage(id) {
+  pickFile('image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp', async (file) => {
+    if (!uploadingCharRefIds.value.includes(id)) uploadingCharRefIds.value.push(id)
+    try {
+      const res = await uploadAPI.image(file)
+      const refs = [res.path]
+      await characterAPI.update(id, { reference_images: refs })
+      patchCharacterRefLocal(id, refs)
+      toast.success(t('episode.asset.refImageUploaded'))
+    } catch (e) {
+      toastError(e)
+    } finally {
+      uploadingCharRefIds.value = uploadingCharRefIds.value.filter((x) => x !== id)
+    }
+  })
+}
+
+async function clearCharacterRefImage(id) {
+  if (!uploadingCharRefIds.value.includes(id)) uploadingCharRefIds.value.push(id)
+  try {
+    await characterAPI.update(id, { reference_images: [] })
+    patchCharacterRefLocal(id, [])
+    toast.success(t('episode.asset.refImageCleared'))
+  } catch (e) {
+    toastError(e)
+  } finally {
+    uploadingCharRefIds.value = uploadingCharRefIds.value.filter((x) => x !== id)
+  }
+}
 
 function isPendingCharImage(id) {
   return pendingCharImageIds.value.includes(id)
@@ -3042,56 +3147,85 @@ function latestTaskByEntityId(tasks, idKey) {
   return latest
 }
 
+function imagePendingKey(kind, id) {
+  return `${kind}:${id}`
+}
+
+function imageTaskIdKey(kind) {
+  return kind === 'character' ? 'character_id' : kind === 'scene' ? 'scene_id' : 'prop_id'
+}
+
+function latestImageTask(kind, id) {
+  const idKey = imageTaskIdKey(kind)
+  return genTasks.value
+    .filter(task => task.type === 'image' && Number(task[idKey]) === Number(id))
+    .sort((a, b) => b.id - a.id)[0]
+}
+
+function markImagePending(kind, id, minTaskId) {
+  if (!id) return
+  if (kind === 'character') {
+    if (!isPendingCharImage(id)) pendingCharImageIds.value.push(id)
+  } else if (kind === 'scene') {
+    if (!isPendingSceneImage(id)) pendingSceneImageIds.value.push(id)
+  } else if (kind === 'prop') {
+    if (!isPendingPropImage(id)) pendingPropImageIds.value.push(id)
+  }
+  const key = imagePendingKey(kind, id)
+  const floor = Math.max(0, Number(minTaskId) || 0)
+  const prev = Number(pendingImageMinTaskId.value[key] || 0)
+  pendingImageMinTaskId.value = {
+    ...pendingImageMinTaskId.value,
+    [key]: Math.max(prev, floor),
+  }
+}
+
 /** 资产图：用 sys_task 收敛「生成中」；失败时退出 pending 并提示（含余额不足弹框） */
 function syncAssetImagePendingFromTasks() {
   const imageTasks = genTasks.value.filter(t => t.type === 'image')
   const groups = [
-    {
-      idKey: 'character_id',
-      pendingRef: pendingCharImageIds,
-      hasImage: (id) => {
-        const c = chars.value.find(x => x.id === id)
-        return !!(c?.image_url || c?.imageUrl)
-      },
-    },
-    {
-      idKey: 'scene_id',
-      pendingRef: pendingSceneImageIds,
-      hasImage: (id) => {
-        const s = scenes.value.find(x => x.id === id)
-        return !!(s?.image_url || s?.imageUrl)
-      },
-    },
-    {
-      idKey: 'prop_id',
-      pendingRef: pendingPropImageIds,
-      hasImage: (id) => {
-        const p = propItems.value.find(x => x.id === id)
-        return !!(p?.image_url || p?.imageUrl)
-      },
-    },
+    { kind: 'character', idKey: 'character_id', pendingRef: pendingCharImageIds },
+    { kind: 'scene', idKey: 'scene_id', pendingRef: pendingSceneImageIds },
+    { kind: 'prop', idKey: 'prop_id', pendingRef: pendingPropImageIds },
   ]
 
   const failMsgs = []
+  const nextMin = {}
   for (const g of groups) {
     const latest = latestTaskByEntityId(imageTasks, g.idKey)
     const wasPending = new Set(g.pendingRef.value)
     const pending = new Set()
     for (const [eid, t] of latest) {
-      if (g.hasImage(eid)) continue
-      if (t.status === 'processing') pending.add(eid)
-      else if (t.status === 'failed' && wasPending.has(eid)) {
-        failMsgs.push(t.error_msg || t.errorMsg || 'Generation failed')
+      const minId = Number(pendingImageMinTaskId.value[imagePendingKey(g.kind, eid)] || 0)
+      if (t.status === 'processing') {
+        // 重绘中：即使旧图还在，也要保持生成中
+        pending.add(eid)
+        continue
       }
+      if (t.status === 'failed') {
+        if (wasPending.has(eid) && t.id >= minId) {
+          failMsgs.push(t.error_msg || t.errorMsg || 'Generation failed')
+        } else if (wasPending.has(eid) && t.id < minId) {
+          pending.add(eid)
+        }
+        continue
+      }
+      // completed：仍是点击前的旧完成任务 → 继续显示重绘中
+      if (wasPending.has(eid) && t.id < minId) pending.add(eid)
     }
     // 刚点击、任务尚未入库时保留本地 pending，避免闪退
     for (const id of wasPending) if (!latest.has(id)) pending.add(id)
+    for (const id of pending) {
+      const key = imagePendingKey(g.kind, id)
+      if (pendingImageMinTaskId.value[key] != null) nextMin[key] = pendingImageMinTaskId.value[key]
+    }
     const next = [...pending]
     const prev = g.pendingRef.value
     if (next.length !== prev.length || next.some((id, i) => id !== prev[i])) {
       g.pendingRef.value = next
     }
   }
+  pendingImageMinTaskId.value = nextMin
   // 批量失败时余额不足只弹一次；其他错误各提示一次
   let balanceShown = false
   for (const msg of failMsgs) {
@@ -3848,19 +3982,12 @@ function clearPendingAssetImage(kind, id) {
   if (kind === 'character') pendingCharImageIds.value = pendingCharImageIds.value.filter(item => item !== id)
   else if (kind === 'scene') pendingSceneImageIds.value = pendingSceneImageIds.value.filter(item => item !== id)
   else if (kind === 'prop') pendingPropImageIds.value = pendingPropImageIds.value.filter(item => item !== id)
-}
-
-function assetImageReady(kind, id) {
-  if (kind === 'character') {
-    const char = chars.value.find(c => c.id === id)
-    return !!(char?.image_url || char?.imageUrl)
+  const key = imagePendingKey(kind, id)
+  if (pendingImageMinTaskId.value[key] != null) {
+    const next = { ...pendingImageMinTaskId.value }
+    delete next[key]
+    pendingImageMinTaskId.value = next
   }
-  if (kind === 'scene') {
-    const scene = scenes.value.find(s => s.id === id)
-    return !!(scene?.image_url || scene?.imageUrl)
-  }
-  const prop = propItems.value.find(p => p.id === id)
-  return !!(prop?.image_url || prop?.imageUrl)
 }
 
 function isPendingAssetImage(kind, id) {
@@ -3872,8 +3999,12 @@ function isPendingAssetImage(kind, id) {
 /** 出图成功、任务失败（pending 被 loadGenTasks 清掉）、或轮询耗尽都结束等待 */
 function watchAssetImageResult(kind, ids, attempts = 24) {
   const idList = Array.isArray(ids) ? ids : [ids]
+  // 重绘时旧图仍在，不能靠 hasImage 结束；看最新任务是否终态 / pending 是否被 sync 清掉
   watchAsyncResult(() => idList.every((id) => {
-    if (assetImageReady(kind, id) || !isPendingAssetImage(kind, id)) {
+    if (!isPendingAssetImage(kind, id)) return true
+    const task = latestImageTask(kind, id)
+    const minId = Number(pendingImageMinTaskId.value[imagePendingKey(kind, id)] || 0)
+    if (task && task.id >= minId && (task.status === 'completed' || task.status === 'failed')) {
       clearPendingAssetImage(kind, id)
       return true
     }
@@ -3888,7 +4019,8 @@ function watchAssetImageResult(kind, ids, attempts = 24) {
 
 async function genCharImg(id) {
   try {
-    if (!isPendingCharImage(id)) pendingCharImageIds.value.push(id)
+    const prevTaskId = latestImageTask('character', id)?.id || 0
+    markImagePending('character', id, prevTaskId + 1)
     const char = chars.value.find(c => c.id === id)
     if (char && !(char.final_prompt || char.finalPrompt)) {
       toast.info(t('episode.asset.generatingPrompt'))
@@ -3896,12 +4028,13 @@ async function genCharImg(id) {
         await ensureAssetPrompt('character', id)
       } catch {} // 提示词生成失败不阻断：后端生图前会再兜底生成或回退本地拼接
     }
-    await characterAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId())
+    const res = await characterAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId())
+    if (res?.image_generation_id) markImagePending('character', id, res.image_generation_id)
     toast.success(t('episode.image.generatingChar'))
     await refresh()
     watchAssetImageResult('character', id)
   } catch (e) {
-    pendingCharImageIds.value = pendingCharImageIds.value.filter(item => item !== id)
+    clearPendingAssetImage('character', id)
     toastError(e)
   }
 }
@@ -3909,19 +4042,23 @@ async function batchCharImages() {
   const ids = visualChars.value.filter(c => !(c.image_url || c.imageUrl)).map(c => c.id)
   if (!ids.length) { toast.info(t('episode.image.allCharsDone')); return }
   if (!(await ensureRealApiImageBatchBudget(ids.length))) return
-  pendingCharImageIds.value = [...new Set([...pendingCharImageIds.value, ...ids])]
+  for (const id of ids) {
+    const prevTaskId = latestImageTask('character', id)?.id || 0
+    markImagePending('character', id, prevTaskId + 1)
+  }
   characterAPI.batchImages(ids, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId()).then(async () => {
     toast.success(t('episode.image.batchGeneratingChar'))
     await refresh()
     watchAssetImageResult('character', ids, 36)
   }).catch(e => {
-    pendingCharImageIds.value = pendingCharImageIds.value.filter(item => !ids.includes(item))
+    for (const id of ids) clearPendingAssetImage('character', id)
     toastError(e)
   })
 }
 async function genSceneImg(id) {
   try {
-    if (!isPendingSceneImage(id)) pendingSceneImageIds.value.push(id)
+    const prevTaskId = latestImageTask('scene', id)?.id || 0
+    markImagePending('scene', id, prevTaskId + 1)
     const scene = scenes.value.find(s => s.id === id)
     if (scene && !(scene.final_prompt || scene.finalPrompt)) {
       toast.info(t('episode.asset.generatingPrompt'))
@@ -3929,12 +4066,13 @@ async function genSceneImg(id) {
         await ensureAssetPrompt('scene', id)
       } catch {} // 提示词生成失败不阻断：后端生图前会再兜底生成或回退本地拼接
     }
-    await sceneAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId())
+    const res = await sceneAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId())
+    if (res?.image_generation_id) markImagePending('scene', id, res.image_generation_id)
     toast.success(t('episode.image.generatingScene'))
     await refresh()
     watchAssetImageResult('scene', id)
   } catch (e) {
-    pendingSceneImageIds.value = pendingSceneImageIds.value.filter(item => item !== id)
+    clearPendingAssetImage('scene', id)
     toastError(e)
   }
 }
@@ -3943,7 +4081,8 @@ function isPendingPropImage(id) {
 }
 async function genPropImg(id) {
   try {
-    if (!isPendingPropImage(id)) pendingPropImageIds.value.push(id)
+    const prevTaskId = latestImageTask('prop', id)?.id || 0
+    markImagePending('prop', id, prevTaskId + 1)
     const prop = propItems.value.find(p => p.id === id)
     if (prop && !(prop.final_prompt || prop.finalPrompt)) {
       toast.info(t('episode.asset.generatingPrompt'))
@@ -3951,12 +4090,13 @@ async function genPropImg(id) {
         await ensureAssetPrompt('prop', id)
       } catch {} // 提示词生成失败不阻断：后端生图前会再兜底生成或回退本地拼接
     }
-    await propAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId())
+    const res = await propAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId())
+    if (res?.image_generation_id) markImagePending('prop', id, res.image_generation_id)
     toast.success(t('episode.image.generatingProp'))
     await refresh()
     watchAssetImageResult('prop', id)
   } catch (e) {
-    pendingPropImageIds.value = pendingPropImageIds.value.filter(item => item !== id)
+    clearPendingAssetImage('prop', id)
     toastError(e)
   }
 }
@@ -3964,10 +4104,16 @@ async function batchSceneImages() {
   const ids = scenes.value.filter(s => !(s.image_url || s.imageUrl)).map(s => s.id)
   if (!ids.length) { toast.info(t('episode.image.allScenesDone')); return }
   if (!(await ensureRealApiImageBatchBudget(ids.length))) return
-  pendingSceneImageIds.value = [...new Set([...pendingSceneImageIds.value, ...ids])]
+  for (const id of ids) {
+    const prevTaskId = latestImageTask('scene', id)?.id || 0
+    markImagePending('scene', id, prevTaskId + 1)
+  }
   ids.forEach(id => {
     sceneAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId())
-      .then(() => refresh())
+      .then((res) => {
+        if (res?.image_generation_id) markImagePending('scene', id, res.image_generation_id)
+        return refresh()
+      })
       .catch((e) => {
         clearPendingAssetImage('scene', id)
         toastError(e)
@@ -3980,10 +4126,16 @@ async function batchPropImages() {
   const ids = propItems.value.filter(p => !(p.image_url || p.imageUrl)).map(p => p.id)
   if (!ids.length) { toast.info(t('episode.image.allPropsDone')); return }
   if (!(await ensureRealApiImageBatchBudget(ids.length))) return
-  pendingPropImageIds.value = [...new Set([...pendingPropImageIds.value, ...ids])]
+  for (const id of ids) {
+    const prevTaskId = latestImageTask('prop', id)?.id || 0
+    markImagePending('prop', id, prevTaskId + 1)
+  }
   ids.forEach(id => {
     propAPI.generateImage(id, epId.value, bareModelName(imageModel.value) || undefined, ownerConfigId(imageModelOptions.value, imageModel.value), chatModelOverride(), chatConfigId())
-      .then(() => refresh())
+      .then((res) => {
+        if (res?.image_generation_id) markImagePending('prop', id, res.image_generation_id)
+        return refresh()
+      })
       .catch((e) => {
         clearPendingAssetImage('prop', id)
         toastError(e)
@@ -6536,6 +6688,52 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
   flex-direction: column;
   gap: 12px;
 }
+.asset-ref-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+.asset-ref-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.asset-ref-thumb {
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-sunken, var(--bg-muted));
+  cursor: pointer;
+}
+.asset-ref-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.asset-ref-empty {
+  min-width: 120px;
+  min-height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 8px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+.asset-ref-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .asset-detail-preview-panel {
   position: sticky;
   top: 0;
@@ -6572,6 +6770,10 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .asset-detail-state.is-ready {
   color: var(--success);
   background: var(--success-bg);
+}
+.asset-detail-state.is-pending {
+  color: var(--accent-text);
+  background: var(--accent-bg);
 }
 .asset-detail-media-frame {
   position: relative;

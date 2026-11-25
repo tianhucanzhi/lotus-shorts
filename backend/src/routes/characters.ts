@@ -64,6 +64,37 @@ function characterImagePrompt(char: typeof schema.characters.$inferSelect, style
   ].filter(Boolean).join(', ')
 }
 
+/** characters.reference_images：JSON 数组或单条路径 */
+function parseCharacterReferenceImages(raw?: string | null): string[] {
+  if (!raw) return []
+  const s = String(raw).trim()
+  if (!s) return []
+  try {
+    const v = JSON.parse(s)
+    if (Array.isArray(v)) return v.map((x) => String(x || '').trim()).filter(Boolean)
+    if (typeof v === 'string' && v.trim()) return [v.trim()]
+  } catch { /* 非 JSON 当作单路径 */ }
+  return [s]
+}
+
+function normalizeReferenceImagesInput(raw: unknown): string | null {
+  if (raw == null) return null
+  if (Array.isArray(raw)) {
+    const list = raw.map((x) => String(x || '').trim()).filter(Boolean)
+    return list.length ? JSON.stringify(list) : null
+  }
+  const s = String(raw).trim()
+  if (!s) return null
+  try {
+    const v = JSON.parse(s)
+    if (Array.isArray(v)) {
+      const list = v.map((x) => String(x || '').trim()).filter(Boolean)
+      return list.length ? JSON.stringify(list) : null
+    }
+  } catch { /* ignore */ }
+  return JSON.stringify([s])
+}
+
 // PUT /characters/:id
 app.put('/:id', async (c) => {
   const id = Number(c.req.param('id'))
@@ -81,6 +112,9 @@ app.put('/:id', async (c) => {
   // 手动编辑最终提示词时以传入值为准；未传入则保留原值（修改信息时不再自动置空）
   if (body.final_prompt !== undefined) updates.finalPrompt = body.final_prompt || null
   else if (body.finalPrompt !== undefined) updates.finalPrompt = body.finalPrompt || null
+  if (body.reference_images !== undefined || body.referenceImages !== undefined) {
+    updates.referenceImages = normalizeReferenceImagesInput(body.reference_images ?? body.referenceImages)
+  }
   const nextImage = updates.imageUrl as string | undefined
   if (nextImage && char.imageUrl && nextImage !== char.imageUrl) {
     await archivePrimaryImage(id, char.imageUrl)
@@ -277,9 +311,24 @@ app.post('/:id/generate-image', async (c) => {
   const stylePrompt = await getDramaStylePrompt(char.dramaId)
   const finalPrompt = await ensureCharacterFinalPrompt(char, ep.id, false, { model: body.text_model, configId: body.text_config_id ?? undefined })
   const prompt = finalPrompt || characterImagePrompt(char, stylePrompt)
+  // 请求体可临时覆盖；否则用角色上保存的参考图（有则走图生图）
+  const bodyRefs = Array.isArray(body.reference_image_urls)
+    ? body.reference_image_urls.map((x: unknown) => String(x || '').trim()).filter(Boolean)
+    : Array.isArray(body.referenceImageUrls)
+      ? body.referenceImageUrls.map((x: unknown) => String(x || '').trim()).filter(Boolean)
+      : []
+  const referenceImages = bodyRefs.length ? bodyRefs : parseCharacterReferenceImages(char.referenceImages)
   try {
-    logTaskStart('CharacterImage', 'generate', { characterId: id, episodeId: ep.id, dramaId: char.dramaId })
-    const genId = await generateImage({ characterId: id, dramaId: char.dramaId, prompt, model: body.model, size: CHARACTER_IMAGE_SIZE, configId: body.config_id ?? ep.imageConfigId ?? undefined })
+    logTaskStart('CharacterImage', 'generate', { characterId: id, episodeId: ep.id, dramaId: char.dramaId, refs: referenceImages.length })
+    const genId = await generateImage({
+      characterId: id,
+      dramaId: char.dramaId,
+      prompt,
+      model: body.model,
+      size: CHARACTER_IMAGE_SIZE,
+      referenceImages: referenceImages.length ? referenceImages : undefined,
+      configId: body.config_id ?? ep.imageConfigId ?? undefined,
+    })
     logTaskSuccess('CharacterImage', 'generate', { characterId: id, generationId: genId })
     return success(c, { image_generation_id: genId })
   } catch (err: any) {
