@@ -10,8 +10,10 @@ export type ComfyVideoMode = 'r2v' | 'i2v'
 
 export type ComfyI2VNodeMap = {
   mode: ComfyVideoMode
-  /** 主视频节点（ReferenceToVideo / ImageToVideo） */
+  /** 主视频节点（ReferenceToVideo / ImageToVideo）— 优先 Pass1（LATENT 被采样器消费） */
   videoNode: string
+  /** 双 Pass 等场景：所有 ReferenceToVideo 节点（同步 prompt / refs / length） */
+  videoNodeIds: string[]
   /** @deprecated 兼容设置页旧字段，等同 videoNode */
   imageToVideo: string
   /** 模板里已挂到参考/首帧的 LoadImage 节点（按序号） */
@@ -20,9 +22,13 @@ export type ComfyI2VNodeMap = {
   loadImage: string
   /** 提示词写入节点（PrimitiveString* 或主节点自身） */
   promptNode?: string
+  /** 所有可写 prompt 的节点（含多 Pass 主节点） */
+  promptNodeIds: string[]
   duration?: string
   seed?: string
   resolution?: string
+  /** Pass1 上可直接写 width/height（无 ResolutionSelector 时） */
+  sizeNode?: string
 }
 
 function linkTarget(input: unknown): string | null {
@@ -138,10 +144,21 @@ function collectRefLoadImages(wf: Workflow, videoNode: any): string[] {
     .sort((a, b) => Number(a) - Number(b) || a.localeCompare(b))
 }
 
+/** LATENT 输出是否被采样器等下游消费（用于识别 Pass1） */
+function latentConsumed(wf: Workflow, nodeId: string): boolean {
+  for (const [id, n] of Object.entries(wf)) {
+    if (id === nodeId || !n?.inputs) continue
+    for (const v of Object.values(n.inputs)) {
+      if (Array.isArray(v) && String(v[0]) === nodeId && Number(v[1]) === 1) return true
+    }
+  }
+  return false
+}
+
 export function resolveI2VNodes(wf: Workflow): ComfyI2VNodeMap {
   const entries = entriesOf(wf)
 
-  const r2vEntry = entries.find(([, n]) =>
+  const r2vEntries = entries.filter(([, n]) =>
     /ReferenceToVideo/i.test(n.class_type)
     || /参考转视频|Reference.?to.?Video/i.test(titleOf(n)),
   )
@@ -150,15 +167,25 @@ export function resolveI2VNodes(wf: Workflow): ComfyI2VNodeMap {
     || /图像转视频|Image.?to.?Video/i.test(titleOf(n)),
   )
 
-  if (r2vEntry) {
-    const [videoNodeId, videoNode] = r2vEntry
+  if (r2vEntries.length) {
+    // 优先 Pass1：标题含 Pass1，或 LATENT 被采样器消费；否则取第一个
+    const preferred =
+      r2vEntries.find(([id, n]) => /pass\s*1|【pass1】/i.test(titleOf(n)) || latentConsumed(wf, id))
+      || r2vEntries[0]
+    const [videoNodeId, videoNode] = preferred
+    const videoNodeIds = r2vEntries.map(([id]) => id)
     const loadImageIds = collectRefLoadImages(wf, videoNode)
     if (!loadImageIds.length) {
       throw new Error(
         '自动识别失败：ReferenceToVideo 未找到可用 LoadImage（需 ref_images.ref_image_N 或图中 LoadImage）',
       )
     }
-    const promptNode = resolvePromptNode(wf, videoNodeId, videoNode)
+    const promptNodeIds: string[] = []
+    for (const [id, node] of r2vEntries) {
+      const p = resolvePromptNode(wf, id, node)
+      if (p && !promptNodeIds.includes(p)) promptNodeIds.push(p)
+    }
+    const promptNode = promptNodeIds[0]
     if (!promptNode) {
       throw new Error(`节点 ${videoNodeId} 无法写入提示词（需 prompt 连 PrimitiveString 或直接可写）`)
     }
@@ -169,17 +196,26 @@ export function resolveI2VNodes(wf: Workflow): ComfyI2VNodeMap {
       || entries.find(([, n]) => /KSampler/i.test(n.class_type) && n.inputs?.seed !== undefined)?.[0]
       || null
     const resolutionId = entries.find(([, n]) => n.class_type === 'ResolutionSelector')?.[0] || null
+    const sizeNode =
+      !resolutionId
+      && typeof videoNode.inputs?.width === 'number'
+      && typeof videoNode.inputs?.height === 'number'
+        ? videoNodeId
+        : undefined
 
     return {
       mode: 'r2v',
       videoNode: videoNodeId,
+      videoNodeIds,
       imageToVideo: videoNodeId,
       loadImageIds,
       loadImage: loadImageIds[0],
       promptNode,
+      promptNodeIds,
       duration: durationId || undefined,
       seed: seedId || undefined,
       resolution: resolutionId || undefined,
+      sizeNode,
     }
   }
 
@@ -218,10 +254,12 @@ export function resolveI2VNodes(wf: Workflow): ComfyI2VNodeMap {
   return {
     mode: 'i2v',
     videoNode: imageToVideoId,
+    videoNodeIds: [imageToVideoId],
     imageToVideo: imageToVideoId,
     loadImageIds: [loadImageId],
     loadImage: loadImageId,
     promptNode,
+    promptNodeIds: [promptNode],
     duration: durationId || undefined,
     seed: seedId || undefined,
     resolution: resolutionId || undefined,
@@ -237,13 +275,16 @@ export function toDisplayNodes(nodes: ComfyI2VNodeMap): Record<string, string> {
   const out: Record<string, string> = {
     mode: nodes.mode,
     videoNode: nodes.videoNode,
+    videoNodes: nodes.videoNodeIds.join(','),
     imageToVideo: nodes.imageToVideo,
     loadImage: nodes.loadImage,
     loadImages: nodes.loadImageIds.join(','),
   }
   if (nodes.promptNode) out.prompt = nodes.promptNode
+  if (nodes.promptNodeIds?.length) out.prompts = nodes.promptNodeIds.join(',')
   if (nodes.duration) out.duration = nodes.duration
   if (nodes.seed) out.seed = nodes.seed
   if (nodes.resolution) out.resolution = nodes.resolution
+  if (nodes.sizeNode) out.size = nodes.sizeNode
   return out
 }

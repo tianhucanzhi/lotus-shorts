@@ -435,7 +435,7 @@
                     <span class="comfyui-node-val mono">{{ comfyuiNodes.sampler }}</span>
                   </div>
                 </div>
-                <div v-else-if="comfyuiNodes && comfyuiKind === 'i2v'" class="comfyui-node-grid">
+                <div v-else-if="comfyuiNodes && (comfyuiKind === 'i2v' || comfyuiKind === 'i2v_cloud')" class="comfyui-node-grid">
                   <div v-if="comfyuiNodes.mode" class="comfyui-node-card">
                     <span class="comfyui-node-key">mode</span>
                     <span class="comfyui-node-val mono">{{ comfyuiNodes.mode }}</span>
@@ -974,7 +974,7 @@ const serviceTypes = computed(() => [
   { type: 'image', label: t('common.serviceType.image') },
   { type: 'video', label: t('common.serviceType.video') },
 ])
-const providers = ['gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui', 'ollama']
+const providers = ['gemini', 'openai', 'volcengine', 'minimax', 'aliyun', 'comfyui', 'comfyui_cloud', 'ollama']
 const providerSelectOptions = computed(() => providers.map(p => ({ label: p, value: p })))
 const serviceMeta = computed(() => ({
   text: { label: t('common.serviceType.text'), desc: t('settings.ai.meta.text') },
@@ -1042,6 +1042,11 @@ const providerPresets = {
     volcengine: { label: 'Seedance 2.0 官方', baseUrl: 'https://ark.cn-beijing.volces.com', models: ['doubao-seedance-2-0-mini-260615', 'doubao-seedance-2-0-fast-260128', 'doubao-seedance-2-0-260128'] },
     minimax: { label: 'MiniMax H3 官方', baseUrl: 'https://api.minimaxi.com', models: ['MiniMax-H3'] },
     comfyui: { label: 'ComfyUI 本地', baseUrl: 'http://127.0.0.1:8188', models: ['minimax-h3-comfy'] },
+    comfyui_cloud: {
+      label: 'ComfyUI 云端',
+      baseUrl: 'https://qx1n5twq9xpbv929-8188.hz01-webservice.gpuhome.cc:8443',
+      models: ['minimax-h3-cloud'],
+    },
   },
 }
 const lotusQuickConfigs = computed(() => {
@@ -1067,9 +1072,12 @@ function applyProviderPreset(type, provider) {
   cfgForm.provider = provider === 'real-api' ? 'openai' : provider
   cfgForm.base_url = preset.baseUrl
   cfgForm.models = [...preset.models]
-  // Ollama 本地一般无需 Key；SDK 仍要求非空时用占位
+  // Ollama / ComfyUI 一般无需 Key；SDK 仍要求非空时用占位
   if (provider === 'ollama' && !String(cfgForm.api_key || '').trim()) {
     cfgForm.api_key = 'ollama'
+  }
+  if ((provider === 'comfyui' || provider === 'comfyui_cloud') && !String(cfgForm.api_key || '').trim()) {
+    cfgForm.api_key = 'comfyui'
   }
   // 配置名持久化进 DB：用 provider 英文 + 服务类型英文标识拼，不随界面语言漂移
   cfgForm.name = `${preset.label}-${type}`
@@ -1608,6 +1616,7 @@ const comfyuiKinds = ref([
   { kind: 't2i', runtime_ready: true },
   { kind: 'i2i', runtime_ready: true },
   { kind: 'i2v', runtime_ready: true },
+  { kind: 'i2v_cloud', runtime_ready: true },
 ])
 const comfyuiContent = ref('')
 const comfyuiRelPath = ref('comfyui/t2i.json')

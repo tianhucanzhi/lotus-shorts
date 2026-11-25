@@ -545,7 +545,7 @@
       "nodesTitle": "自动识别节点",
       "nodesEmpty": "暂无识别结果，请先校验或保存有效工作流",
       "jsonLabel": "工作流 JSON",
-      "jsonPlaceholder": "粘贴 API 格式工作流 JSON…",
+      "jsonPlaceholder": "粘贴 API 或画布导出工作流 JSON…",
       "validate": "校验",
       "reset": "恢复默认",
       "saved": "工作流已保存",
@@ -569,6 +569,11 @@
           "label": "参考生视频",
           "desc": "用于分镜参考生视频（默认 MiniMax H3 ReferenceToVideo）。需含 LoadImage + ReferenceToVideo；仍兼容 ImageToVideo。",
           "hint": "保存至 workspace/comfyui/i2v.json。视频服务商选 comfyui；分镜绑定角色/场景/道具图会按序注入为 <Picture N>。"
+        },
+        "i2v_cloud": {
+          "label": "云端参考生视频",
+          "desc": "GPU 云端 ComfyUI（MiniMax H3 多参考双 Pass / 人脸精修）。视频服务商选 comfyui_cloud。",
+          "hint": "保存至 workspace/comfyui/i2v-cloud.json。可粘贴画布导出或 API 格式；服务商选 ComfyUI 云端。"
         }
       }
     },

@@ -19,20 +19,22 @@ import { resolveI2VNodes, toDisplayNodes } from '../services/adapters/comfyui/re
 import bundledT2I from '../services/adapters/comfyui/t2i.json'
 import bundledI2I from '../services/adapters/comfyui/i2i.json'
 import bundledI2V from '../services/adapters/comfyui/i2v.json'
+import bundledI2VCloud from '../services/adapters/comfyui/i2v-cloud.json'
 
 const app = new Hono()
 const fsm = () => skillsManagerWorkspace.filesystem!
 
-export const COMFYUI_KINDS = ['t2i', 'i2i', 'i2v'] as const
+export const COMFYUI_KINDS = ['t2i', 'i2i', 'i2v', 'i2v_cloud'] as const
 export type ComfyuiKind = (typeof COMFYUI_KINDS)[number]
 
 const KIND_META: Record<ComfyuiKind, { label: string; file: string; validateNodes: boolean; hasBundled: boolean }> = {
   t2i: { label: '文生图', file: 'comfyui/t2i.json', validateNodes: true, hasBundled: true },
   i2i: { label: '图片编辑', file: 'comfyui/i2i.json', validateNodes: true, hasBundled: true },
   i2v: { label: '参考生视频', file: 'comfyui/i2v.json', validateNodes: true, hasBundled: true },
+  i2v_cloud: { label: '云端参考生视频', file: 'comfyui/i2v-cloud.json', validateNodes: true, hasBundled: true },
 }
 
-const KIND_HINT = 't2i / i2i / i2v'
+const KIND_HINT = 't2i / i2i / i2v / i2v_cloud'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 function normalizeKind(raw?: string | null): ComfyuiKind | null {
@@ -51,6 +53,7 @@ function bundledRaw(kind: ComfyuiKind): string | null {
   if (kind === 't2i') return `${JSON.stringify(bundledT2I, null, 2)}\n`
   if (kind === 'i2i') return `${JSON.stringify(bundledI2I, null, 2)}\n`
   if (kind === 'i2v') return `${JSON.stringify(bundledI2V, null, 2)}\n`
+  if (kind === 'i2v_cloud') return `${JSON.stringify(bundledI2VCloud, null, 2)}\n`
   return null
 }
 
@@ -69,7 +72,7 @@ function tryResolve(kind: ComfyuiKind, raw: string) {
   if (kind === 'i2i') {
     return { workflow: wf, nodes: toI2IDisplayNodes(resolveI2INodes(wf)) }
   }
-  if (kind === 'i2v') {
+  if (kind === 'i2v' || kind === 'i2v_cloud') {
     return { workflow: wf, nodes: toDisplayNodes(resolveI2VNodes(wf)) }
   }
   return { workflow: wf, nodes: null as Record<string, string> | null }

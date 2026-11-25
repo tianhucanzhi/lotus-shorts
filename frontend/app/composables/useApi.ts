@@ -256,7 +256,7 @@ export const skillsAPI = {
   del: (id: string) => api.del(`/skills/${id}`),
 }
 
-export type ComfyuiWorkflowKind = 't2i' | 'i2i' | 'i2v'
+export type ComfyuiWorkflowKind = 't2i' | 'i2i' | 'i2v' | 'i2v_cloud'
 
 export const comfyuiWorkflowAPI = {
   kinds: () => api.get<Array<{

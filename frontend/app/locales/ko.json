@@ -513,6 +513,11 @@
           "label": "참조→비디오",
           "desc": "스토리보드 참조 생성 비디오(기본 MiniMax H3 ReferenceToVideo). LoadImage + ReferenceToVideo. ImageToVideo도 가능.",
           "hint": "workspace/comfyui/i2v.json에 저장. 비디오 제공자는 comfyui. 바인딩 이미지는 <Picture N>으로 주입됩니다."
+        },
+        "i2v_cloud": {
+          "label": "클라우드 참조→비디오",
+          "desc": "클라우드 GPU ComfyUI(MiniMax H3 다중 참조 듀얼 패스). 비디오 제공자는 comfyui_cloud.",
+          "hint": "workspace/comfyui/i2v-cloud.json에 저장. 캔버스/API JSON 붙여넣기 가능."
         }
       }
     },

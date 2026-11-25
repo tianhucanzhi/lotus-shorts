@@ -1,0 +1,245 @@
+{
+  "92": {
+    "inputs": {
+      "filename_prefix": "video/h3_multiref",
+      "format": "auto",
+      "format.codec": "auto",
+      "codec": "auto",
+      "video-preview": "",
+      "video": ["130", 0]
+    },
+    "class_type": "SaveVideo",
+    "_meta": { "title": "㉒ 保存 MP4（output/video/）" }
+  },
+  "119": {
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": { "title": "③ 视频 VAE" }
+  },
+  "120": {
+    "inputs": {
+      "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": { "title": "④ 音频 VAE" }
+  },
+  "121": {
+    "inputs": {
+      "samples": ["173", 0],
+      "vae": ["120", 0]
+    },
+    "class_type": "VAEDecodeAudio",
+    "_meta": { "title": "⑳ 音频解码" }
+  },
+  "122": {
+    "inputs": {
+      "samples": ["173", 0],
+      "vae": ["119", 0]
+    },
+    "class_type": "VAEDecode",
+    "_meta": { "title": "⑲ 视频解码" }
+  },
+  "123": {
+    "inputs": {
+      "sampler_name": "res_multistep"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": { "title": "⑩ 采样器 res_multistep" }
+  },
+  "124": {
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 28,
+      "denoise": 1,
+      "model": ["145", 0]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": { "title": "⑪ 【Pass1】调度 28 步" }
+  },
+  "125": {
+    "inputs": {
+      "noise": ["129", 0],
+      "guider": ["126", 0],
+      "sampler": ["123", 0],
+      "sigmas": ["124", 0],
+      "latent_image": ["136", 1]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": { "title": "⑬ 【Pass1】采样（低分辨率）" }
+  },
+  "126": {
+    "inputs": {
+      "model": ["145", 0],
+      "conditioning": ["136", 0]
+    },
+    "class_type": "BasicGuider",
+    "_meta": { "title": "⑫ 【Pass1】Guider" }
+  },
+  "127": {
+    "inputs": {
+      "unet_name": "minimax_h3_hybrid_fl2va_ref2va_b25-49_unpruned_int8.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": { "title": "① 主模型 UNET（hybrid int8）" }
+  },
+  "128": {
+    "inputs": {
+      "clip_name": "qwen3vl_32b_heretic_minimax_h3_nvfp4.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": { "title": "② 文本编码器 CLIP（Qwen3-VL 32B）" }
+  },
+  "129": {
+    "inputs": {
+      "noise_seed": 20260925
+    },
+    "class_type": "RandomNoise",
+    "_meta": { "title": "⑧ 随机种子 Seed" }
+  },
+  "130": {
+    "inputs": {
+      "fps": 24,
+      "bit_depth": "auto",
+      "color_space": "sRGB",
+      "codec": "none",
+      "images": ["122", 0],
+      "audio": ["121", 0]
+    },
+    "class_type": "CreateVideo",
+    "_meta": { "title": "㉑ 合成视频 24fps" }
+  },
+  "136": {
+    "inputs": {
+      "prompt": "r34l1sm prfight2 bunny_crisp_motion Use <Picture 1> <Picture 2> <Picture 3> <Picture 4> as references.",
+      "width": 608,
+      "height": 352,
+      "length": 124,
+      "ref_image_size": "max",
+      "clip": ["128", 0],
+      "vae": ["119", 0],
+      "audio_vae": ["120", 0],
+      "ref_images.ref_image_0": ["200", 0],
+      "ref_images.ref_image_1": ["201", 0],
+      "ref_images.ref_image_2": ["202", 0],
+      "ref_images.ref_image_3": ["203", 0]
+    },
+    "class_type": "MiniMaxH3ReferenceToVideo",
+    "_meta": { "title": "⑨ 【Pass1】提示词 + 参考图 + 画布(352短边) + 帧数" }
+  },
+  "141": {
+    "inputs": {
+      "sage_attention": "auto",
+      "allow_compile": false,
+      "model": ["142", 0]
+    },
+    "class_type": "PathchSageAttentionKJ",
+    "_meta": { "title": "⑥ SageAttention 加速（可设 disabled）" }
+  },
+  "142": {
+    "inputs": {
+      "lora_name": "h3-realism-people.safetensors",
+      "strength_model": 0.7,
+      "model": ["127", 0]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": { "title": "⑤ LoRA：写实人物 Realism（触发词 r34l1sm）" }
+  },
+  "145": {
+    "inputs": {
+      "shift_video": 12,
+      "shift_audio": 3,
+      "model": ["141", 0]
+    },
+    "class_type": "MiniMaxH3SigmaShift",
+    "_meta": { "title": "⑦ SigmaShift（video=12 / audio=3）" }
+  },
+  "160": {
+    "inputs": {
+      "model_name": "minimax_h3_latent_upscaler_3d_fp16.safetensors",
+      "size_mode": "scale_by",
+      "scale_by": 2.1818181818181817,
+      "target_megapixels": 0.7,
+      "target_width": 1152,
+      "target_height": 640,
+      "aspect_policy": "preserve_source",
+      "max_anisotropy": 1.05,
+      "precision": "fp16",
+      "release_policy": "offload_after",
+      "av_latent": ["125", 1]
+    },
+    "class_type": "MiniMaxH3LearnedLatentUpscaleT8Advanced",
+    "_meta": { "title": "⑭ 【LBH】潜空间放大（scale_by = 目标短边/352）" }
+  },
+  "170": {
+    "inputs": {
+      "prompt": "r34l1sm prfight2 bunny_crisp_motion Use <Picture 1> <Picture 2> <Picture 3> <Picture 4> as references.",
+      "width": ["160", 1],
+      "height": ["160", 2],
+      "length": 124,
+      "ref_image_size": "max",
+      "clip": ["128", 0],
+      "vae": ["119", 0],
+      "audio_vae": ["120", 0],
+      "ref_images.ref_image_0": ["200", 0],
+      "ref_images.ref_image_1": ["201", 0],
+      "ref_images.ref_image_2": ["202", 0],
+      "ref_images.ref_image_3": ["203", 0]
+    },
+    "class_type": "MiniMaxH3ReferenceToVideo",
+    "_meta": { "title": "⑮ 【Pass2】高分辨率条件（同提示词/参考图）" }
+  },
+  "171": {
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 8,
+      "denoise": 0.45,
+      "model": ["145", 0]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": { "title": "⑯ 【Pass2】调度 8 步 denoise 0.45" }
+  },
+  "172": {
+    "inputs": {
+      "model": ["145", 0],
+      "conditioning": ["170", 0]
+    },
+    "class_type": "BasicGuider",
+    "_meta": { "title": "⑰ 【Pass2】Guider" }
+  },
+  "173": {
+    "inputs": {
+      "noise": ["129", 0],
+      "guider": ["172", 0],
+      "sampler": ["123", 0],
+      "sigmas": ["171", 0],
+      "latent_image": ["160", 0]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": { "title": "⑱ 【Pass2】精修采样" }
+  },
+  "200": {
+    "inputs": { "image": "h3_multiref_1.jpg" },
+    "class_type": "LoadImage",
+    "_meta": { "title": "参考图 1（Picture 1）" }
+  },
+  "201": {
+    "inputs": { "image": "h3_multiref_2.jpg" },
+    "class_type": "LoadImage",
+    "_meta": { "title": "参考图 2（Picture 2）" }
+  },
+  "202": {
+    "inputs": { "image": "h3_multiref_3.jpg" },
+    "class_type": "LoadImage",
+    "_meta": { "title": "参考图 3（Picture 3）" }
+  },
+  "203": {
+    "inputs": { "image": "h3_multiref_4.jpg" },
+    "class_type": "LoadImage",
+    "_meta": { "title": "参考图 4（Picture 4）" }
+  }
+}

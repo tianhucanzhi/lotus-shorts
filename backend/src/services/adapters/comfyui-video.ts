@@ -1,6 +1,6 @@
 /**
- * ComfyUI 本地视频 Adapter
- * 工作流：workspace/comfyui/i2v.json（设置页导入）
+ * ComfyUI 视频 Adapter（本地 comfyui / 云端 comfyui_cloud）
+ * 工作流：workspace/comfyui/i2v.json | i2v-cloud.json（设置页可覆盖）
  * 默认：MiniMax H3 参考生视频（R2V）；兼容旧版 ImageToVideo（I2V）
  * 流程：上传参考图 → 注入 prompt/duration/seed → POST /prompt → 轮询 /history → /view 取视频
  */
@@ -14,13 +14,30 @@ import type {
   VideoPollResponse,
 } from './types'
 import { joinProviderUrl } from './url'
-import { loadComfyWorkflow } from './comfyui/workflow-files.js'
+import { loadComfyWorkflow, type ComfyWorkflowKind } from './comfyui/workflow-files.js'
 import { resolveI2VNodes, type ComfyI2VNodeMap } from './comfyui/resolve-i2v-nodes.js'
 import { uploadImageToComfy } from './comfyui/upload.js'
 import type { Workflow } from './comfyui/resolve-nodes.js'
 
 function normalizeBase(baseUrl: string) {
   return String(baseUrl || '').replace(/\/+$/, '')
+}
+
+function workflowKindForProvider(provider: string): ComfyWorkflowKind {
+  return String(provider || '').toLowerCase() === 'comfyui_cloud' ? 'i2v_cloud' : 'i2v'
+}
+
+/** MiniMax H3 length 帧数：与官方表达式一致（5s=124 / 10s=243 / 15s=362） */
+function secondsToH3Length(sec: number): number {
+  const a = Math.max(1, Number(sec) || 5)
+  const base = Math.max(5, Math.round(a * 24))
+  return base + (((5 - (base % 17)) % 17) + 17) % 17
+}
+
+const SIZE_BY_ASPECT: Record<string, { width: number; height: number }> = {
+  '16:9': { width: 608, height: 352 },
+  '9:16': { width: 352, height: 608 },
+  '1:1': { width: 480, height: 480 },
 }
 
 /**
@@ -72,8 +89,7 @@ function collectImageRefs(record: VideoGenerationRecord): string[] {
   return out
 }
 
-function writePrompt(wf: Workflow, nodes: ComfyI2VNodeMap, prompt: string) {
-  const nodeId = nodes.promptNode || nodes.videoNode
+function writePromptOnNode(wf: Workflow, nodeId: string, prompt: string) {
   const node = wf[nodeId]
   if (!node?.inputs) return
   if (node.inputs.value !== undefined && /PrimitiveString/i.test(node.class_type || '')) {
@@ -89,15 +105,32 @@ function writePrompt(wf: Workflow, nodes: ComfyI2VNodeMap, prompt: string) {
   }
 }
 
+function writePrompt(wf: Workflow, nodes: ComfyI2VNodeMap, prompt: string) {
+  const ids = nodes.promptNodeIds?.length
+    ? nodes.promptNodeIds
+    : [nodes.promptNode || nodes.videoNode]
+  for (const id of ids) {
+    if (id) writePromptOnNode(wf, id, prompt)
+  }
+}
+
 function applyCommonParams(
   wf: Workflow,
   nodes: ComfyI2VNodeMap,
   params: { duration?: number | null; seed?: number | null; aspectRatio?: string | null },
 ) {
+  const sec = Number(params.duration)
   if (nodes.duration && wf[nodes.duration]?.inputs) {
-    const sec = Number(params.duration)
     if (Number.isFinite(sec) && sec > 0) {
       wf[nodes.duration].inputs.value = sec
+    }
+  } else if (Number.isFinite(sec) && sec > 0) {
+    // 云端双 Pass 等：直接写 length 帧数到各 ReferenceToVideo
+    const length = secondsToH3Length(sec)
+    for (const id of nodes.videoNodeIds || [nodes.videoNode]) {
+      if (wf[id]?.inputs && !Array.isArray(wf[id].inputs.length)) {
+        wf[id].inputs.length = length
+      }
     }
   }
 
@@ -117,6 +150,12 @@ function applyCommonParams(
     const ratio = String(params.aspectRatio || '').trim()
     const mapped = ASPECT_MAP[ratio]
     if (mapped) wf[nodes.resolution].inputs.aspect_ratio = mapped
+  } else if (nodes.sizeNode && wf[nodes.sizeNode]?.inputs) {
+    const size = SIZE_BY_ASPECT[String(params.aspectRatio || '').trim()]
+    if (size) {
+      wf[nodes.sizeNode].inputs.width = size.width
+      wf[nodes.sizeNode].inputs.height = size.height
+    }
   }
 }
 
@@ -132,18 +171,16 @@ function applyR2VParams(
   },
 ): Workflow {
   const wf = structuredClone(template)
-  const video = wf[nodes.videoNode]
-  if (!video?.inputs) throw new Error('ReferenceToVideo 节点无效')
+  const videoIds = nodes.videoNodeIds?.length ? nodes.videoNodeIds : [nodes.videoNode]
+  for (const id of videoIds) {
+    if (!wf[id]?.inputs) throw new Error(`ReferenceToVideo 节点无效: ${id}`)
+  }
 
   writePrompt(wf, nodes, toComfyR2VPrompt(params.prompt))
   applyCommonParams(wf, nodes, params)
 
-  // 清掉旧的 ref_images.*，按实际上传数量重挂
-  for (const key of Object.keys(video.inputs)) {
-    if (/^ref_images\.ref_image_\d+$/i.test(key)) delete video.inputs[key]
-  }
-
   const templateLoads = [...nodes.loadImageIds]
+  const loadIds: string[] = []
   for (let i = 0; i < params.imageNames.length; i++) {
     let loadId = templateLoads[i]
     if (!loadId || !wf[loadId]) {
@@ -156,7 +193,18 @@ function applyR2VParams(
     } else {
       wf[loadId].inputs.image = params.imageNames[i]
     }
-    video.inputs[`ref_images.ref_image_${i}`] = [loadId, 0]
+    loadIds.push(loadId)
+  }
+
+  // 各 Pass 同步参考图挂接
+  for (const videoId of videoIds) {
+    const video = wf[videoId]
+    for (const key of Object.keys(video.inputs)) {
+      if (/^ref_images\.ref_image_\d+$/i.test(key)) delete video.inputs[key]
+    }
+    for (let i = 0; i < loadIds.length; i++) {
+      video.inputs[`ref_images.ref_image_${i}`] = [loadIds[i], 0]
+    }
   }
 
   return wf
@@ -233,7 +281,7 @@ export class ComfyUIVideoAdapter implements VideoProviderAdapter {
     const prompt = (record.prompt || '').trim()
     if (!prompt) throw new Error('ComfyUI 视频需要提示词')
 
-    const template = loadComfyWorkflow('i2v')
+    const template = loadComfyWorkflow(workflowKindForProvider(config.provider))
     const nodes = resolveI2VNodes(template)
 
     const imageNames: string[] = []

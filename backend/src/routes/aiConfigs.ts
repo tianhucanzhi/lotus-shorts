@@ -76,8 +76,8 @@ function buildProbe(serviceType: string, provider: string, baseUrl: string, mode
     }
   }
 
-  // ComfyUI Desktop：直连本机，探测 /system_stats（非 OpenAI /v1/models）
-  if (p === 'comfyui') {
+  // ComfyUI（本地 / 云端）：探测 /system_stats（非 OpenAI /v1/models）
+  if (p === 'comfyui' || p === 'comfyui_cloud') {
     return {
       method: 'GET',
       url: joinProviderUrl(baseUrl, '', '/system_stats'),

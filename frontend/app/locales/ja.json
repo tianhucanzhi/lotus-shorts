@@ -513,6 +513,11 @@
           "label": "参照→動画",
           "desc": "絵コンテの参照生動画（既定 MiniMax H3 ReferenceToVideo）。LoadImage + ReferenceToVideo。ImageToVideo も可。",
           "hint": "workspace/comfyui/i2v.json に保存。動画プロバイダは comfyui。紐付け画像は <Picture N> として注入されます。"
+        },
+        "i2v_cloud": {
+          "label": "クラウド参照→動画",
+          "desc": "クラウド GPU ComfyUI（MiniMax H3 多参照デュアルパス）。動画プロバイダは comfyui_cloud。",
+          "hint": "workspace/comfyui/i2v-cloud.json に保存。キャンバス/API JSON を貼り付け可。"
         }
       }
     },

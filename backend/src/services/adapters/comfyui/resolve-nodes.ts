@@ -24,16 +24,61 @@ function titleOf(node: any): string {
   return String(node?._meta?.title || node?.title || '')
 }
 
-/** 接受 API 格式；拒绝 ComfyUI 画布 UI 导出 */
+/** 画布 UI 导出（nodes + links）→ Comfy `/prompt` API 格式 */
+export function uiWorkflowToApi(raw: Record<string, any>): Workflow {
+  const nodes = Array.isArray(raw.nodes) ? raw.nodes : []
+  const links = Array.isArray(raw.links) ? raw.links : []
+  const linkById = new Map<number, any>()
+  for (const link of links) {
+    if (Array.isArray(link) && link.length >= 5) linkById.set(Number(link[0]), link)
+  }
+
+  const out: Workflow = {}
+  for (const node of nodes) {
+    if (!node || node.id == null) continue
+    const classType = String(node.type || '')
+    // 说明便签等无计算节点不提交
+    if (!classType || /^(MarkdownNote|Note|Reroute)$/i.test(classType)) continue
+
+    const inputs: Record<string, any> = {}
+    const named = node.widgets_values_named
+    if (named && typeof named === 'object' && !Array.isArray(named)) {
+      for (const [k, v] of Object.entries(named)) {
+        if (k === 'upload' || k === 'control_after_generate') continue
+        inputs[k] = v
+      }
+    }
+
+    for (const inp of Array.isArray(node.inputs) ? node.inputs : []) {
+      if (!inp?.name) continue
+      const name = String(inp.name)
+      if (inp.link == null) continue
+      const link = linkById.get(Number(inp.link))
+      if (!link) continue
+      // links: [id, fromNodeId, fromSlot, toNodeId, toSlot, type]
+      inputs[name] = [String(link[1]), Number(link[2])]
+    }
+
+    out[String(node.id)] = {
+      class_type: classType,
+      inputs,
+      _meta: { title: String(node.title || classType) },
+    }
+  }
+  if (!Object.keys(out).length) {
+    throw new Error('画布工作流无可提交节点')
+  }
+  return out
+}
+
+/** 接受 API 格式；画布 UI 导出会自动转成 API 格式 */
 export function normalizeWorkflow(raw: unknown): Workflow {
   if (!raw || typeof raw !== 'object') {
     throw new Error('工作流 JSON 无效')
   }
   const obj = raw as Record<string, any>
   if (Array.isArray(obj.nodes)) {
-    throw new Error(
-      '请使用 ComfyUI「Save (API Format)」导出的工作流，不要使用带 nodes 数组的画布格式',
-    )
+    return uiWorkflowToApi(obj)
   }
   if (obj.prompt && typeof obj.prompt === 'object' && !Array.isArray(obj.prompt)) {
     return obj.prompt as Workflow

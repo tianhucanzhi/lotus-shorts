@@ -22,12 +22,14 @@ export const imageAdapters: Record<string, ImageProviderAdapter> = {
 }
 
 // 视频 Adapter 注册表
+const comfyVideo = new ComfyUIVideoAdapter()
 export const videoAdapters: Record<string, VideoProviderAdapter> = {
   openai: new OpenAIVideoAdapter(),
   volcengine: new VolcEngineVideoAdapter(),
   minimax: new MiniMaxVideoAdapter(),
   aliyun: new AliyunWanVideoAdapter(),
-  comfyui: new ComfyUIVideoAdapter(),
+  comfyui: comfyVideo,
+  comfyui_cloud: comfyVideo,
 }
 
 /**

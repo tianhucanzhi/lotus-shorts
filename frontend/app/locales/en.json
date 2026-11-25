@@ -560,6 +560,11 @@
           "label": "Reference to Video",
           "desc": "Storyboard reference-to-video (default MiniMax H3 ReferenceToVideo). Needs LoadImage + ReferenceToVideo; ImageToVideo still works.",
           "hint": "Saved to workspace/comfyui/i2v.json. Set video provider to comfyui; bound character/scene/prop images map to <Picture N>."
+        },
+        "i2v_cloud": {
+          "label": "Cloud Reference to Video",
+          "desc": "Cloud GPU ComfyUI (MiniMax H3 multi-ref dual-pass). Use video provider comfyui_cloud.",
+          "hint": "Saved to workspace/comfyui/i2v-cloud.json. Paste canvas or API JSON; pick ComfyUI Cloud as provider."
         }
       }
     },

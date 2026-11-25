@@ -260,7 +260,7 @@ async function processTask(id: number, config: AIConfig) {
       // ComfyUI 本地直传文件，保留本地/相对路径即可
       const provider = config.provider.toLowerCase()
       const usePublicVideoImageRefs = provider === 'openai'
-      const keepLocalRefs = provider === 'comfyui'
+      const keepLocalRefs = provider === 'comfyui' || provider === 'comfyui_cloud'
       const gateway = usePublicVideoImageRefs ? config.baseUrl : null
       const resolvedImageUrl = usePublicVideoImageRefs
         ? await resolveGatewayPublicUrl(params.imageUrl, 'file', gateway)
