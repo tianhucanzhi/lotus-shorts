@@ -2028,6 +2028,10 @@ function chatConfigId() { return resolveTextModelSelection(textModelOptions.valu
 const pendingCharImageIds = ref([])
 const pendingVariantIds = ref([])
 const pendingVariantPresetKeys = ref([])
+/** variantId → presetToken，失败收敛时清掉对应 chip 的 pending */
+const pendingVariantPresetById = ref({})
+/** 造型变体失败任务已提示过，避免轮询重复弹余额框 */
+const notifiedVariantFailTaskIds = ref(new Set())
 const uploadingVariantIds = ref([])
 
 const OUTFIT_PRESET_KEYS = computed(() => ([
@@ -2127,6 +2131,80 @@ async function submitCustomVariant() {
   }
 }
 
+function parseGenTaskParams(task) {
+  const raw = task?.params
+  if (!raw) return {}
+  if (typeof raw === 'object' && !Array.isArray(raw)) return raw
+  try { return JSON.parse(String(raw)) } catch { return {} }
+}
+
+function latestVariantImageTask(variantId) {
+  const id = Number(variantId)
+  if (!id) return null
+  return genTasks.value
+    .filter((task) => {
+      if (task.type !== 'image') return false
+      const p = parseGenTaskParams(task)
+      return Number(p.characterVariantId || p.character_variant_id) === id
+    })
+    .sort((a, b) => b.id - a.id)[0] || null
+}
+
+function clearVariantPending(variantId, presetToken) {
+  const token = presetToken || pendingVariantPresetById.value[variantId]
+  if (variantId != null) {
+    pendingVariantIds.value = pendingVariantIds.value.filter(id => id !== variantId)
+    if (pendingVariantPresetById.value[variantId] != null) {
+      const next = { ...pendingVariantPresetById.value }
+      delete next[variantId]
+      pendingVariantPresetById.value = next
+    }
+  }
+  if (token) pendingVariantPresetKeys.value = pendingVariantPresetKeys.value.filter(k => k !== token)
+}
+
+/** 造型变体：后台 sys_task 失败（含余额不足）时弹提示并退出 pending */
+function syncVariantImagePendingFromTasks() {
+  if (!pendingVariantIds.value.length) return
+  const failMsgs = []
+  const still = []
+  for (const variantId of pendingVariantIds.value) {
+    const task = latestVariantImageTask(variantId)
+    if (!task || task.status === 'processing') {
+      still.push(variantId)
+      continue
+    }
+    if (task.status === 'failed') {
+      const msg = task.error_msg || task.errorMsg || 'Generation failed'
+      if (!notifiedVariantFailTaskIds.value.has(task.id)) {
+        notifiedVariantFailTaskIds.value.add(task.id)
+        failMsgs.push(msg)
+      }
+      const token = pendingVariantPresetById.value[variantId]
+      if (token) pendingVariantPresetKeys.value = pendingVariantPresetKeys.value.filter(k => k !== token)
+      if (pendingVariantPresetById.value[variantId] != null) {
+        const next = { ...pendingVariantPresetById.value }
+        delete next[variantId]
+        pendingVariantPresetById.value = next
+      }
+      continue
+    }
+    // completed：等 refresh 把 image_url 带回；仍短暂保留 pending，由 watch / 下次同步收敛
+    still.push(variantId)
+  }
+  if (still.length !== pendingVariantIds.value.length || still.some((id, i) => id !== pendingVariantIds.value[i])) {
+    pendingVariantIds.value = still
+  }
+  let balanceShown = false
+  for (const msg of failMsgs) {
+    if (classifyError(msg) === 'balance') {
+      if (balanceShown) continue
+      balanceShown = true
+    }
+    toastError(msg)
+  }
+}
+
 async function generateCharacterVariant(charId, presetKey, extra = null) {
   const char = chars.value.find(c => c.id === charId)
   if (!(char?.image_url || char?.imageUrl)) {
@@ -2149,23 +2227,38 @@ async function generateCharacterVariant(charId, presetKey, extra = null) {
     )
     const variantId = res?.variant?.id
     if (variantId && !pendingVariantIds.value.includes(variantId)) pendingVariantIds.value.push(variantId)
+    if (variantId) {
+      pendingVariantPresetById.value = { ...pendingVariantPresetById.value, [variantId]: presetToken }
+    }
     toast.success(t('episode.asset.variantsGenStarted'))
     await refresh()
     if (variantId) {
       watchAsyncResult(() => {
         const fresh = chars.value.find(c => c.id === charId)
         const variant = getCharacterVariants(fresh).find(v => v.id === variantId)
-        if (variant?.image_url || variant?.imageUrl || !isPendingVariant(variantId)) {
-          pendingVariantIds.value = pendingVariantIds.value.filter(id => id !== variantId)
-          pendingVariantPresetKeys.value = pendingVariantPresetKeys.value.filter(k => k !== presetToken)
+        if (variant?.image_url || variant?.imageUrl) {
+          clearVariantPending(variantId, presetToken)
+          return true
+        }
+        const task = latestVariantImageTask(variantId)
+        if (task?.status === 'failed') {
+          const msg = task.error_msg || task.errorMsg || 'Generation failed'
+          if (!notifiedVariantFailTaskIds.value.has(task.id)) {
+            notifiedVariantFailTaskIds.value.add(task.id)
+            toastError(msg)
+          }
+          clearVariantPending(variantId, presetToken)
+          return true
+        }
+        if (!isPendingVariant(variantId)) {
+          clearVariantPending(variantId, presetToken)
           return true
         }
         return false
       }, {
         attempts: 36,
         onGiveUp: () => {
-          pendingVariantIds.value = pendingVariantIds.value.filter(id => id !== variantId)
-          pendingVariantPresetKeys.value = pendingVariantPresetKeys.value.filter(k => k !== presetToken)
+          clearVariantPending(variantId, presetToken)
         },
       })
     } else {
@@ -3449,6 +3542,7 @@ async function loadGenTasks() {
     failedVideoMessages.value = failed
 
     syncAssetImagePendingFromTasks()
+    syncVariantImagePendingFromTasks()
   } catch { /* 静默失败,不打断其他刷新 */ }
 }
 
@@ -3563,10 +3657,11 @@ watch(
     pendingCharImageIds.value.length,
     pendingSceneImageIds.value.length,
     pendingPropImageIds.value.length,
+    pendingVariantIds.value.length,
   ],
-  ([active, charN, sceneN, propN]) => {
+  ([active, charN, sceneN, propN, variantN]) => {
     stopGenTasksPolling()
-    const needPoll = active > 0 || charN > 0 || sceneN > 0 || propN > 0
+    const needPoll = active > 0 || charN > 0 || sceneN > 0 || propN > 0 || variantN > 0
     if (!needPoll) return
     genTasksTimer = setInterval(async () => {
       if (refreshingTasks) return
