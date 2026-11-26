@@ -36,6 +36,15 @@
       </nav>
 
       <div class="header-right">
+        <button
+          type="button"
+          class="help-toggle"
+          :aria-label="t('layout.help')"
+          :title="t('layout.help')"
+          @click="openGuideVideo"
+        >
+          <CircleHelp :size="15" :stroke-width="1.8" />
+        </button>
         <ThemeToggle />
         <LocaleSwitcher />
         <div v-if="auth.isSaas.value && auth.user.value" class="user-chip">
@@ -45,6 +54,8 @@
         </div>
       </div>
     </header>
+
+    <GuideVideoDialog ref="guideDialogRef" />
 
     <!-- AI 服务未配置引导横幅(缺任一类型即提示) -->
     <div v-if="missingConfigLabels.length" class="config-banner">
@@ -75,10 +86,11 @@
 </template>
 
 <script setup>
-import { LayoutGrid, Settings, Shield, TriangleAlert } from 'lucide-vue-next'
+import { CircleHelp, LayoutGrid, Settings, Shield, TriangleAlert } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { aiConfigAPI } from '~/composables/useApi'
 import brandLogo from '~/assets/brand-logo.png'
+import GuideVideoDialog from '~/components/GuideVideoDialog.vue'
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -87,10 +99,15 @@ const auth = useAuth()
 const showAdminNav = computed(() => auth.isLoggedIn.value && auth.user.value?.role === 'admin')
 const showBrandImage = ref(true)
 const copyrightYear = new Date().getFullYear()
+const guideDialogRef = ref(null)
 const footerLinks = computed(() => [
   { label: t('layout.footer.realApi'), href: 'https://real-api.yunfm.cn' },
   { label: t('layout.footer.lotusGrowth'), href: 'https://lotus.yunfm.cn' },
 ])
+
+function openGuideVideo() {
+  guideDialogRef.value?.open({ tryAutoplay: true })
+}
 
 function onLogout() {
   auth.logout()
@@ -208,6 +225,25 @@ watch(locale, checkAiConfigs)
 .header-right {
   margin-left: auto;
   display: flex; align-items: center; gap: 8px;
+}
+.help-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.18s var(--ease-out);
+  line-height: 1;
+}
+.help-toggle:hover { color: var(--text-0); background: var(--bg-hover); }
+.help-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3.5px var(--button-focus);
 }
 .user-chip {
   display: flex; align-items: center; gap: 8px;

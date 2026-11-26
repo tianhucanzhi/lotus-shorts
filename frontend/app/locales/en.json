@@ -22,7 +22,14 @@
   },
   "landing": {
     "brand": "Lotus Shorts",
-    "nav": { "intro": "Intro", "flow": "How it works", "samples": "Samples", "cost": "Cost", "pricing": "Pricing", "login": "Sign in", "start": "Get started", "openApp": "Open workspace" },
+    "nav": { "intro": "Intro", "flow": "How it works", "samples": "Samples", "cost": "Cost", "pricing": "Pricing", "guide": "How-to video", "login": "Sign in", "start": "Get started", "openApp": "Open workspace" },
+    "guide": {
+      "title": "How-to video",
+      "sub": "A quick walkthrough of the Lotus Shorts workspace",
+      "play": "Click to play",
+      "expand": "Expand",
+      "shrink": "Restore"
+    },
     "hero": {
       "headline": "Upload a novel. Ship a 60-episode vertical drama in hours.",
       "support": "Script rewrite, assets, storyboards, image/video generation and merge — one pipeline for costume, urban, and comic styles.",
@@ -277,6 +284,7 @@
       "missing": "{types} model not configured yet. AI features are unavailable.",
       "goSettings": "Go to Settings"
     },
+    "help": "How-to video",
     "theme": {
       "label": "Toggle theme",
       "light": "Light mode",

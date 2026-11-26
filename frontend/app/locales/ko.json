@@ -22,7 +22,14 @@
   },
   "landing": {
     "brand": "로터스 쇼츠",
-    "nav": { "intro": "소개", "flow": "흐름", "samples": "샘플", "cost": "비용", "pricing": "요금", "login": "로그인", "start": "무료 시작", "openApp": "작업대 열기" },
+    "nav": { "intro": "소개", "flow": "흐름", "samples": "샘플", "cost": "비용", "pricing": "요금", "guide": "사용 가이드 영상", "login": "로그인", "start": "무료 시작", "openApp": "작업대 열기" },
+    "guide": {
+      "title": "사용 가이드 영상",
+      "sub": "연화단극 작업대 사용법을 짧게 안내합니다",
+      "play": "재생하기",
+      "expand": "확대",
+      "shrink": "원래 크기"
+    },
     "hero": {
       "headline": "소설을 올리면, 몇 시간 만에 60화 세로형 숏드라마.",
       "support": "대본, 에셋, 스토리보드, 이미지/영상 생성과 병합을 한 작업대에서.",
@@ -252,6 +259,7 @@
       "missing": "{types} 모델이 아직 설정되지 않아 AI 기능을 사용할 수 없습니다",
       "goSettings": "설정으로 이동"
     },
+    "help": "사용 가이드 영상",
     "theme": {
       "label": "테마 전환",
       "light": "라이트 모드",

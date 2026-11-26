@@ -28,9 +28,17 @@
       "samples": "看样片",
       "cost": "成本",
       "pricing": "价格",
+      "guide": "操作使用视频",
       "login": "登录",
       "start": "免费开始",
       "openApp": "进入工作台"
+    },
+    "guide": {
+      "title": "操作使用视频",
+      "sub": "快速了解莲花短剧工作台怎么用",
+      "play": "点击播放",
+      "expand": "放大弹框",
+      "shrink": "还原弹框"
     },
     "hero": {
       "headline": "传一本小说，几小时出一部 60 集竖屏短剧",
@@ -286,6 +294,7 @@
       "missing": "尚未配置{types}模型,AI 功能无法使用",
       "goSettings": "前往设置"
     },
+    "help": "操作使用视频",
     "theme": {
       "label": "切换主题",
       "light": "浅色模式",

@@ -22,7 +22,14 @@
   },
   "landing": {
     "brand": "蓮花ショートドラマ",
-    "nav": { "intro": "紹介", "flow": "流れ", "samples": "サンプル", "cost": "コスト", "pricing": "料金", "login": "ログイン", "start": "無料ではじめる", "openApp": "作業台へ" },
+    "nav": { "intro": "紹介", "flow": "流れ", "samples": "サンプル", "cost": "コスト", "pricing": "料金", "guide": "操作ガイド動画", "login": "ログイン", "start": "無料ではじめる", "openApp": "作業台へ" },
+    "guide": {
+      "title": "操作ガイド動画",
+      "sub": "蓮花短劇の作業台の使い方を短く紹介",
+      "play": "再生する",
+      "expand": "拡大",
+      "shrink": "元に戻す"
+    },
     "hero": {
       "headline": "小説を渡す。数時間で60話の縦型ショートドラマ。",
       "support": "脚本、素材、絵コンテ、画像/動画生成から書き出しまでを一つの作業台で。",
@@ -252,6 +259,7 @@
       "missing": "{types}モデルが未設定のため、AI 機能は使用できません",
       "goSettings": "設定へ"
     },
+    "help": "操作ガイド動画",
     "theme": {
       "label": "テーマを切り替え",
       "light": "ライトモード",

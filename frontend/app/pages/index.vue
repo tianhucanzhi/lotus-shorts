@@ -14,6 +14,7 @@
         <button type="button" class="lp-link" @click="scrollToSection('pricing')">{{ t('landing.nav.pricing') }}</button>
       </nav>
       <div class="lp-nav-actions">
+        <button type="button" class="btn btn-ghost" @click="openGuideVideo({ tryAutoplay: true })">{{ t('landing.nav.guide') }}</button>
         <LocaleSwitcher />
         <NuxtLink v-if="auth.isLoggedIn.value" class="btn btn-primary" to="/app">{{ t('landing.nav.openApp') }}</NuxtLink>
         <template v-else>
@@ -313,23 +314,37 @@
         </div>
       </div>
     </div>
+
+    <GuideVideoDialog
+      ref="guideDialogRef"
+      :lock-body-scroll="false"
+      @opened="onGuideOpened"
+      @closed="onGuideClosed"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import brandLogo from '~/assets/brand-logo.png'
+import GuideVideoDialog from '~/components/GuideVideoDialog.vue'
 import LocaleSwitcher from '~/components/LocaleSwitcher.vue'
 
 definePageMeta({ layout: false })
 
 const { t } = useI18n()
+const route = useRoute()
 const auth = useAuth()
 const showBrand = ref(true)
 const year = new Date().getFullYear()
 const activeSample = ref(null)
 const activeEpisodeId = ref('')
 const shotPreview = ref(null)
+const guideOpen = ref(false)
+const guideDialogRef = ref(null)
+
+/** 操作使用演示视频；分享给客户用 /?guide=1 */
+const GUIDE_QUERY = 'guide'
 
 /** 持械入宋 · OSS 成片（顶部手机位） */
 const SERIES_CHI_XIE = {
@@ -459,12 +474,37 @@ function lockPageScroll() {
 }
 
 function restorePageScroll() {
-  if (shotPreview.value || activeSample.value) {
+  if (shotPreview.value || activeSample.value || guideOpen.value) {
     lockPageScroll()
     return
   }
   unlockLandingScroll()
 }
+
+function shouldAutoOpenGuide() {
+  const q = route.query[GUIDE_QUERY]
+  if (q == null) return false
+  const v = Array.isArray(q) ? q[0] : q
+  return v === '1' || v === 'true' || v === ''
+}
+
+function openGuideVideo(opts = {}) {
+  shotPreview.value = null
+  activeSample.value = null
+  activeEpisodeId.value = ''
+  guideDialogRef.value?.open(opts)
+}
+
+function onGuideOpened() {
+  guideOpen.value = true
+  lockPageScroll()
+}
+
+function onGuideClosed() {
+  guideOpen.value = false
+  restorePageScroll()
+}
+
 
 function restoreScrollShell() {
   const html = document.documentElement
@@ -492,6 +532,7 @@ onMounted(async () => {
   window.addEventListener('keydown', onKey)
   await Promise.all([probeStepShots(), probeSampleMedia()])
   mediaReady.value = true
+  if (shouldAutoOpenGuide()) openGuideVideo()
 })
 
 onUnmounted(() => {
@@ -503,7 +544,8 @@ onUnmounted(() => {
 
 function onKey(e) {
   if (e.key !== 'Escape') return
-  if (shotPreview.value) closeShotPreview()
+  if (guideOpen.value) guideDialogRef.value?.close()
+  else if (shotPreview.value) closeShotPreview()
   else closeSample()
 }
 
@@ -535,6 +577,7 @@ const activeEpisode = computed(() => {
 
 function openSample(s, episodeId) {
   shotPreview.value = null
+  if (guideOpen.value) guideDialogRef.value?.close()
   activeSample.value = s
   const eps = s?.episodes
   activeEpisodeId.value = episodeId || eps?.[0]?.id || ''
@@ -552,6 +595,7 @@ function closeSample() {
 function openShotPreview(step) {
   if (!step?.shot) return
   activeSample.value = null
+  if (guideOpen.value) guideDialogRef.value?.close()
   shotPreview.value = step
   lockPageScroll()
 }
