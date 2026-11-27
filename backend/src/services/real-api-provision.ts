@@ -55,21 +55,49 @@ function withSuffix(base: string, n: number): string {
   return base.slice(0, Math.max(1, 32 - suffix.length)) + suffix
 }
 
-async function callOpenRegister(username: string): Promise<{ ok: true; data: any } | { ok: false; msg: string }> {
+/** 规范化客户端 IP（供转发给 Real-API 注册限制） */
+export function normalizeClientIp(raw: string | null | undefined): string {
+  let ip = String(raw || '').trim()
+  if (!ip) return ''
+  // XFF 多级取第一个
+  if (ip.includes(',')) ip = ip.split(',')[0].trim()
+  // IPv6 带端口 [::1]:123 → 去掉；IPv4:port 也去掉
+  if (ip.startsWith('[')) {
+    const end = ip.indexOf(']')
+    if (end > 0) ip = ip.slice(1, end)
+  } else if (/^\d+\.\d+\.\d+\.\d+:\d+$/.test(ip)) {
+    ip = ip.replace(/:\d+$/, '')
+  }
+  return ip.slice(0, 64)
+}
+
+async function callOpenRegister(
+  username: string,
+  clientIp?: string | null,
+): Promise<{ ok: true; data: any } | { ok: false; msg: string }> {
   const url = `${realApiBase()}/api/lotus/activationCode/openRegisterByInvite`
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${openToken()}`,
+  }
+  // 服务端代开户时必须把真实用户 IP 传给 Real-API，否则会记成短剧服务器 IP 并误进黑名单
+  const ip = normalizeClientIp(clientIp)
+  if (ip) {
+    headers['X-Forwarded-For'] = ip
+    headers['X-Real-IP'] = ip
+  }
+  const payload: Record<string, string> = {
+    invite_code: inviteCode(),
+    username,
+    // Real-API 用户来源：后台 /admin/users 显示为「莲花短剧」
+    source: 'lotus-shorts',
+    remark: `lotus-shorts ${isSaas() ? 'saas' : 'standalone'} auto-register`,
+  }
+  if (ip) payload.client_ip = ip
   const resp = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${openToken()}`,
-    },
-    body: JSON.stringify({
-      invite_code: inviteCode(),
-      username,
-      // Real-API 用户来源：后台 /admin/users 显示为「莲花短剧」
-      source: 'lotus-shorts',
-      remark: `lotus-shorts ${isSaas() ? 'saas' : 'standalone'} auto-register`,
-    }),
+    headers,
+    body: JSON.stringify(payload),
   })
   const json = await resp.json().catch(() => null) as any
   if (!resp.ok) {
@@ -83,15 +111,19 @@ async function callOpenRegister(username: string): Promise<{ ok: true; data: any
 
 /**
  * 用本系统用户名开户；重名则尝试 base_2 / base_3 …
+ * @param clientIp 终端用户 IP（从短剧请求头解析），勿传服务器 IP
  */
-export async function provisionRealApiAccount(preferredUsername: string): Promise<RealApiProvisionResult> {
+export async function provisionRealApiAccount(
+  preferredUsername: string,
+  clientIp?: string | null,
+): Promise<RealApiProvisionResult> {
   const base = sanitizeRealApiUsername(preferredUsername)
   let lastMsg = '开户失败'
 
   for (let n = 1; n <= 20; n++) {
     const candidate = withSuffix(base, n)
     if (!USERNAME_RE.test(candidate)) continue
-    const res = await callOpenRegister(candidate)
+    const res = await callOpenRegister(candidate, clientIp)
     if (res.ok) {
       const data = res.data
       const apiKey = String(data.api_key || '').trim()

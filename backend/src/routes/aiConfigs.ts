@@ -9,10 +9,25 @@ import { toSnakeCase } from '../utils/transform.js'
 import { joinProviderUrl } from '../services/adapters/url.js'
 import { isOfficialProvider, parseConfigTemperature } from '../services/ai.js'
 import { getRealApiAccount, setRealApiAccount } from '../services/app-settings.js'
-import { createRealApiLoginTicket, fetchRealApiBalanceUsd, provisionRealApiAccount, resolveRealApiAccountByApiKey, sanitizeRealApiUsername } from '../services/real-api-provision.js'
+import { createRealApiLoginTicket, fetchRealApiBalanceUsd, normalizeClientIp, provisionRealApiAccount, resolveRealApiAccountByApiKey, sanitizeRealApiUsername } from '../services/real-api-provision.js'
 import { redactUrl, logTaskError, logTaskProgress, logTaskSuccess } from '../utils/task-logger.js'
 
 const app = new Hono<{ Variables: AuthVariables }>()
+
+/** 从短剧入站请求解析真实用户 IP（优先 CDN/代理头） */
+function clientIpFromRequest(c: { req: { header: (name: string) => string | undefined } }): string {
+  const candidates = [
+    c.req.header('cf-connecting-ip'),
+    c.req.header('true-client-ip'),
+    c.req.header('x-real-ip'),
+    c.req.header('x-forwarded-for'),
+  ]
+  for (const raw of candidates) {
+    const ip = normalizeClientIp(raw)
+    if (ip) return ip
+  }
+  return ''
+}
 
 /** 归一化 temperature 入参：null=未设置；合法值 0~2；非法抛错 */
 function normalizeTemperature(v: any): number | null {
@@ -285,11 +300,13 @@ app.post('/real-api/auto-register', async (c) => {
   preferred = sanitizeRealApiUsername(preferred)
 
   try {
-    const account = await provisionRealApiAccount(preferred)
+    const clientIp = clientIpFromRequest(c)
+    const account = await provisionRealApiAccount(preferred, clientIp)
     const saved = setRealApiAccount(account)
     logTaskSuccess('AIConfig', 'real-api-auto-register', {
       userId,
       username: saved.username,
+      clientIp: clientIp || undefined,
     })
     return success(c, saved)
   } catch (err: any) {
