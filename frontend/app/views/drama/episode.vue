@@ -1079,16 +1079,29 @@
                   <div class="merge-card-meta">
                     <span class="mono">{{ formatHistoryTime(m.created_at) }}</span>
                     <span v-if="m.duration">· {{ m.duration }}s</span>
-                    <a
-                      v-if="m.status === 'completed' && m.merged_url"
-                      :href="'/' + m.merged_url"
-                      download
-                      class="btn btn-sm"
-                      @click.stop
-                    >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                      {{ t('common.download') }}
-                    </a>
+                    <div class="merge-card-actions">
+                      <a
+                        v-if="m.status === 'completed' && m.merged_url"
+                        :href="'/' + m.merged_url"
+                        download
+                        class="btn btn-sm"
+                        @click.stop
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        {{ t('common.download') }}
+                      </a>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-danger"
+                        :disabled="mergeDelete.loading && mergeDelete.id === m.id"
+                        :title="t('episode.export.deleteFilm')"
+                        @click.stop="askDeleteMerge(m)"
+                      >
+                        <Loader2 v-if="mergeDelete.loading && mergeDelete.id === m.id" :size="11" class="animate-spin" />
+                        <X v-else :size="11" />
+                        {{ t('common.delete') }}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1899,6 +1912,14 @@
         @confirm="confirmDeleteAsset"
         @cancel="assetDelete.open = false"
       />
+      <ConfirmDialog
+        :open="mergeDelete.open"
+        :title="t('episode.export.deleteFilmTitle')"
+        :message="t('episode.export.deleteFilmMessage')"
+        :loading="mergeDelete.loading"
+        @confirm="confirmDeleteMerge"
+        @cancel="mergeDelete.open = false"
+      />
 
       <div v-if="breakdownPaceOpen" class="overlay" @click.self="breakdownPaceOpen = false">
         <div class="dialog batch-video-dialog">
@@ -1983,6 +2004,7 @@ const scriptLen = computed(() => localScript.value.replace(/\s/g, '').length || 
 // ===== 拼接导出:镜头选择 + 成片列表 =====
 const exportSelectedIds = ref([]) // 勾选的镜头 id
 const exportMerges = ref([])      // 成片(拼接记录)列表
+const mergeDelete = ref({ open: false, loading: false, id: null })
 let exportSelTouched = false      // 用户手动操作过选择后,不再自动全选
 
 const exportReadyIds = computed(() => sbs.value.filter(s => hasVid(s)).map(s => s.id))
@@ -2012,6 +2034,31 @@ function toggleSelectAllExport() {
 async function loadExportMerges() {
   if (!epId.value) return
   try { exportMerges.value = await mergeAPI.list(epId.value) || [] } catch { /* 静默 */ }
+}
+
+function askDeleteMerge(m) {
+  if (!m?.id) return
+  mergeDelete.value = { open: true, loading: false, id: m.id }
+}
+
+async function confirmDeleteMerge() {
+  const id = mergeDelete.value.id
+  if (!id || !epId.value) {
+    mergeDelete.value.open = false
+    return
+  }
+  mergeDelete.value.loading = true
+  try {
+    await mergeAPI.del(epId.value, id)
+    exportMerges.value = exportMerges.value.filter(m => m.id !== id)
+    if (activeMerge.value?.id === id) activeMerge.value = null
+    try { mergeData.value = await mergeAPI.status(epId.value) } catch { /* 静默 */ }
+    toast.success(t('episode.export.deleteFilmDone'))
+    mergeDelete.value = { open: false, loading: false, id: null }
+  } catch (e) {
+    mergeDelete.value.loading = false
+    toastError(e, { fallback: 'episode.export.deleteFilmFailed' })
+  }
 }
 
 const scriptStep = ref(storedPanel ? (storedPanel.scriptStep === 0 ? 0 : 1) : 0)
@@ -8068,7 +8115,7 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 }
 .merge-card-pending.is-failed { color: var(--error); background: var(--error-bg); }
 .merge-card-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-3); min-width: 0; }
-.merge-card-meta .btn { margin-left: auto; }
+.merge-card-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; flex-shrink: 0; }
 .merge-card.playable { cursor: pointer; }
 .merge-card.playable:hover { border-color: var(--border-strong); box-shadow: var(--shadow-card); }
 .merge-card-thumb { position: relative; }
@@ -9086,9 +9133,12 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
     flex-wrap: wrap;
     gap: 4px 6px;
   }
-  .merge-card-meta .btn {
+  .merge-card-actions {
     margin-left: 0;
     width: 100%;
+  }
+  .merge-card-actions .btn {
+    flex: 1;
     justify-content: center;
   }
   .export-grid {

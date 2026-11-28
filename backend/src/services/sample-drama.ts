@@ -1,15 +1,31 @@
 /**
- * SaaS 示例项目：每个账号预置《一品布衣》，角标「示例」，用户可自行删除。
+ * SaaS 示例项目：每个账号预置《一品布衣》《灵环纪》等，角标「示例」，用户可自行删除。
  * - 媒体文件共享同一 static 路径，只复制数据库行并重映射 ID
- * - 若用户曾拥有同 sample_key（含软删），不再重复下发
+ * - 若用户曾拥有同 sample_key（含软删），该 key 不再重复下发；各示例相互独立
  */
 import { and, eq, isNull } from 'drizzle-orm'
 import { isSaas } from '../config/mode.js'
 import { db, getInsertId, schema } from '../db/index.js'
 import { now } from '../utils/response.js'
 
-export const SAMPLE_KEY = 'yipin-buyi'
-export const SAMPLE_TITLE = '一品布衣'
+export type SampleDef = {
+  key: string
+  title: string
+  /** 可选：环境变量指定模板 drama id */
+  envVar?: string
+}
+
+export const SAMPLE_DRAMAS: SampleDef[] = [
+  { key: 'yipin-buyi', title: '一品布衣', envVar: 'SAMPLE_DRAMA_ID' },
+  { key: 'linghuan-ji', title: '灵环纪', envVar: 'SAMPLE_DRAMA_ID_LINGHUAN' },
+]
+
+/** @deprecated 兼容旧引用：默认取第一部示例 */
+export const SAMPLE_KEY = SAMPLE_DRAMAS[0].key
+/** @deprecated 兼容旧引用 */
+export const SAMPLE_TITLE = SAMPLE_DRAMAS[0].title
+
+const SAMPLE_KEYS = new Set(SAMPLE_DRAMAS.map(s => s.key))
 
 const ensuringUsers = new Set<number>()
 
@@ -29,77 +45,82 @@ export function isSampleDrama(metaOrRaw: Meta | string | null | undefined): bool
   const meta = typeof metaOrRaw === 'string' || metaOrRaw == null
     ? parseDramaMeta(metaOrRaw)
     : metaOrRaw
-  return meta.is_sample === true || meta.sample_key === SAMPLE_KEY
+  if (meta.is_sample === true) return true
+  return typeof meta.sample_key === 'string' && SAMPLE_KEYS.has(meta.sample_key)
 }
 
-function stampSampleMeta(raw: string | null | undefined, extra: Meta = {}): string {
+function stampSampleMeta(raw: string | null | undefined, sample: SampleDef, extra: Meta = {}): string {
   return JSON.stringify({
     ...parseDramaMeta(raw),
     is_sample: true,
-    sample_key: SAMPLE_KEY,
+    sample_key: sample.key,
     ...extra,
   })
 }
 
-function envTemplateId(): number | null {
-  const n = Number(process.env.SAMPLE_DRAMA_ID || '')
+function envTemplateId(sample: SampleDef): number | null {
+  if (!sample.envVar) return null
+  const n = Number(process.env[sample.envVar] || '')
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
-/** 解析示例模板源（优先环境变量，其次 metadata.is_template，再次标题匹配） */
-async function resolveTemplateDrama() {
-  const preferred = envTemplateId()
+/** 解析某一部示例的模板源（优先环境变量，其次同 key 的 is_template，再次标题匹配） */
+async function resolveTemplateDrama(sample: SampleDef) {
+  const preferred = envTemplateId(sample)
   if (preferred) {
     const [row] = await db.select().from(schema.dramas).where(eq(schema.dramas.id, preferred))
     if (row) return row
   }
 
   const all = await db.select().from(schema.dramas)
-  const byFlag = all.find(d => parseDramaMeta(d.metadata).is_template === true)
+  const byFlag = all.find(d => {
+    const meta = parseDramaMeta(d.metadata)
+    return meta.is_template === true && meta.sample_key === sample.key
+  })
   if (byFlag) return byFlag
 
   const byTitle = all
-    .filter(d => !d.deletedAt && d.title === SAMPLE_TITLE)
+    .filter(d => !d.deletedAt && d.title === sample.title)
     .sort((a, b) => a.id - b.id)[0]
   return byTitle || null
 }
 
-async function userHasSampleSeed(userId: number): Promise<boolean> {
+async function userHasSampleSeed(userId: number, sample: SampleDef): Promise<boolean> {
   const rows = await db.select({
     id: schema.dramas.id,
     metadata: schema.dramas.metadata,
   }).from(schema.dramas).where(eq(schema.dramas.userId, userId))
-  return rows.some(r => parseDramaMeta(r.metadata).sample_key === SAMPLE_KEY)
+  return rows.some(r => parseDramaMeta(r.metadata).sample_key === sample.key)
 }
 
-async function stampExistingTitleAsSample(userId: number): Promise<boolean> {
+async function stampExistingTitleAsSample(userId: number, sample: SampleDef): Promise<boolean> {
   const rows = await db.select().from(schema.dramas).where(and(
     eq(schema.dramas.userId, userId),
-    eq(schema.dramas.title, SAMPLE_TITLE),
+    eq(schema.dramas.title, sample.title),
     isNull(schema.dramas.deletedAt),
   ))
   if (!rows.length) return false
   for (const row of rows) {
     await db.update(schema.dramas).set({
-      metadata: stampSampleMeta(row.metadata),
+      metadata: stampSampleMeta(row.metadata, sample),
       updatedAt: now(),
     }).where(eq(schema.dramas.id, row.id))
   }
   return true
 }
 
-async function markTemplate(sourceId: number) {
+async function markTemplate(sourceId: number, sample: SampleDef) {
   const [row] = await db.select().from(schema.dramas).where(eq(schema.dramas.id, sourceId))
   if (!row) return
   const meta = parseDramaMeta(row.metadata)
-  if (meta.is_template === true && meta.sample_key === SAMPLE_KEY) return
+  if (meta.is_template === true && meta.sample_key === sample.key) return
   await db.update(schema.dramas).set({
-    metadata: stampSampleMeta(row.metadata, { is_template: true }),
+    metadata: stampSampleMeta(row.metadata, sample, { is_template: true }),
     updatedAt: now(),
   }).where(eq(schema.dramas.id, sourceId))
 }
 
-function cloneSampleDrama(sourceId: number, userId: number): number {
+function cloneSampleDrama(sourceId: number, userId: number, sample: SampleDef): number {
   const ts = now()
   const src = db.select().from(schema.dramas).where(eq(schema.dramas.id, sourceId)).get()
   if (!src) throw new Error(`示例模板不存在: ${sourceId}`)
@@ -107,7 +128,7 @@ function cloneSampleDrama(sourceId: number, userId: number): number {
   // better-sqlite3 事务回调必须同步；克隆结果不带 is_template
   const sampleMeta = JSON.stringify({
     is_sample: true,
-    sample_key: SAMPLE_KEY,
+    sample_key: sample.key,
     cloned_from: sourceId,
   })
 
@@ -389,30 +410,38 @@ function cloneSampleDrama(sourceId: number, userId: number): number {
   })
 }
 
-/** 为指定用户确保有一份可删的示例项目；无模板时静默跳过 */
+async function ensureOneSampleForUser(userId: number, sample: SampleDef): Promise<void> {
+  if (await userHasSampleSeed(userId, sample)) return
+  if (await stampExistingTitleAsSample(userId, sample)) return
+
+  const template = await resolveTemplateDrama(sample)
+  if (!template) {
+    console.warn(`[sample-drama] 未找到《${sample.title}》模板，跳过预置`)
+    return
+  }
+  await markTemplate(template.id, sample)
+  // 模板归属当前用户时，上面 stamp 已处理；仍可能是别的账号的模板
+  if (template.userId === userId) {
+    await stampExistingTitleAsSample(userId, sample)
+    return
+  }
+  const newId = await cloneSampleDrama(template.id, userId, sample)
+  console.log(`[sample-drama] 已为用户 ${userId} 预置示例《${sample.title}》 #${newId} ← #${template.id}`)
+}
+
+/** 为指定用户确保各示例项目均已下发；无模板时静默跳过对应项 */
 export async function ensureSampleDramaForUser(userId: number): Promise<void> {
   if (!isSaas() || !userId) return
   if (ensuringUsers.has(userId)) return
   ensuringUsers.add(userId)
   try {
-    if (await userHasSampleSeed(userId)) return
-    if (await stampExistingTitleAsSample(userId)) return
-
-    const template = await resolveTemplateDrama()
-    if (!template) {
-      console.warn('[sample-drama] 未找到《一品布衣》模板，跳过预置')
-      return
+    for (const sample of SAMPLE_DRAMAS) {
+      try {
+        await ensureOneSampleForUser(userId, sample)
+      } catch (err: any) {
+        console.error(`[sample-drama] 用户 ${userId} 预置《${sample.title}》失败:`, err?.message || err)
+      }
     }
-    await markTemplate(template.id)
-    // 模板归属当前用户时，上面 stamp 已处理；仍可能是别的账号的模板
-    if (template.userId === userId) {
-      await stampExistingTitleAsSample(userId)
-      return
-    }
-    const newId = await cloneSampleDrama(template.id, userId)
-    console.log(`[sample-drama] 已为用户 ${userId} 预置示例项目 #${newId} ← #${template.id}`)
-  } catch (err: any) {
-    console.error(`[sample-drama] 用户 ${userId} 预置失败:`, err?.message || err)
   } finally {
     ensuringUsers.delete(userId)
   }

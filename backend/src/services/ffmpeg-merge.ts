@@ -85,29 +85,68 @@ export async function mergeEpisodeVideos(episodeId: number, dramaId: number, sto
   return mergeId
 }
 
+async function probeMedia(filePath: string): Promise<{ hasAudio: boolean; duration: number }> {
+  return new Promise((resolve) => {
+    ffmpeg.ffprobe(filePath, (err, metadata) => {
+      if (err) { resolve({ hasAudio: false, duration: 0 }); return }
+      const hasAudio = (metadata.streams || []).some(s => s.codec_type === 'audio')
+      const duration = Number(metadata.format?.duration) || 0
+      resolve({ hasAudio, duration })
+    })
+  })
+}
+
 async function doMerge(mergeId: number, episodeId: number, videos: string[]) {
-  // 生成 concat 列表文件
-  const listDir = path.join(STORAGE_ROOT, 'temp')
-  fs.mkdirSync(listDir, { recursive: true })
-  const listPath = path.join(listDir, `${uuid()}.txt`)
+  // 不用 concat demuxer：各镜头 time_base 常不一致（如 1/12288 vs 1/90000），
+  // 再叠加 +genpts 会把视频轨时间戳拉飞（音频仍正确、成片显示成数倍时长）。
+  // 改为 filter_complex concat，统一 fps / 采样率并重置 PTS。
+  const absVideos = videos.map(toAbsPath)
+  const n = absVideos.length
+  const mediaMeta = await Promise.all(absVideos.map(probeMedia))
 
-  const listContent = videos
-    .map(v => `file '${toAbsPath(v)}'`)
-    .join('\n')
-  fs.writeFileSync(listPath, listContent, 'utf-8')
-
-  // 输出文件
   const outputDir = path.join(STORAGE_ROOT, 'merged')
   fs.mkdirSync(outputDir, { recursive: true })
   const outputFilename = `${uuid()}.mp4`
   const outputPath = path.join(outputDir, outputFilename)
 
+  const filterParts: string[] = []
+  const concatPads: string[] = []
+  let lavfiCount = 0
+  for (let i = 0; i < n; i++) {
+    filterParts.push(
+      `[${i}:v]fps=24,format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS[v${i}]`,
+    )
+    if (mediaMeta[i].hasAudio) {
+      filterParts.push(
+        `[${i}:a]aformat=sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[a${i}]`,
+      )
+    } else {
+      // 无音轨：按镜头时长生成有限静音（input 接在实体文件后）
+      const silentIdx = n + lavfiCount
+      lavfiCount += 1
+      filterParts.push(
+        `[${silentIdx}:a]aformat=sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[a${i}]`,
+      )
+    }
+    concatPads.push(`[v${i}][a${i}]`)
+  }
+  const filterComplex = `${filterParts.join(';')};${concatPads.join('')}concat=n=${n}:v=1:a=1[v][a]`
+
   await new Promise<void>((resolve, reject) => {
-    ffmpeg()
-      .input(listPath)
-      .inputOptions(['-f', 'concat', '-safe', '0'])
+    let cmd = ffmpeg()
+    for (const abs of absVideos) cmd = cmd.input(abs)
+    for (let i = 0; i < n; i++) {
+      if (mediaMeta[i].hasAudio) continue
+      const dur = Math.max(0.1, mediaMeta[i].duration || 1)
+      cmd = cmd
+        .input(`anullsrc=channel_layout=stereo:sample_rate=48000`)
+        .inputOptions(['-f', 'lavfi', '-t', String(dur)])
+    }
+    cmd
+      .complexFilter(filterComplex)
       .outputOptions([
-        '-fflags', '+genpts',
+        '-map', '[v]',
+        '-map', '[a]',
         '-c:v', 'libx264',
         '-preset', 'medium',
         '-crf', '23',
@@ -120,14 +159,10 @@ async function doMerge(mergeId: number, episodeId: number, videos: string[]) {
       .on('end', () => resolve())
       .on('error', (err) => reject(err))
       .run()
-
   })
 
-  // 清理临时文件
-  fs.unlinkSync(listPath)
-
-  // 获取时长
-  const duration = await getVideoDuration(outputPath)
+  // 获取时长：以音视频较短者为准，避免异常时间戳虚高
+  const duration = await getMergedDuration(outputPath)
 
   const mergedRelative = `static/merged/${outputFilename}`
 
@@ -152,6 +187,24 @@ function getVideoDuration(filePath: string): Promise<number> {
     ffmpeg.ffprobe(filePath, (err, metadata) => {
       if (err) { resolve(0); return }
       resolve(Math.round(metadata.format.duration || 0))
+    })
+  })
+}
+
+/** 成片时长：取 format / 视频轨 / 音频轨中合理的较短值，防止时间戳异常虚高 */
+function getMergedDuration(filePath: string): Promise<number> {
+  return new Promise((resolve) => {
+    ffmpeg.ffprobe(filePath, (err, metadata) => {
+      if (err) { resolve(0); return }
+      const formatDur = Number(metadata.format?.duration) || 0
+      const streamDurs = (metadata.streams || [])
+        .map(s => Number(s.duration) || 0)
+        .filter(d => d > 0)
+      const candidates = [formatDur, ...streamDurs].filter(d => d > 0)
+      if (!candidates.length) { resolve(0); return }
+      const shortest = Math.min(...candidates)
+      // 若 format 明显长于音轨（常见于错误 PTS），采用最短流
+      resolve(Math.round(shortest))
     })
   })
 }

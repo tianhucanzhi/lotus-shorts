@@ -1238,7 +1238,12 @@
       "markedDone": "完了",
       "markDoneTitle": "このエピソードの書き出しを手動で完了にします（再クリックで解除）",
       "markedDoneToast": "完了としてマークしました",
-      "unmarkDoneToast": "完了マークを解除しました"
+      "unmarkDoneToast": "完了マークを解除しました",
+      "deleteFilm": "完成映像を削除",
+      "deleteFilmTitle": "完成映像を削除",
+      "deleteFilmMessage": "この完成映像を削除しますか？ローカルファイルも削除され、元に戻せません。",
+      "deleteFilmDone": "完成映像を削除しました",
+      "deleteFilmFailed": "完成映像の削除に失敗しました"
     },
     "image": {
       "generatingChar": "キャラクター画像を生成中",

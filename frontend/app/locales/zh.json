@@ -1283,7 +1283,12 @@
       "markedDone": "已完成",
       "markDoneTitle": "手动标记本集导出完成（可再次点击取消）",
       "markedDoneToast": "已标记为完成",
-      "unmarkDoneToast": "已取消完成标记"
+      "unmarkDoneToast": "已取消完成标记",
+      "deleteFilm": "删除成片",
+      "deleteFilmTitle": "删除成片",
+      "deleteFilmMessage": "确定删除该成片？本地文件将一并清理，此操作不可恢复。",
+      "deleteFilmDone": "成片已删除",
+      "deleteFilmFailed": "删除成片失败"
     },
     "image": {
       "generatingChar": "角色图片生成中",

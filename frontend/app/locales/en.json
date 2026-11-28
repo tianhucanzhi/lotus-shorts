@@ -1273,7 +1273,12 @@
       "markedDone": "Done",
       "markDoneTitle": "Manually mark this episode's export as done (click again to undo)",
       "markedDoneToast": "Marked as done",
-      "unmarkDoneToast": "Done mark removed"
+      "unmarkDoneToast": "Done mark removed",
+      "deleteFilm": "Delete film",
+      "deleteFilmTitle": "Delete film",
+      "deleteFilmMessage": "Delete this film? The local file will be removed. This cannot be undone.",
+      "deleteFilmDone": "Film deleted",
+      "deleteFilmFailed": "Failed to delete film"
     },
     "image": {
       "generatingChar": "Character image generating",

@@ -366,11 +366,11 @@ function statusDotClass(d) { return currentStatus(d) === 'active' ? 'on' : curre
 function isSampleProject(d) {
   if (d?.is_sample === true || d?.isSample === true) return true
   const meta = d?.metadata
-  if (meta && typeof meta === 'object') return meta.is_sample === true || meta.sample_key === 'yipin-buyi'
+  if (meta && typeof meta === 'object') return meta.is_sample === true || !!meta.sample_key
   if (typeof meta === 'string') {
     try {
       const parsed = JSON.parse(meta)
-      return parsed?.is_sample === true || parsed?.sample_key === 'yipin-buyi'
+      return parsed?.is_sample === true || !!parsed?.sample_key
     } catch { /* ignore */ }
   }
   return false
