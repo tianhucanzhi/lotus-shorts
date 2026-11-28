@@ -1,8 +1,8 @@
 /**
- * SaaS 示例项目：每个账号预置《一品布衣》《灵环纪》等，角标「示例」，用户可自行删除。
+ * SaaS 示例项目：每个账号预置《一品布衣》《灵环纪》《御赐傻婿》等，角标「示例」，用户可自行删除。
  * - 媒体文件共享同一 static 路径，只复制数据库行并重映射 ID
  * - 若用户曾拥有同 sample_key（含软删），该 key 不再重复下发；各示例相互独立
- * - 《灵环纪》等以 data/sample-packs/<key> 本地导出包为权威源，避免线上同名落后副本被克隆
+ * - 以 data/sample-packs/<key> 本地导出包为权威源，避免线上同名落后副本被克隆
  */
 import { and, eq, isNull } from 'drizzle-orm'
 import { isSaas } from '../config/mode.js'
@@ -20,6 +20,7 @@ export type SampleDef = {
 export const SAMPLE_DRAMAS: SampleDef[] = [
   { key: 'yipin-buyi', title: '一品布衣', envVar: 'SAMPLE_DRAMA_ID' },
   { key: 'linghuan-ji', title: '灵环纪', envVar: 'SAMPLE_DRAMA_ID_LINGHUAN' },
+  { key: 'yuci-shaxu', title: '御赐傻婿', envVar: 'SAMPLE_DRAMA_ID_YUCI' },
 ]
 
 /** @deprecated 兼容旧引用：默认取第一部示例 */
