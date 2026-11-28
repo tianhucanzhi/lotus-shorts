@@ -3,13 +3,13 @@
     <button
       type="button"
       class="contact-btn"
-      :class="{ 'is-icon': iconOnly }"
+      :class="{ 'is-icon': showIconOnly }"
       :aria-label="t('layout.contact.label')"
       :title="t('layout.contact.label')"
       @click="open = true"
     >
-      <MessageCircle :size="iconOnly ? 20 : 16" :stroke-width="1.8" />
-      <span v-if="!iconOnly">{{ t('layout.contact.label') }}</span>
+      <MessageCircle :size="showIconOnly ? 20 : 16" :stroke-width="1.8" />
+      <span v-if="!showIconOnly">{{ t('layout.contact.label') }}</span>
     </button>
 
     <div v-if="open" class="overlay contact-overlay" @click.self="open = false">
@@ -31,22 +31,41 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { MessageCircle, X } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 
-withDefaults(defineProps<{ iconOnly?: boolean }>(), { iconOnly: false })
+const props = withDefaults(defineProps<{ iconOnly?: boolean }>(), { iconOnly: false })
 
 const { t } = useI18n()
 const open = ref(false)
+const isNarrow = ref(false)
 const qrUrl = 'https://lotus.yunfm.cn/static/images/wx.png'
+/** H5 全站仅图标；落地页等也可通过 prop 强制图标 */
+const showIconOnly = computed(() => props.iconOnly || isNarrow.value)
+
+let narrowMql: MediaQueryList | null = null
+function syncNarrow() {
+  isNarrow.value = !!narrowMql?.matches
+}
 
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape') open.value = false
 }
 
-onMounted(() => window.addEventListener('keydown', onKey))
-onUnmounted(() => window.removeEventListener('keydown', onKey))
+onMounted(() => {
+  window.addEventListener('keydown', onKey)
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    narrowMql = window.matchMedia('(max-width: 768px)')
+    syncNarrow()
+    narrowMql.addEventListener?.('change', syncNarrow)
+  }
+})
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKey)
+  narrowMql?.removeEventListener?.('change', syncNarrow)
+  narrowMql = null
+})
 </script>
 
 <style scoped>

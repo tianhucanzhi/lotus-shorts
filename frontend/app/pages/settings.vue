@@ -250,13 +250,15 @@
                   </div>
                   <div class="config-sub mono truncate">{{ c.base_url || t('settings.ai.noBaseUrl') }}</div>
                 </div>
-                <button v-if="st.type === 'text'" class="btn btn-ghost btn-sm" @click="testExistingCfg(c)">{{ t('settings.ai.test') }}</button>
-                <label class="config-switch">
-                  <input type="checkbox" class="sr-only" :checked="c.is_active" @change="toggleCfg(c)">
-                  <span class="switch" :class="{ on: c.is_active }"></span>
-                </label>
-                <button class="btn btn-ghost btn-icon btn-sm" @click="startEditCfg(c)"><Pencil :size="13" /></button>
-                <button class="btn btn-danger btn-icon btn-sm" @click="delCfg(c.id)"><Trash2 :size="13" /></button>
+                <div class="config-actions">
+                  <button v-if="st.type === 'text'" class="btn btn-ghost btn-sm" @click="testExistingCfg(c)">{{ t('settings.ai.test') }}</button>
+                  <label class="config-switch">
+                    <input type="checkbox" class="sr-only" :checked="c.is_active" @change="toggleCfg(c)">
+                    <span class="switch" :class="{ on: c.is_active }"></span>
+                  </label>
+                  <button class="btn btn-ghost btn-icon btn-sm" @click="startEditCfg(c)"><Pencil :size="13" /></button>
+                  <button class="btn btn-danger btn-icon btn-sm" @click="delCfg(c.id)"><Trash2 :size="13" /></button>
+                </div>
               </div>
               <p v-if="!byType(st.type).length" class="config-empty">{{ t('settings.common.empty') }}</p>
             </section>
@@ -288,12 +290,14 @@
                 <div class="config-sub mono truncate">{{ p.prompt }}</div>
                 <div v-if="p.description" class="config-sub truncate">{{ p.description }}</div>
               </div>
-              <label class="config-switch">
-                <input type="checkbox" class="sr-only" :checked="p.is_active" @change="toggleStyle(p)">
-                <span class="switch" :class="{ on: p.is_active }"></span>
-              </label>
-              <button class="btn btn-ghost btn-icon btn-sm" @click="startEditStyle(p)"><Pencil :size="13" /></button>
-              <button class="btn btn-danger btn-icon btn-sm" @click="styleToDelete = p"><Trash2 :size="13" /></button>
+              <div class="config-actions">
+                <label class="config-switch">
+                  <input type="checkbox" class="sr-only" :checked="p.is_active" @change="toggleStyle(p)">
+                  <span class="switch" :class="{ on: p.is_active }"></span>
+                </label>
+                <button class="btn btn-ghost btn-icon btn-sm" @click="startEditStyle(p)"><Pencil :size="13" /></button>
+                <button class="btn btn-danger btn-icon btn-sm" @click="styleToDelete = p"><Trash2 :size="13" /></button>
+              </div>
             </div>
             <p v-if="!stylePresets.length" class="config-empty">{{ t('settings.styles.empty') }}</p>
           </section>
@@ -2213,8 +2217,26 @@ onBeforeUnmount(stopUsagePoll)
 }
 .cfg-model-star { fill: currentColor; }
 .config-empty { font-size: 12px; color: var(--text-3); padding: 14px 20px; }
-.config-switch { display: inline-flex; flex-shrink: 0; cursor: pointer; }
+.config-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.config-switch { display: inline-flex; flex-shrink: 0; cursor: pointer; align-items: center; }
 .config-switch input:focus-visible + .switch { box-shadow: 0 0 0 3.5px var(--button-focus); }
+.config-switch .switch {
+  width: 34px;
+  height: 20px;
+}
+.config-switch .switch::after {
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+}
+.config-switch .switch.on::after { transform: translateX(14px); }
 .btn-icon.btn-sm { width: 30px; min-width: 30px; height: 30px; min-height: 30px; }
 
 /* Agent */
@@ -2578,47 +2600,324 @@ onBeforeUnmount(stopUsagePoll)
 }
 
 @media (max-width: 768px) {
+  .settings-page {
+    background:
+      radial-gradient(120% 60% at 50% -10%, color-mix(in srgb, var(--accent-bg) 55%, transparent), transparent 58%),
+      var(--bg-base);
+  }
   .settings-layout { flex-direction: column; }
   .settings-nav {
+    position: sticky;
+    top: 0;
+    z-index: 8;
     width: 100%;
     flex-direction: row;
     gap: 0;
-    padding: 8px 10px;
+    margin: 0;
+    padding: 10px 12px;
     border-right: 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    background: color-mix(in srgb, var(--panel-bg, var(--bg-1)) 88%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
-  .nav-group { flex-direction: row; gap: 4px; }
+  .settings-nav::-webkit-scrollbar { display: none; }
+  .nav-group {
+    flex-direction: row;
+    gap: 6px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--surface-muted, var(--overlay-track));
+  }
   .nav-group-label { display: none; }
-  .nav-item { width: auto; white-space: nowrap; padding: 8px 12px; }
-  .settings-content { overflow: auto; -webkit-overflow-scrolling: touch; }
-  .settings-scroll { height: auto; overflow: visible; padding: 16px 14px 40px; }
-  .settings-title { font-size: 18px; }
-  .svc-group-head, .config-row, .config-empty { padding-left: 14px; padding-right: 14px; }
-  .config-row { flex-wrap: wrap; align-items: flex-start; }
-  .config-main { flex: 1 1 180px; }
-  .lang-picker { max-width: 100%; overflow-x: auto; }
+  .nav-item {
+    width: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 650;
+  }
+  .nav-item.active {
+    background: var(--surface-raised, var(--bg-1));
+    color: var(--text-0);
+    box-shadow: var(--shadow-xs, 0 1px 3px rgba(20, 17, 12, 0.08));
+  }
+  .settings-content {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .settings-scroll {
+    height: auto;
+    overflow: visible;
+    padding: 14px 12px max(88px, calc(64px + env(safe-area-inset-bottom)));
+  }
+  .settings-scroll > .card + .card { margin-top: 12px; }
+  .settings-head { margin-bottom: 14px; }
+  .settings-title {
+    font-size: 20px;
+    letter-spacing: -0.03em;
+  }
+  .settings-desc {
+    margin-top: 4px;
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+
+  .quick-card,
+  .setup-panel,
+  .svc-group,
+  .lotus-account-card,
+  .skill-card {
+    border-radius: 16px;
+    box-shadow: 0 1px 0 rgba(20, 17, 12, 0.03);
+  }
+  .quick-card {
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .setup-panel { padding: 14px 16px; }
+  .setup-panel-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .lotus-mode-tabs {
+    gap: 4px;
+    padding: 3px;
+    border-radius: 14px;
+  }
+  .lotus-mode-tab {
+    padding: 10px 8px;
+    border-radius: 12px;
+    white-space: normal;
+    line-height: 1.25;
+  }
+  .lotus-quick-row,
+  .lotus-quick-row-new {
+    grid-template-columns: 1fr;
+  }
+  .lotus-quick-row .btn-primary,
+  .lotus-quick-row-new .btn-primary {
+    width: 100%;
+    justify-content: center;
+    min-height: 40px;
+  }
+  .lotus-account-card { padding: 14px; }
+  .lotus-account-row {
+    flex-wrap: wrap;
+    gap: 4px 10px;
+  }
+  .lotus-account-label { min-width: 64px; }
+  .lotus-account-actions {
+    gap: 8px;
+  }
+  .lotus-account-actions .btn,
+  .lotus-account-actions .lotus-site-link {
+    min-height: 34px;
+  }
+  .hqm-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 8px 0;
+    border-top: 1px dashed var(--border);
+  }
+  .hqm-row:first-child { border-top: 0; padding-top: 0; }
+
+  .svc-group-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "heading badge"
+      "add add";
+    align-items: start;
+    gap: 8px 10px;
+    padding: 12px 14px;
+  }
+  .svc-group-heading { grid-area: heading; }
+  .svc-group-head > .tag { grid-area: badge; justify-self: end; align-self: start; }
+  .svc-group-head > .btn {
+    grid-area: add;
+    width: 100%;
+    margin-left: 0 !important;
+    justify-content: center;
+  }
+  .svc-group-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .svc-group-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .svc-group-head,
+  .config-row,
+  .config-empty {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .config-row {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    grid-template-areas:
+      "badge main"
+      "actions actions";
+    align-items: start;
+    gap: 10px 12px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .config-row > .provider-badge { grid-area: badge; }
+  .config-row > .config-main { grid-area: main; flex: none; min-width: 0; }
+  .config-row > .config-actions,
+  .config-row > .lang-picker {
+    grid-area: actions;
+    width: 100%;
+    margin-left: 0;
+  }
+  .config-row > .config-actions {
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .config-line {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .config-name {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lang-picker {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .lang-picker::-webkit-scrollbar { display: none; }
+  .lang-option {
+    flex: 1 0 auto;
+    min-height: 32px;
+    padding: 0 12px;
+  }
   .field-row { grid-template-columns: 1fr; }
-  .lotus-quick-row { grid-template-columns: 1fr; }
-  .lotus-mode-tab { white-space: normal; }
-  .skills-layout { flex-direction: column; height: auto; min-height: 0; overflow: visible; }
+  .template-row { gap: 6px; }
+  .template-type-chip { flex: 1 1 calc(50% - 6px); justify-content: center; }
+
+  .skills-layout {
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    gap: 0;
+  }
   .skills-agent-list {
+    position: sticky;
+    top: 54px;
+    z-index: 6;
     width: 100%;
     flex-direction: row;
+    gap: 6px;
     border-right: 0;
     border-bottom: 1px solid var(--border);
     overflow-x: auto;
-    padding: 8px 10px;
+    padding: 8px 12px;
+    background: color-mix(in srgb, var(--panel-bg, var(--bg-1)) 92%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  .skills-agent-list::-webkit-scrollbar { display: none; }
   .skills-agent-title { display: none; }
-  .skills-agent-item { width: auto; white-space: nowrap; flex-shrink: 0; }
-  .skills-head { flex-wrap: wrap; }
-  .skills-head .btn { margin-left: 0; }
-  .agent-pane-tabs { flex-wrap: wrap; align-items: stretch; }
-  .agent-pane-tab { padding: 6px 8px; }
+  .skills-agent-item {
+    width: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: var(--surface-muted, var(--bg-2));
+  }
+  .skills-agent-item.active {
+    box-shadow: var(--shadow-xs, 0 1px 3px rgba(20, 17, 12, 0.08));
+  }
+  .skills-main.settings-scroll { padding-top: 12px; }
+  .skills-head {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .skills-head .btn {
+    margin-left: 0;
+    margin-top: 0;
+    width: 100%;
+    justify-content: center;
+  }
+  .skill-card-head {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+  .skill-card-body { padding: 12px 14px 14px; }
+  .skill-card-foot {
+    flex-wrap: wrap;
+  }
+  .skill-card-foot .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .agent-pane-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 4px;
+    padding-bottom: 2px;
+  }
+  .agent-pane-tab {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border-radius: 999px;
+  }
   .agent-prompt-input,
-  .skill-content-input { min-height: 240px; }
+  .skill-content-input { min-height: 220px; font-size: 16px; }
+
+  .comfyui-node-grid { grid-template-columns: 1fr 1fr; }
+  .comfyui-meta,
+  .comfyui-section,
+  .comfyui-foot,
+  .comfyui-hint {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .comfyui-foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .comfyui-foot-left { width: 100%; }
+  .comfyui-foot .btn { width: 100%; justify-content: center; }
+
+  .config-dialog,
+  .skill-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    border-radius: 16px;
+  }
+  .dialog-foot {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .dialog-foot .btn {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
+  }
 }
 </style>

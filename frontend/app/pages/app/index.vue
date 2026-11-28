@@ -189,10 +189,17 @@
             <div class="field">
               <span class="field-label">{{ t('index.createDialog.cover') }} <span class="optional">{{ t('common.optional') }}</span></span>
               <div class="cover-editor">
-                <div class="cover-preview">
+                <button
+                  type="button"
+                  class="cover-preview"
+                  :class="{ 'is-clickable': !!form.thumbnail }"
+                  :disabled="!form.thumbnail"
+                  :title="form.thumbnail ? t('index.createDialog.coverPreview') : undefined"
+                  @click="form.thumbnail && openCoverViewer()"
+                >
                   <img v-if="form.thumbnail" :src="mediaSrc(form.thumbnail)" alt="" class="cover-preview-img" />
                   <span v-else class="cover-preview-empty">{{ t('index.createDialog.coverEmpty') }}</span>
-                </div>
+                </button>
                 <div class="cover-actions">
                   <button type="button" class="btn btn-sm" :disabled="coverBusy" @click="pickCoverFile">
                     {{ t('index.createDialog.coverUpload') }}
@@ -201,6 +208,19 @@
                     <Loader2 v-if="coverGenerating" :size="12" class="animate-spin" />
                     {{ coverGenerating ? t('index.createDialog.coverGenerating') : t('index.createDialog.coverAi') }}
                   </button>
+                  <label
+                    v-if="isEditing"
+                    class="cover-library-check"
+                    :class="{ disabled: coverBusy }"
+                    :title="t('index.createDialog.coverUseLibraryHint')"
+                  >
+                    <input
+                      v-model="useLibraryCharacters"
+                      type="checkbox"
+                      :disabled="coverBusy"
+                    />
+                    <span>{{ t('index.createDialog.coverUseLibrary') }}</span>
+                  </label>
                   <button v-if="form.thumbnail" type="button" class="btn btn-sm" :disabled="coverBusy" @click="form.thumbnail = ''">
                     {{ t('index.createDialog.coverClear') }}
                   </button>
@@ -208,6 +228,7 @@
                 </div>
               </div>
               <span class="field-hint">{{ t('index.createDialog.coverHint') }}</span>
+              <span class="field-hint cover-library-tip">{{ t('index.createDialog.coverUseLibraryTip') }}</span>
             </div>
             <label class="field">
               <span class="field-label">{{ t('index.createDialog.style') }}</span>
@@ -244,6 +265,19 @@
         </form>
       </div>
     </div>
+    <div v-if="coverViewerOpen && form.thumbnail" class="overlay cover-viewer-overlay" @click.self="closeCoverViewer">
+      <div class="dialog cover-viewer-dialog" role="dialog" aria-modal="true" :aria-label="t('index.createDialog.coverPreview')">
+        <div class="cover-viewer-head">
+          <div class="cover-viewer-title">{{ t('index.createDialog.coverPreview') }}</div>
+          <button type="button" class="btn btn-ghost btn-icon" :aria-label="t('common.close')" @click="closeCoverViewer">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="cover-viewer-body">
+          <img :src="mediaSrc(form.thumbnail)" :alt="t('index.createDialog.coverPreview')" class="cover-viewer-img" />
+        </div>
+      </div>
+    </div>
     <ConfirmDialog
       :open="!!dramaToDelete"
       :title="t('index.deleteDialog.title')"
@@ -277,6 +311,17 @@ const coverUploading = ref(false)
 const coverGenerating = ref(false)
 const coverBusy = computed(() => coverUploading.value || coverGenerating.value || savingProject.value)
 const coverFileInput = ref(null)
+const coverViewerOpen = ref(false)
+/** 编辑项目：封面 AI 生成是否引用素材库人物形象 */
+const useLibraryCharacters = ref(true)
+
+function openCoverViewer() {
+  if (!form.value.thumbnail) return
+  coverViewerOpen.value = true
+}
+function closeCoverViewer() {
+  coverViewerOpen.value = false
+}
 const searchKeyword = ref('')
 const statusFilter = ref('all')
 const sortMode = ref('updated')
@@ -362,6 +407,8 @@ function coverSrc(d) {
 
 function resetProjectForm() {
   editingId.value = null
+  useLibraryCharacters.value = true
+  coverViewerOpen.value = false
   form.value = {
     title: '',
     description: '',
@@ -372,6 +419,7 @@ function resetProjectForm() {
 }
 function closeProjectDialog() {
   if (savingProject.value || coverGenerating.value || coverUploading.value) return
+  coverViewerOpen.value = false
   showProjectDialog.value = false
   resetProjectForm()
 }
@@ -381,6 +429,7 @@ function openCreate() {
 }
 function openEdit(d) {
   editingId.value = d.id
+  useLibraryCharacters.value = true
   form.value = {
     title: d.title || '',
     description: d.description || '',
@@ -421,6 +470,7 @@ async function generateCover() {
       style: form.value.style || undefined,
       aspect_ratio: form.value.aspect_ratio || '16:9',
       drama_id: editingId.value || undefined,
+      use_library_characters: !!(isEditing.value && useLibraryCharacters.value),
     })
     if (!taskId) throw new Error(t('index.createDialog.coverFailed'))
     const path = await pollCoverTask(taskId)
@@ -890,6 +940,8 @@ onMounted(() => setTimeout(() => autoTour('index', INDEX_TOUR, t), 600))
   width: 132px;
   aspect-ratio: 2.1 / 1;
   flex-shrink: 0;
+  margin: 0;
+  padding: 0;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg-1);
@@ -897,12 +949,26 @@ onMounted(() => setTimeout(() => autoTour('index', INDEX_TOUR, t), 600))
   display: flex;
   align-items: center;
   justify-content: center;
+  color: inherit;
+  cursor: default;
+}
+.cover-preview.is-clickable {
+  cursor: zoom-in;
+}
+.cover-preview.is-clickable:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-card);
+}
+.cover-preview:disabled {
+  cursor: default;
+  opacity: 1;
 }
 .cover-preview-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  pointer-events: none;
 }
 .cover-preview-empty {
   font-size: 11px;
@@ -910,12 +976,75 @@ onMounted(() => setTimeout(() => autoTour('index', INDEX_TOUR, t), 600))
   padding: 0 8px;
   text-align: center;
 }
+.cover-viewer-overlay { z-index: 130; }
+.cover-viewer-dialog {
+  width: min(920px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.cover-viewer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.cover-viewer-title {
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--text-0);
+}
+.cover-viewer-body {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg-0);
+}
+.cover-viewer-img {
+  max-width: 100%;
+  max-height: min(78vh, calc(100dvh - 120px));
+  object-fit: contain;
+  border-radius: var(--radius);
+  display: block;
+}
 .cover-actions {
   display: flex;
   flex-direction: column;
   gap: 6px;
   justify-content: center;
   min-width: 0;
+}
+.cover-library-check {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-1);
+  line-height: 1.35;
+  cursor: pointer;
+  user-select: none;
+}
+.cover-library-check input {
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+.cover-library-check.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.cover-library-tip {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-3);
 }
 .sr-only {
   position: absolute;
@@ -960,19 +1089,68 @@ onMounted(() => setTimeout(() => autoTour('index', INDEX_TOUR, t), 600))
   .project-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 }
 @media (max-width: 760px) {
-  .page { padding: 16px 16px 40px; }
-  .launcher-head { flex-wrap: wrap; }
+  .page { padding: 12px 12px 28px; }
+  .launcher-head {
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding-bottom: 10px;
+  }
+  .head-left { flex: 1; min-width: 0; }
+  .launcher-title { font-size: 17px; letter-spacing: 0.04em; }
   .launcher-sub { display: none; }
   .hero-stats { display: none; }
-  .toolbar { flex-wrap: wrap; }
-  .search-box { width: 100%; flex: 1 1 100%; }
-  .sort-select-wrap { margin-left: 0; flex: 1; }
-  .project-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .head-actions { margin-left: auto; gap: 6px; }
+  .head-actions .btn-primary {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+    gap: 4px;
+  }
+  .head-actions .tour-help-btn {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    min-height: 32px;
+  }
+  /* 一行：搜索；下一行：状态筛选 + 右侧排序 */
+  .toolbar {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .search-box {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+  .search-box .input {
+    min-height: 34px;
+    font-size: 13px;
+  }
+  .chip-row {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 4px;
+  }
+  .filter-chip {
+    padding: 5px 10px;
+    font-size: 11.5px;
+  }
+  .sort-select-wrap {
+    margin-left: auto;
+    flex: 0 0 auto;
+    width: 120px;
+  }
+  .sort-select-wrap :deep(.base-select-trigger),
+  .sort-select-wrap :deep(button) {
+    min-height: 34px;
+    font-size: 12px;
+  }
+  .project-grid { grid-template-columns: 1fr; gap: 10px; }
   .field-row { grid-template-columns: 1fr; }
   .dialog-foot { flex-direction: column-reverse; }
   .dialog-foot .btn { width: 100%; }
   .cover-more { opacity: 1; }
-  .project-grid { grid-template-columns: 1fr; }
-  .launcher-title { font-size: 18px; letter-spacing: 0.04em; }
 }
 </style>

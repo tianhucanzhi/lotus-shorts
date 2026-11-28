@@ -14,12 +14,21 @@
         <button type="button" class="lp-link" @click="scrollToSection('pricing')">{{ t('landing.nav.pricing') }}</button>
       </nav>
       <div class="lp-nav-actions">
-        <button type="button" class="btn btn-ghost" @click="openGuideVideo({ tryAutoplay: true })">{{ t('landing.nav.guide') }}</button>
+        <button
+          type="button"
+          class="btn btn-ghost lp-guide-btn"
+          :aria-label="t('landing.nav.guide')"
+          :title="t('landing.nav.guide')"
+          @click="openGuideVideo({ tryAutoplay: true })"
+        >
+          <CircleHelp class="lp-guide-icon" :size="16" :stroke-width="1.8" />
+          <span class="lp-guide-text">{{ t('landing.nav.guide') }}</span>
+        </button>
         <LocaleSwitcher />
-        <NuxtLink v-if="auth.isLoggedIn.value" class="btn btn-primary" to="/app">{{ t('landing.nav.openApp') }}</NuxtLink>
+        <NuxtLink v-if="auth.isLoggedIn.value" class="btn btn-primary lp-cta-nav" to="/app">{{ t('landing.nav.openApp') }}</NuxtLink>
         <template v-else>
-          <NuxtLink class="btn btn-ghost" to="/login">{{ t('landing.nav.login') }}</NuxtLink>
-          <NuxtLink class="btn btn-primary" to="/login?tab=register">{{ t('landing.nav.start') }}</NuxtLink>
+          <NuxtLink class="btn btn-ghost lp-cta-nav-ghost" to="/login">{{ t('landing.nav.login') }}</NuxtLink>
+          <NuxtLink class="btn btn-primary lp-cta-nav" to="/login?tab=register">{{ t('landing.nav.start') }}</NuxtLink>
         </template>
       </div>
     </header>
@@ -325,6 +334,7 @@
 </template>
 
 <script setup lang="ts">
+import { CircleHelp } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import brandLogo from '~/assets/brand-logo.png'
 import GuideVideoDialog from '~/components/GuideVideoDialog.vue'
@@ -840,10 +850,12 @@ const plans = computed(() => [
   background: transparent;
   cursor: pointer;
   padding: 0;
+  flex-shrink: 0;
 }
 .lp-brand-mark, .lp-brand-fallback {
   width: 30px; height: 30px; border-radius: 9px;
   object-fit: contain;
+  flex-shrink: 0;
 }
 .lp-brand-fallback {
   display: grid; place-items: center;
@@ -857,6 +869,7 @@ const plans = computed(() => [
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  white-space: nowrap;
 }
 .lp-nav-links { display: flex; gap: 8px; margin-left: 12px; }
 .lp-link {
@@ -864,7 +877,9 @@ const plans = computed(() => [
   padding: 8px 10px; color: var(--text-2); font: 600 13px/1 var(--font-body);
 }
 .lp-link:hover { color: var(--text-0); }
-.lp-nav-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.lp-nav-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.lp-guide-btn { gap: 6px; }
+.lp-guide-icon { display: none; flex-shrink: 0; }
 
 .lp-intro {
   position: relative;
@@ -1686,7 +1701,36 @@ const plans = computed(() => [
   }
 }
 @media (max-width: 720px) {
+  .lp-nav {
+    gap: 8px;
+    height: 56px;
+    padding: 0 12px;
+  }
   .lp-nav-links { display: none; }
+  .lp-brand { gap: 8px; }
+  .lp-brand-name { font-size: 15px; }
+  .lp-nav-actions { gap: 4px; }
+  .lp-guide-text { display: none; }
+  .lp-guide-icon { display: block; }
+  .lp-guide-btn {
+    width: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+  }
+  .lp-nav-actions :deep(.locale-current) { display: none; }
+  .lp-nav-actions :deep(.locale-trigger) {
+    width: 32px;
+    min-width: 32px;
+    padding: 0;
+    justify-content: center;
+  }
+  .lp-cta-nav,
+  .lp-cta-nav-ghost {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
   .cost-compare { grid-template-columns: 1fr; }
   .sample-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .sample-eps-list {

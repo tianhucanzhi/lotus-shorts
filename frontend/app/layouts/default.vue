@@ -16,7 +16,7 @@
       </div>
 
       <nav class="header-nav">
-        <NuxtLink to="/app" class="nav-link" :class="{ active: route.path === '/app' || route.path.startsWith('/app/') }">
+        <NuxtLink to="/app" class="nav-link" :class="{ active: isProjectsNavActive }">
           <LayoutGrid :size="15" :stroke-width="1.8" />
           <span>{{ t('layout.nav.projects') }}</span>
         </NuxtLink>
@@ -47,11 +47,31 @@
         </button>
         <ThemeToggle />
         <LocaleSwitcher />
-        <div v-if="auth.isSaas.value && auth.user.value" class="user-chip">
+        <div v-if="auth.isSaas.value && auth.user.value" class="user-chip user-chip-desktop">
           <span class="user-name">{{ auth.user.value.display_name || auth.user.value.username }}</span>
           <span v-if="auth.user.value.role === 'admin'" class="user-role">{{ t('layout.user.admin') }}</span>
           <button type="button" class="btn btn-ghost user-logout" @click="onLogout">{{ t('layout.user.logout') }}</button>
         </div>
+        <span v-if="auth.isSaas.value && auth.user.value" class="user-menu-mobile">
+          <AppMenu
+            v-model:open="userMenuOpen"
+            placement="bottom-end"
+            :min-width="148"
+          >
+            <template #trigger>
+              <button
+                type="button"
+                class="user-chip user-chip-trigger"
+                :aria-label="auth.user.value.display_name || auth.user.value.username"
+                :aria-expanded="userMenuOpen"
+              >
+                <span class="user-name">{{ auth.user.value.display_name || auth.user.value.username }}</span>
+                <ChevronDown :size="13" :stroke-width="2" class="user-chip-caret" />
+              </button>
+            </template>
+            <AppMenuItem danger @click="onLogoutFromMenu">{{ t('layout.user.logout') }}</AppMenuItem>
+          </AppMenu>
+        </span>
       </div>
     </header>
 
@@ -86,10 +106,12 @@
 </template>
 
 <script setup>
-import { CircleHelp, LayoutGrid, Settings, Shield, TriangleAlert } from 'lucide-vue-next'
+import { ChevronDown, CircleHelp, LayoutGrid, Settings, Shield, TriangleAlert } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { aiConfigAPI } from '~/composables/useApi'
 import brandLogo from '~/assets/brand-logo.png'
+import AppMenu from '~/components/AppMenu.vue'
+import AppMenuItem from '~/components/AppMenuItem.vue'
 import GuideVideoDialog from '~/components/GuideVideoDialog.vue'
 
 const { t, locale } = useI18n()
@@ -97,9 +119,15 @@ const route = useRoute()
 const auth = useAuth()
 /** 仅已登录且 role=admin 时露出；桌面独立版普通使用不显示 */
 const showAdminNav = computed(() => auth.isLoggedIn.value && auth.user.value?.role === 'admin')
+/** 项目列表、剧详情 /drama/:id 都算「项目」导航 */
+const isProjectsNavActive = computed(() => {
+  const p = route.path
+  return p === '/app' || p.startsWith('/app/') || p === '/drama' || p.startsWith('/drama/')
+})
 const showBrandImage = ref(true)
 const copyrightYear = new Date().getFullYear()
 const guideDialogRef = ref(null)
+const userMenuOpen = ref(false)
 const footerLinks = computed(() => [
   { label: t('layout.footer.realApi'), href: 'https://real-api.yunfm.cn' },
   { label: t('layout.footer.lotusGrowth'), href: 'https://lotus.yunfm.cn' },
@@ -112,6 +140,11 @@ function openGuideVideo() {
 function onLogout() {
   auth.logout()
   navigateTo('/')
+}
+
+function onLogoutFromMenu() {
+  userMenuOpen.value = false
+  onLogout()
 }
 
 // 渲染时求值，语言切换即时生效（不能模块级常量固化）
@@ -166,13 +199,14 @@ watch(locale, checkAiConfigs)
   position: relative; z-index: 10;
 }
 
-.header-left { display: flex; align-items: center; }
+.header-left { display: flex; align-items: center; flex-shrink: 0; }
 
 .brand {
   display: flex; align-items: center; gap: 11px;
   background: transparent; border: none; cursor: pointer; padding: 4px 8px 4px 4px;
   text-decoration: none; border-radius: var(--radius);
   transition: background 0.18s var(--ease-out);
+  flex-shrink: 0;
 }
 .brand:hover { background: var(--bg-hover); }
 .brand:focus-visible {
@@ -206,6 +240,7 @@ watch(locale, checkAiConfigs)
   background-clip: text;
   color: transparent;
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 .brand-sub {
   font-size: 10px; font-weight: 400;
@@ -225,6 +260,7 @@ watch(locale, checkAiConfigs)
 .header-right {
   margin-left: auto;
   display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
 }
 .help-toggle {
   display: flex;
@@ -252,6 +288,18 @@ watch(locale, checkAiConfigs)
   border-radius: var(--radius-pill);
   background: var(--overlay-track);
 }
+.user-menu-mobile { display: none; margin-left: 4px; }
+.user-chip-trigger {
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  margin-left: 0;
+  gap: 4px;
+  color: inherit;
+  font: inherit;
+}
+.user-chip-trigger:hover { background: var(--bg-hover); }
+.user-chip-caret { color: var(--text-3); flex-shrink: 0; }
 .user-name {
   font-size: 12.5px; font-weight: 600; color: var(--text-1);
   max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -348,20 +396,37 @@ watch(locale, checkAiConfigs)
     height: auto;
     min-height: 52px;
     flex-wrap: wrap;
-    padding: max(8px, env(safe-area-inset-top)) 12px 8px;
-    gap: 8px 10px;
+    align-items: center;
+    padding: max(8px, env(safe-area-inset-top)) 10px 8px;
+    gap: 8px 6px;
   }
   .brand { gap: 8px; padding: 2px 4px; }
   .brand-sub { display: none; }
+  /* 导航独占第二行；品牌与右侧操作保持同一行 */
   .header-nav {
     order: 3;
+    flex: 1 0 100%;
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
   .nav-link { flex-shrink: 0; padding: 0 12px; }
-  .header-right { gap: 4px; }
-  .user-chip { padding-left: 8px; gap: 6px; }
+  .header-right { gap: 2px; }
+  .header-right :deep(.locale-current) { display: none; }
+  .header-right :deep(.locale-trigger) {
+    width: 32px;
+    min-width: 32px;
+    padding: 0;
+    justify-content: center;
+  }
+  .user-chip-desktop { display: none; }
+  .user-menu-mobile { display: inline-flex; }
+  .user-chip-trigger {
+    margin-left: 2px;
+    padding: 6px 8px;
+    gap: 2px;
+    min-width: 0;
+  }
   .user-name { max-width: 72px; }
   .user-role { display: none; }
   .config-banner {
@@ -378,5 +443,9 @@ watch(locale, checkAiConfigs)
     padding: 8px 12px max(8px, env(safe-area-inset-bottom));
     text-align: center;
   }
+}
+
+@media (max-width: 420px) {
+  .user-name { max-width: 56px; }
 }
 </style>

@@ -19,6 +19,21 @@ function coverSizeForAspect(aspectRatio?: string | null): string {
   return '1920x1080'
 }
 
+/** 封面用角色排序：主角 > 配角 > 其他 */
+function coverRoleRank(role?: string | null): number {
+  const r = String(role || '').toLowerCase()
+  if (/主角|主演|男主|女主|protagonist|main\s*lead|\blead\b|heroine|hero\b/.test(r)) return 0
+  if (/配角|男配|女配|supporting|side\s*character|deuteragonist/.test(r)) return 1
+  return 2
+}
+
+function coverRoleLabel(role?: string | null): string {
+  const rank = coverRoleRank(role)
+  if (rank === 0) return 'lead'
+  if (rank === 1) return 'supporting'
+  return 'cast'
+}
+
 // GET /dramas - List dramas
 app.get('/', async (c) => {
   const page = Number(c.req.query('page') || 1)
@@ -105,26 +120,71 @@ app.post('/generate-cover', async (c) => {
 
   const description = String(body.description || '').trim()
   const stylePrompt = await getStylePromptByValue(body.style)
-  const size = coverSizeForAspect(body.aspect_ratio)
+  const aspectRatio = String(body.aspect_ratio || '16:9').trim() || '16:9'
+  const size = coverSizeForAspect(aspectRatio)
+  const useLibraryCharacters = body.use_library_characters === true || body.use_library_characters === 1 || body.use_library_characters === '1'
+  const dramaId = body.drama_id ? Number(body.drama_id) : undefined
+
   const promptParts = [
     stylePrompt,
     `cinematic key-art movie poster cover for a short drama titled "${title}"`,
     description ? `story synopsis: ${description}` : '',
+    `poster aspect ratio ${aspectRatio}, composition framed for ${aspectRatio}`,
     'dramatic composition, polished poster quality, title-safe framing, high detail, no watermark, avoid messy unreadable text overlays',
   ].filter(Boolean)
 
+  let referenceImages: string[] | undefined
+
   try {
-    if (body.drama_id) {
-      const denied = await denyUnlessDramaOwner(c, Number(body.drama_id))
+    if (dramaId) {
+      const denied = await denyUnlessDramaOwner(c, dramaId)
       if (denied) return denied
     }
+
+    if (useLibraryCharacters && dramaId) {
+      const chars = (await db.select().from(schema.characters)
+        .where(eq(schema.characters.dramaId, dramaId)))
+        .filter(ch => !ch.deletedAt)
+        .sort((a, b) => {
+          const rank = coverRoleRank(a.role) - coverRoleRank(b.role)
+          if (rank !== 0) return rank
+          return (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.id - b.id
+        })
+
+      const withPortrait = chars.filter(ch => !!(ch.imageUrl || ch.localPath))
+      // 优先主角/配角有图者；最多 4 张参考图，避免图生图上下文过载
+      const refs = withPortrait.slice(0, 4)
+      referenceImages = refs
+        .map(ch => ch.imageUrl || ch.localPath || '')
+        .filter(Boolean)
+
+      const castForPrompt = (refs.length ? refs : chars.slice(0, 6)).map((ch) => {
+        const bits = [
+          `${ch.name} (${coverRoleLabel(ch.role)}${ch.role ? `, ${ch.role}` : ''})`,
+          ch.appearance ? `appearance: ${ch.appearance}` : '',
+          ch.styling ? `styling: ${ch.styling}` : '',
+        ].filter(Boolean)
+        return bits.join(' — ')
+      })
+
+      if (castForPrompt.length) {
+        promptParts.push(
+          `feature these characters prominently on the poster as lead/supporting cast: ${castForPrompt.join('; ')}`,
+          referenceImages?.length
+            ? 'match the likeness and costume of the provided character reference portraits; keep each person recognizable and on-model'
+            : 'design distinctive lead and supporting characters consistent with the cast descriptions',
+        )
+      }
+    }
+
     const taskId = await generateImage({
       prompt: promptParts.join(', '),
       size,
-      dramaId: body.drama_id ? Number(body.drama_id) : undefined,
+      dramaId,
       model: body.model,
       configId: body.config_id,
       ownerUserId: currentUserId(c) ?? undefined,
+      referenceImages: referenceImages?.length ? referenceImages : undefined,
     })
     return created(c, { task_id: taskId })
   } catch (err: any) {

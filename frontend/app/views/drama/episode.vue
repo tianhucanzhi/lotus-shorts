@@ -82,7 +82,26 @@
 
     <div class="studio-body">
     <!-- ========== LEFT SIDEBAR ========== -->
-    <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
+    <aside
+      ref="sidebarEl"
+      class="sidebar"
+      :class="{
+        collapsed: sidebarCollapsed,
+        'is-float': isNarrowStudio,
+        'is-float-placed': isNarrowStudio && !!floatPos,
+        'is-float-dragging': floatDragging,
+      }"
+      :style="floatSidebarStyle"
+    >
+      <div
+        v-if="isNarrowStudio"
+        class="sidebar-float-handle"
+        :title="t('episode.sidebar.dragHint')"
+        @pointerdown="startFloatDrag"
+      >
+        <span class="sidebar-float-grip" aria-hidden="true" />
+        <span class="sidebar-float-handle-text">{{ t('episode.sidebar.drag') }}</span>
+      </div>
       <nav class="pipeline">
         <div
           v-for="section in sidebarSections"
@@ -91,7 +110,7 @@
         >
           <div class="pipe-section-label">
             <span v-if="sectionState(section.id) !== 'none'" class="pipe-section-state">
-              <svg v-if="sectionState(section.id) === 'done'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span v-if="sectionState(section.id) === 'done'" class="pipe-section-dot is-done" />
               <span v-else-if="sectionState(section.id) === 'active'" class="pipe-section-pulse" />
               <span v-else class="pipe-section-dot" />
             </span>
@@ -103,22 +122,31 @@
             :key="item.key"
             :class="['pipe-item pipe-item-sub', {
               active: activeSubStepKey === item.key,
-              done: sectionState(section.id) === 'done',
-              doing: sectionState(section.id) === 'active',
+              done: subStepDone(item.key),
+              doing: !subStepDone(item.key) && (activeSubStepKey === item.key || sectionState(section.id) === 'active'),
             }]"
             :title="sidebarCollapsed ? item.label : undefined"
             @click="goSubStep(item.key)"
           >
-            <span class="pipe-icon" :class="sectionState(section.id) === 'done' ? 'icon-done' : activeSubStepKey === item.key ? 'icon-active' : ''">
+            <span class="pipe-icon" :class="subStepDone(item.key) ? 'icon-done' : activeSubStepKey === item.key ? 'icon-active' : ''">
               <!-- 收起态：始终显示步骤图标，进行中用右上角小脉冲点表达 -->
               <template v-if="sidebarCollapsed">
                 <component :is="item.icon" :size="12" />
-                <span v-if="sectionState(section.id) === 'active'" class="pipe-mini-pulse" />
+                <span v-if="!subStepDone(item.key) && activeSubStepKey === item.key" class="pipe-mini-pulse" />
               </template>
-              <svg v-else-if="sectionState(section.id) === 'done'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-              <span v-else-if="sectionState(section.id) === 'active'" class="pipe-item-pulse" />
+              <span v-else-if="subStepDone(item.key)" class="pipe-item-dot is-done" />
+              <span v-else-if="activeSubStepKey === item.key || sectionState(section.id) === 'active'" class="pipe-item-pulse" />
               <component v-else :is="item.icon" :size="11" />
             </span>
+            <span
+              class="pipe-status-dot"
+              :class="{
+                'is-done': subStepDone(item.key),
+                'is-active': !subStepDone(item.key) && activeSubStepKey === item.key,
+                'is-pending': !subStepDone(item.key) && activeSubStepKey !== item.key && sectionState(section.id) === 'active',
+              }"
+              aria-hidden="true"
+            />
             <span class="pipe-copy">
               <span class="pipe-label">{{ item.label }}</span>
               <span v-if="item.desc" class="pipe-sub">{{ item.desc }}</span>
@@ -188,6 +216,14 @@
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                 {{ t('common.save') }}
               </button>
+              <button
+                class="btn btn-primary btn-sm"
+                :disabled="!rawLen"
+                @click="goRawNext"
+              >
+                {{ t('episode.script.nextRewrite') }}
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/><path d="M13 18l6-6-6-6"/></svg>
+              </button>
             </div>
           </div>
           <textarea
@@ -195,6 +231,13 @@
             v-model="localRaw"
             :placeholder="t('episode.script.rawPlaceholder')"
           />
+          <div v-if="rawLen" class="step-next-bar">
+            <p class="step-next-hint">{{ t('episode.script.rawNextHint') }}</p>
+            <button type="button" class="btn btn-primary" @click="goRawNext">
+              {{ t('episode.script.nextRewrite') }}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/><path d="M13 18l6-6-6-6"/></svg>
+            </button>
+          </div>
         </div>
 
         <!-- Step 1: Rewrite -->
@@ -216,6 +259,14 @@
                 <Loader2 v-if="rn && rt === 'script_rewriter'" :size="11" class="animate-spin" />
                 <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
                 {{ t('episode.script.rewriteAgain') }}
+              </button>
+              <button
+                v-if="scriptContent && !(rn && rt === 'script_rewriter')"
+                class="btn btn-primary btn-sm"
+                @click="goRewriteNext"
+              >
+                {{ t('episode.script.nextAssets') }}
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/><path d="M13 18l6-6-6-6"/></svg>
               </button>
             </div>
           </div>
@@ -243,7 +294,16 @@
             <Loader2 :size="24" class="animate-spin" style="color:var(--accent)" />
             <div class="loading-text">{{ t('episode.script.rewriting') }}</div>
           </div>
-          <textarea v-else class="fill-textarea" v-model="localScript" :placeholder="t('episode.script.scriptPlaceholder')" />
+          <template v-else>
+            <textarea class="fill-textarea" v-model="localScript" :placeholder="t('episode.script.scriptPlaceholder')" />
+            <div v-if="scriptLen" class="step-next-bar">
+              <p class="step-next-hint">{{ t('episode.script.rewriteNextHint') }}</p>
+              <button type="button" class="btn btn-primary" @click="goRewriteNext">
+                {{ t('episode.script.nextAssets') }}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/><path d="M13 18l6-6-6-6"/></svg>
+              </button>
+            </div>
+          </template>
         </div>
       </div>
 
@@ -263,10 +323,12 @@
           <!-- 制作子步骤导航（资产/分镜拆分/视频生成）由左侧栏承担，顶部不再重复展示 -->
           <!-- Sub: Assets -->
           <div v-if="prodTab === 'assets'" class="prod-content">
-            <div class="prod-section-bar">
-              <span class="dim" style="font-size:12px">{{ t('episode.prod.assets') }}</span>
-              <span class="tag mono">{{ t('episode.prod.readyCount', { ready: assetReadyCount, total: assetTotalCount }) }}</span>
-              <div class="ml-auto flex gap-1 asset-bar-actions">
+            <div class="prod-section-bar asset-section-bar">
+              <div class="asset-section-meta">
+                <span class="dim" style="font-size:12px">{{ t('episode.prod.assets') }}</span>
+                <span class="tag mono">{{ t('episode.prod.readyCount', { ready: assetReadyCount, total: assetTotalCount }) }}</span>
+              </div>
+              <div class="asset-bar-actions">
                 <button
                   v-for="et in EXTRACT_TARGETS"
                   :key="et.key"
@@ -276,20 +338,24 @@
                 >
                   <Loader2 v-if="isExtracting(et.key)" :size="11" class="animate-spin" />
                   <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  {{ (et.key === 'characters' ? chars.length : et.key === 'scenes' ? scenes.length : propItems.length) ? t('episode.prod.reextract', { type: et.label }) : t('episode.prod.extract', { type: et.label }) }}
+                  <span class="asset-btn-text-full">{{ (et.key === 'characters' ? chars.length : et.key === 'scenes' ? scenes.length : propItems.length) ? t('episode.prod.reextract', { type: et.label }) : t('episode.prod.extract', { type: et.label }) }}</span>
+                  <span class="asset-btn-text-short">{{ (et.key === 'characters' ? chars.length : et.key === 'scenes' ? scenes.length : propItems.length) ? t('episode.prod.reextractShort', { type: et.label }) : t('episode.prod.extractShort', { type: et.label }) }}</span>
                 </button>
                 <span class="asset-bar-divider" />
                 <button class="btn btn-sm asset-btn-batch" @click="batchCharImages">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  {{ t('episode.prod.batchChar') }}
+                  <span class="asset-btn-text-full">{{ t('episode.prod.batchChar') }}</span>
+                  <span class="asset-btn-text-short">{{ t('episode.prod.batchCharShort') }}</span>
                 </button>
                 <button class="btn btn-sm asset-btn-batch" @click="batchSceneImages">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  {{ t('episode.prod.batchScene') }}
+                  <span class="asset-btn-text-full">{{ t('episode.prod.batchScene') }}</span>
+                  <span class="asset-btn-text-short">{{ t('episode.prod.batchSceneShort') }}</span>
                 </button>
                 <button class="btn btn-sm asset-btn-batch" @click="batchPropImages">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  {{ t('episode.prod.batchProp') }}
+                  <span class="asset-btn-text-full">{{ t('episode.prod.batchProp') }}</span>
+                  <span class="asset-btn-text-short">{{ t('episode.prod.batchPropShort') }}</span>
                 </button>
               </div>
             </div>
@@ -341,7 +407,7 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                       </div>
                       <span class="asset-cover-badge" :class="isPendingCharImage(c.id) ? 'is-pending' : ((c.image_url || c.imageUrl) ? 'is-ready' : '')">
-                        {{ isPendingCharImage(c.id) ? t('episode.asset.portraitPending') : ((c.image_url || c.imageUrl) ? t('episode.asset.portraitReady') : t('episode.asset.portraitTodo')) }}
+                        {{ isPendingCharImage(c.id) ? t('episode.asset.portraitPending') : ((c.image_url || c.imageUrl) ? (isNarrowStudio ? t('episode.asset.ready') : t('episode.asset.portraitReady')) : t('episode.asset.portraitTodo')) }}
                       </span>
                     </div>
 
@@ -357,15 +423,17 @@
                           <span>{{ t('episode.asset.styling') }}{{ characterStylingValue(c) }}</span>
                         </div>
                       </div>
-                      <button class="btn btn-sm character-gen-btn" :disabled="isPendingCharImage(c.id)" @click.stop="genCharImg(c.id)">
-                        <Loader2 v-if="isPendingCharImage(c.id)" :size="11" class="animate-spin" />
-                        {{ isPendingCharImage(c.id) ? t('episode.asset.generating') : ((c.image_url || c.imageUrl) ? t('episode.asset.regen') : t('episode.asset.generate')) }}
-                      </button>
-                      <button class="btn btn-sm" :title="t('episode.asset.uploadCharImage')" :disabled="isUploadingAsset('character', c.id)" @click.stop="uploadAssetImage('character', c.id)">
-                        <Loader2 v-if="isUploadingAsset('character', c.id)" :size="11" class="animate-spin" />
-                        <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        {{ t('episode.asset.upload') }}
-                      </button>
+                      <div class="character-asset-actions">
+                        <button class="btn btn-sm character-gen-btn" :disabled="isPendingCharImage(c.id)" @click.stop="genCharImg(c.id)">
+                          <Loader2 v-if="isPendingCharImage(c.id)" :size="11" class="animate-spin" />
+                          {{ isPendingCharImage(c.id) ? t('episode.asset.generating') : ((c.image_url || c.imageUrl) ? t('episode.asset.regen') : t('episode.asset.generate')) }}
+                        </button>
+                        <button class="btn btn-sm" :title="t('episode.asset.uploadCharImage')" :disabled="isUploadingAsset('character', c.id)" @click.stop="uploadAssetImage('character', c.id)">
+                          <Loader2 v-if="isUploadingAsset('character', c.id)" :size="11" class="animate-spin" />
+                          <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                          {{ t('episode.asset.upload') }}
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div
@@ -524,15 +592,24 @@
             </div>
             <div v-else class="asset-props-empty">{{ t('episode.asset.propsEmpty') }}</div>
             </template>
+            <div v-if="assetTotalCount > 0" class="step-next-bar is-in-prod">
+              <p class="step-next-hint">{{ t('episode.prod.assetsNextHint') }}</p>
+              <button type="button" class="btn btn-primary" @click="goAssetsNext">
+                {{ t('episode.prod.nextVideos') }}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/><path d="M13 18l6-6-6-6"/></svg>
+              </button>
+            </div>
           </div>
 
           <!-- Sub: Video Production（分镜拆分 + 视频生成 合并） -->
           <div v-if="prodTab === 'videos'" class="prod-content">
-            <div class="prod-section-bar">
-              <span class="dim" style="font-size:12px">{{ t('episode.prod.videos') }}</span>
-              <span class="tag mono">{{ t('episode.sb.segmentStat', { n: sbs.length, dur: totalDuration }) }}</span>
-              <span class="tag mono" :title="t('episode.vid.aspectRatio')">{{ dramaAspectRatio }}</span>
-              <div class="ml-auto flex gap-1">
+            <div class="prod-section-bar video-section-bar">
+              <div class="video-section-heading">
+                <span class="dim video-section-title">{{ t('episode.prod.videos') }}</span>
+                <span class="tag mono">{{ t('episode.sb.segmentStat', { n: sbs.length, dur: totalDuration }) }}</span>
+                <span class="tag mono" :title="t('episode.vid.aspectRatio')">{{ dramaAspectRatio }}</span>
+              </div>
+              <div class="video-section-actions">
                 <button class="btn btn-sm" :disabled="rn" @click="doBreakdown">
                   <Loader2 v-if="rt === 'storyboard_breaker'" :size="11" class="animate-spin" />
                   <svg v-else width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -925,6 +1002,13 @@
                 @dblclick="videoRightW = VIDEO_COL_DEFAULTS.right"
               ></div>
             </div>
+            <div v-if="sbs.length" class="step-next-bar is-in-prod">
+              <p class="step-next-hint">{{ t('episode.prod.videosNextHint') }}</p>
+              <button type="button" class="btn btn-primary" @click="goVideosNext">
+                {{ t('episode.prod.nextExport') }}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/><path d="M13 18l6-6-6-6"/></svg>
+              </button>
+            </div>
           </div>
 
           <!-- Production Navigator -->
@@ -946,20 +1030,24 @@
             <!-- 上方:成片列表 -->
             <div class="export-section">
               <div class="export-section-head">
-                <span class="export-section-title">{{ t('episode.export.filmList') }}</span>
-                <span class="dim" style="font-size:11px">{{ t('episode.export.countN', { n: exportMerges.length }) }}</span>
-                <button
-                  :class="['btn btn-sm ml-auto export-done-btn', { on: exportDone }]"
-                  :title="t('episode.export.markDoneTitle')"
-                  @click="toggleExportDone"
-                >
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  {{ exportDone ? t('episode.export.markedDone') : t('episode.export.markDone') }}
-                </button>
-                <button class="btn btn-sm" @click="loadExportMerges">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                  {{ t('common.refresh') }}
-                </button>
+                <div class="export-section-heading">
+                  <span class="export-section-title">{{ t('episode.export.filmList') }}</span>
+                  <span class="export-section-meta dim">{{ t('episode.export.countN', { n: exportMerges.length }) }}</span>
+                </div>
+                <div class="export-section-actions">
+                  <button
+                    :class="['btn btn-sm export-done-btn', { on: exportDone }]"
+                    :title="t('episode.export.markDoneTitle')"
+                    @click="toggleExportDone"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    {{ exportDone ? t('episode.export.markedDone') : t('episode.export.markDone') }}
+                  </button>
+                  <button class="btn btn-sm" @click="loadExportMerges">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    {{ t('common.refresh') }}
+                  </button>
+                </div>
               </div>
               <div v-if="exportMerges.length" class="export-merge-strip">
                 <div
@@ -1010,9 +1098,11 @@
             <!-- 下方:镜头素材(可勾选) -->
             <div class="export-section export-section-grow">
               <div class="export-section-head">
-                <span class="export-section-title">{{ t('episode.export.shotAssets') }}</span>
-                <span class="dim" style="font-size:11px">{{ t('episode.export.shotStat', { done: shotVidCount, total: sbs.length, selected: exportSelectedReadyIds.length }) }}</span>
-                <div class="ml-auto flex gap-1">
+                <div class="export-section-heading">
+                  <span class="export-section-title">{{ t('episode.export.shotAssets') }}</span>
+                  <span class="export-section-meta dim">{{ t('episode.export.shotStat', { done: shotVidCount, total: sbs.length, selected: exportSelectedReadyIds.length }) }}</span>
+                </div>
+                <div class="export-section-actions">
                   <button class="btn btn-sm" :disabled="!exportReadyIds.length" @click="toggleSelectAllExport">
                     {{ exportSelectedReadyIds.length === exportReadyIds.length && exportReadyIds.length ? t('episode.export.clearSelection') : t('episode.export.selectAllReady') }}
                   </button>
@@ -1132,17 +1222,17 @@
                 <span class="video-task-index">{{ genTaskKindLabel(row.kind) }}</span>
               </div>
               <div class="video-task-main">
-                <div class="video-task-line">
+                <div class="video-task-line gen-task-title-row">
                   <strong class="video-task-name truncate">{{ row.targetLabel }}</strong>
+                  <span :class="['video-task-status', 'is-' + genTaskStateClass(row.status)]">
+                    <span :class="['dot', genTaskStateClass(row.status) === 'done' && 'ok', genTaskStateClass(row.status) === 'pending' && 'pending']" />
+                    {{ genTaskStatusLabel(row.status) }}
+                  </span>
                 </div>
-                <div class="video-task-meta-line">
-                  <span class="video-task-loc truncate">{{ row.provider }}{{ row.model ? ' · ' + row.model : '' }}</span>
-                  <template v-if="genTaskDuration(row)">
-                    <span class="video-task-sep">·</span>
-                    <span>{{ t('episode.tasks.duration', { dur: genTaskDuration(row) }) }}</span>
-                  </template>
-                  <span class="video-task-sep">·</span>
-                  <span>#{{ row.id }}</span>
+                <div class="video-task-meta-line gen-task-meta-row">
+                  <span v-if="row.provider || row.model" class="gen-task-chip truncate">{{ row.provider }}{{ row.model ? ' · ' + row.model : '' }}</span>
+                  <span v-if="genTaskDuration(row)" class="gen-task-chip">{{ t('episode.tasks.duration', { dur: genTaskDuration(row) }) }}</span>
+                  <span class="gen-task-chip is-id">#{{ row.id }}</span>
                 </div>
                 <div v-if="row.errorMsg" class="video-task-error" :title="row.errorMsg">
                   {{ mapError(row.errorMsg) }}
@@ -1153,10 +1243,6 @@
                   <div v-if="row.kind === 'video' && videoModerationHint(row.errorMsg)" class="video-task-error-hint">{{ videoModerationHint(row.errorMsg) }}</div>
                 </div>
               </div>
-              <span :class="['video-task-status', 'is-' + genTaskStateClass(row.status)]">
-                <span :class="['dot', genTaskStateClass(row.status) === 'done' && 'ok', genTaskStateClass(row.status) === 'pending' && 'pending']" />
-                {{ genTaskStatusLabel(row.status) }}
-              </span>
             </div>
           </div>
         </aside>
@@ -2022,6 +2108,122 @@ function toggleSidebar() {
       : localStorage.removeItem(SIDEBAR_COLLAPSED_KEY)
   } catch { /* 静默 */ }
 }
+
+/** H5：进度改为左侧文字悬浮栏（不用图标，便于辨认），可拖动摆放 */
+const isNarrowStudio = ref(false)
+const sidebarEl = ref(null)
+const FLOAT_POS_KEY = 'lotus:sidebar-float-pos'
+const floatPos = ref((() => {
+  try {
+    const raw = localStorage.getItem(FLOAT_POS_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (parsed && Number.isFinite(parsed.left) && Number.isFinite(parsed.top)) return parsed
+  } catch { /* 静默 */ }
+  return null
+})())
+const floatDragging = ref(false)
+let narrowStudioMql = null
+let floatDragCleanup = null
+
+const floatSidebarStyle = computed(() => {
+  if (!isNarrowStudio.value || !floatPos.value) return undefined
+  return {
+    left: `${floatPos.value.left}px`,
+    top: `${floatPos.value.top}px`,
+    right: 'auto',
+    bottom: 'auto',
+    transform: 'none',
+  }
+})
+
+function clampFloatPos(left, top, el) {
+  const w = el?.offsetWidth || 96
+  const h = el?.offsetHeight || 220
+  const pad = 8
+  const maxL = Math.max(pad, window.innerWidth - w - pad)
+  const maxT = Math.max(pad, window.innerHeight - h - pad)
+  return {
+    left: Math.min(maxL, Math.max(pad, left)),
+    top: Math.min(maxT, Math.max(pad, top)),
+  }
+}
+
+function persistFloatPos() {
+  try {
+    if (floatPos.value) localStorage.setItem(FLOAT_POS_KEY, JSON.stringify(floatPos.value))
+    else localStorage.removeItem(FLOAT_POS_KEY)
+  } catch { /* 静默 */ }
+}
+
+function startFloatDrag(e) {
+  if (!isNarrowStudio.value || e.button != null && e.button !== 0) return
+  const el = sidebarEl.value
+  if (!el) return
+  e.preventDefault()
+  e.stopPropagation()
+  const rect = el.getBoundingClientRect()
+  const startX = e.clientX
+  const startY = e.clientY
+  const origLeft = rect.left
+  const origTop = rect.top
+  floatDragging.value = true
+  try { e.currentTarget?.setPointerCapture?.(e.pointerId) } catch { /* ignore */ }
+
+  const onMove = (ev) => {
+    floatPos.value = clampFloatPos(
+      origLeft + (ev.clientX - startX),
+      origTop + (ev.clientY - startY),
+      el,
+    )
+  }
+  const onUp = () => {
+    floatDragging.value = false
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    window.removeEventListener('pointercancel', onUp)
+    floatDragCleanup = null
+    if (floatPos.value) {
+      floatPos.value = clampFloatPos(floatPos.value.left, floatPos.value.top, el)
+      persistFloatPos()
+    }
+  }
+  floatDragCleanup = onUp
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp)
+  window.addEventListener('pointercancel', onUp)
+}
+
+function syncNarrowStudio() {
+  const narrow = !!(narrowStudioMql?.matches)
+  isNarrowStudio.value = narrow
+  // 悬浮态强制展开文案，避免收起成图标
+  if (narrow) sidebarCollapsed.value = false
+  else if (floatDragging.value && floatDragCleanup) floatDragCleanup()
+}
+
+function reclampFloatPos() {
+  if (!isNarrowStudio.value || !floatPos.value || floatDragging.value) return
+  const next = clampFloatPos(floatPos.value.left, floatPos.value.top, sidebarEl.value)
+  if (next.left !== floatPos.value.left || next.top !== floatPos.value.top) {
+    floatPos.value = next
+    persistFloatPos()
+  }
+}
+
+onMounted(() => {
+  if (typeof window === 'undefined' || !window.matchMedia) return
+  narrowStudioMql = window.matchMedia('(max-width: 768px)')
+  syncNarrowStudio()
+  narrowStudioMql.addEventListener?.('change', syncNarrowStudio)
+  window.addEventListener('resize', reclampFloatPos)
+})
+onUnmounted(() => {
+  if (floatDragCleanup) floatDragCleanup()
+  window.removeEventListener?.('resize', reclampFloatPos)
+  narrowStudioMql?.removeEventListener?.('change', syncNarrowStudio)
+  narrowStudioMql = null
+})
 /** 默认项也传出界面显示的模型和所属配置，覆盖 Agent 文件中的其他默认模型。 */
 function chatModelOverride() { return resolveTextModelSelection(textModelOptions.value, chatModel.value).model }
 function chatConfigId() { return resolveTextModelSelection(textModelOptions.value, chatModel.value).configId }
@@ -3775,6 +3977,16 @@ function mainStageDone(stageId) {
   return false
 }
 
+/** 侧栏子步骤完成态（绿点按子项，不按整段） */
+function subStepDone(key) {
+  if (key === 'script:raw') return !!rawContent.value
+  if (key === 'script:rewrite') return !!scriptContent.value
+  if (key === 'prod:assets') return mainStageDone('assets')
+  if (key === 'prod:videos') return mainStageDone('videos')
+  if (key === 'export:merge') return exportDone.value
+  return false
+}
+
 function goMainStage(stageId) {
   if (stageId === 'script') {
     panel.value = 'script'
@@ -3823,14 +4035,12 @@ function goSubStep(key) {
       'script:rewrite': 1,
     }
     scriptStep.value = stepMap[key] ?? 0
-    return
-  }
-  if (key.startsWith('prod:')) {
+  } else if (key.startsWith('prod:')) {
     panel.value = 'production'
     prodTab.value = key.replace('prod:', '')
-    return
+  } else {
+    panel.value = 'export'
   }
-  panel.value = 'export'
 }
 
 const pipelineTotal = 2
@@ -3986,6 +4196,36 @@ async function refresh() {
 
 function saveRaw() { episodeAPI.update(epId.value, { content: localRaw.value }); episode.value.content = localRaw.value }
 function saveScr() { episodeAPI.update(epId.value, { script_content: localScript.value }); episode.value.script_content = localScript.value }
+/** 原始内容 → 明确引导进入 AI 改写 */
+function goRawNext() {
+  const raw = String(localRaw.value || '').trim()
+  if (!raw) {
+    toast.warning(t('episode.script.rawRequired'))
+    return
+  }
+  saveRaw()
+  scriptStep.value = 1
+}
+/** AI 改写完成 → 资产制作 */
+function goRewriteNext() {
+  const text = String(localScript.value || scriptContent.value || '').trim()
+  if (!text) {
+    toast.warning(t('episode.script.rewriteRequired'))
+    return
+  }
+  saveScr()
+  panel.value = 'production'
+  prodTab.value = 'assets'
+}
+/** 资产制作 → 视频制作 */
+function goAssetsNext() {
+  panel.value = 'production'
+  prodTab.value = 'videos'
+}
+/** 视频制作 → 拼接导出 */
+function goVideosNext() {
+  panel.value = 'export'
+}
 // 发给 Agent 的 message 是功能性提示词而非 UI 文案：产出语言由后端全局「内容语言」指令控制，
 // 这里保持中文不随界面语言变化
 function doRewrite() { saveRaw(); runAgent('script_rewriter', '请读取剧本并改写为格式化剧本，然后保存', dramaId, epId.value, refresh, chatModelOverride(), chatConfigId()) }
@@ -5170,12 +5410,17 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
   display: inline-flex; align-items: center; justify-content: center;
 }
 .pipe-section.is-done .pipe-section-state {
-  background: var(--success-bg); color: var(--success);
-  border: 1px solid var(--success-bg);
+  background: transparent;
+  border: 0;
 }
 .pipe-section-dot {
   width: 5px; height: 5px; border-radius: 999px;
   background: var(--text-3); opacity: 0.55;
+}
+.pipe-section-dot.is-done {
+  width: 7px; height: 7px;
+  background: var(--success);
+  opacity: 1;
 }
 .pipe-section-pulse {
   width: 6px; height: 6px; border-radius: 999px;
@@ -5268,11 +5513,41 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
   z-index: 1;
 }
 .pipe-item.active .pipe-icon { background: var(--sel); border-color: var(--sel); color: var(--surface-raised); }
-.pipe-item.done .pipe-icon { background: var(--success-bg); border-color: var(--success-bg); color: var(--success); }
-.pipe-item.active.done .pipe-icon { background: var(--sel); border-color: var(--sel); color: var(--surface-raised); }
+.pipe-item.done .pipe-icon {
+  background: transparent;
+  border-color: transparent;
+  color: var(--success);
+}
+.pipe-item.active.done .pipe-icon {
+  background: transparent;
+  border-color: transparent;
+}
 .icon-active { background: var(--sel) !important; border-color: var(--sel) !important; color: var(--surface-raised) !important; }
-.icon-done { background: var(--success-bg) !important; border-color: var(--success-bg) !important; color: var(--success) !important; }
-.pipe-item.active.done .icon-done { background: var(--sel) !important; border-color: var(--sel) !important; color: var(--surface-raised) !important; }
+.icon-done {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+.pipe-item-dot.is-done {
+  width: 7px; height: 7px; border-radius: 999px;
+  background: var(--success);
+  display: block;
+}
+/* 默认隐藏：H5 悬浮文字轨隐藏 pipe-icon 时，用它表示已完成 */
+.pipe-status-dot {
+  display: none;
+  width: 6px; height: 6px; border-radius: 999px;
+  background: transparent;
+  flex-shrink: 0;
+}
+.pipe-status-dot.is-done { background: var(--success); }
+.pipe-status-dot.is-active {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.pipe-status-dot.is-pending {
+  background: var(--accent);
+  opacity: 0.55;
+}
 
 .pipe-label { flex: 1; font-size: 12.5px; }
 .pipe-copy { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -5501,6 +5776,39 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
 
 /* Editor Area */
 .step-editor { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.step-next-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent-bg) 55%, var(--surface-raised));
+}
+.step-next-hint {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+.step-next-bar .btn { flex-shrink: 0; white-space: nowrap; }
+.step-next-bar.is-in-prod {
+  margin-top: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+@media (max-width: 768px) {
+  .step-next-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+  }
+  .step-next-bar .btn { width: 100%; justify-content: center; }
+}
 .fill-textarea {
   flex: 1; border: none; border-radius: 0; padding: 26px 28px;
   font-size: 13.5px; line-height: 1.9; resize: none; outline: none;
@@ -5739,10 +6047,43 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
 /* Production content */
 .prod-content { flex: 1; overflow-y: auto; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
 .prod-section-bar { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.video-section-bar {
+  align-items: center;
+  gap: 8px;
+}
+.video-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.video-section-title { font-size: 12px; }
+.video-section-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+.asset-section-bar { gap: 8px; }
+.asset-section-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
 
 /* 资产栏动作：提取（虚线中性）与批量生成（强调色）视觉分组 */
-.asset-bar-actions { align-items: center; }
-.asset-bar-divider { width: 1px; height: 16px; margin: 0 4px; background: var(--surface-outline-strong); }
+.asset-bar-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+.asset-bar-divider { width: 1px; height: 16px; margin: 0 2px; background: var(--surface-outline-strong); flex-shrink: 0; }
+.asset-btn-text-short { display: none; }
 .asset-btn-extract {
   background: transparent;
   color: var(--text-2);
@@ -5974,7 +6315,13 @@ onMounted(() => setTimeout(() => autoTour('episode', EPISODE_TOUR, t), 900))
   line-height: 1.25;
   color: var(--text-0);
 }
-.character-gen-btn { flex-shrink: 0; align-self: center; }
+.character-asset-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.character-gen-btn { flex-shrink: 0; }
 .character-looks {
   display: flex;
   flex-direction: column;
@@ -7662,8 +8009,31 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 .export-main { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: stretch; gap: 18px; padding: 16px 20px 24px; }
 .export-section { display: flex; flex-direction: column; min-height: 0; }
 .export-section-grow { flex: 1; }
-.export-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.export-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.export-section-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
 .export-section-title { font-size: 13px; font-weight: 800; color: var(--text-0); }
+.export-section-meta { font-size: 11px; white-space: nowrap; }
+.export-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 .export-merge-strip { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
 .merge-card {
   flex: 0 0 auto;
@@ -7924,11 +8294,56 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
 
 /* ===== 任务列表面板 ===== */
 .gen-task-row {
-  grid-template-columns: 84px minmax(0, 1fr) auto;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px 12px;
   cursor: default;
+}
+.gen-task-row .video-task-preview {
+  width: 72px;
+  aspect-ratio: 1;
+  border-radius: 12px;
 }
 .gen-task-row .video-task-preview img {
   cursor: zoom-in;
+}
+.gen-task-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.gen-task-title-row .video-task-name {
+  flex: 1;
+  min-width: 0;
+}
+.gen-task-title-row .video-task-status {
+  flex-shrink: 0;
+}
+.gen-task-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin-top: 4px;
+}
+.gen-task-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--overlay-track, var(--bg-2));
+  border: 1px solid var(--surface-outline);
+  color: var(--text-2);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.gen-task-chip.is-id {
+  font-family: var(--font-mono);
+  color: var(--text-3);
 }
 
 /* 任务触发按钮(顶栏) */
@@ -8002,6 +8417,106 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
   justify-content: center;
 }
 
+@media (max-width: 768px) {
+  .task-drawer-overlay {
+    align-items: flex-end;
+    justify-content: stretch;
+  }
+  .task-drawer {
+    position: relative;
+    width: 100%;
+    height: min(88vh, 100%);
+    max-height: calc(100dvh - 8px);
+    border-left: 0;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    animation: taskDrawerUp 0.24s var(--ease-out);
+  }
+  @keyframes taskDrawerUp {
+    from { transform: translateY(28px); opacity: 0.72; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .task-drawer-head {
+    position: relative;
+    padding: 18px 14px 10px;
+    gap: 8px;
+  }
+  .task-drawer-head::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 36px;
+    height: 4px;
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--text-3) 35%, transparent);
+    transform: translateX(-50%);
+  }
+  .task-drawer-head .video-task-title {
+    font-size: 15px;
+    font-weight: 800;
+  }
+  .task-drawer-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px 14px 12px;
+  }
+  .task-drawer-metrics .video-task-metric {
+    justify-content: center;
+    width: 100%;
+    min-height: 28px;
+    font-size: 11px;
+  }
+  .task-drawer-body {
+    padding: 0 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-muted, #ede6d6) 55%, transparent), transparent 18px),
+      var(--panel-bg);
+  }
+  .task-drawer-body .gen-task-row,
+  .task-drawer-body .gen-task-row:first-child,
+  .task-drawer-body .gen-task-row + .gen-task-row {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 10px;
+    margin: 0;
+    padding: 10px;
+    border: 1px solid var(--surface-outline);
+    border-radius: 14px;
+    background: var(--surface-raised, #fffdf8);
+    box-shadow: 0 1px 0 rgba(20, 17, 12, 0.03);
+  }
+  .task-drawer-body .gen-task-row.is-pending {
+    border-color: color-mix(in srgb, var(--accent) 28%, var(--surface-outline));
+    background: color-mix(in srgb, var(--accent-bg) 42%, var(--surface-raised, #fffdf8));
+  }
+  .task-drawer-body .gen-task-row.is-failed {
+    border-color: color-mix(in srgb, var(--warning, #d97706) 28%, var(--surface-outline));
+  }
+  .task-drawer-body .gen-task-row .video-task-preview {
+    width: 64px;
+    border-radius: 10px;
+  }
+  .task-drawer-body .gen-task-title-row .video-task-name {
+    font-size: 13px;
+    font-weight: 750;
+  }
+  .task-drawer-body .video-task-status {
+    min-height: 20px;
+    padding: 0 7px;
+    font-size: 10px;
+  }
+  .task-drawer-body .gen-task-chip {
+    max-width: 100%;
+  }
+  .task-drawer-body .gen-task-chip:first-child {
+    max-width: min(100%, 52vw);
+  }
+}
+
 @media (max-width: 860px) {
   .studio {
     padding: 8px;
@@ -8038,7 +8553,8 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
   .asset-grid,
   .character-asset-grid,
   .prod-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
 
   .character-asset-card {
@@ -8061,10 +8577,23 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
     align-items: stretch;
     flex-direction: column;
   }
+  .character-asset-actions {
+    width: 100%;
+    flex-wrap: nowrap;
+  }
+  .character-asset-actions .btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
 
   .video-task-workbench {
     grid-template-columns: 1fr;
     overflow-y: auto;
+  }
+  /* 盖过 1080 的 .has-player + --vleft，避免 H5 左栏过宽 */
+  .video-task-workbench.has-player {
+    grid-template-columns: min(128px, 34vw) minmax(0, 1fr);
+    overflow: hidden;
   }
 
   /* 窄屏纵向堆叠后无栏间分界，隐藏拖拽分隔条 */
@@ -8143,6 +8672,14 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
     padding: 6px;
     padding-bottom: max(6px, env(safe-area-inset-bottom));
     gap: 6px;
+    overflow-x: hidden;
+  }
+  .main,
+  .content-panel,
+  .prod-content {
+    overflow-x: hidden;
+    max-width: 100%;
+    min-width: 0;
   }
   .studio-topbar {
     display: grid;
@@ -8179,22 +8716,59 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
     text-overflow: ellipsis;
   }
   .studio-meta-row { display: none; }
+  /* 三类模型等分一屏可见：上标签、下截断模型名；分辨率落第二行 */
   .studio-model-picks {
     grid-area: models;
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    display: grid;
+    /* 文本 / 图片 / 视频 / 分辨率 同一行 */
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px 6px;
     margin: 0;
-    padding: 0 0 2px;
+    padding: 0;
     border-right: 0;
-    gap: 8px;
-    -webkit-overflow-scrolling: touch;
+    overflow: visible;
+    width: 100%;
   }
-  .studio-model-picks :deep(.model-select) { flex: 0 0 auto; max-width: 72vw; }
-  .studio-model-picks :deep(.model-select-trigger) { max-width: 48vw; }
+  .studio-model-picks :deep(.model-select) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+  .studio-model-picks :deep(.model-select-label) {
+    font-size: 10px;
+    line-height: 1.1;
+  }
+  .studio-model-picks :deep(.model-select-trigger) {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    height: 28px;
+    padding: 0 6px;
+    gap: 4px;
+  }
+  .studio-model-picks :deep(.model-select-provider),
+  .studio-model-picks :deep(.model-select-local) {
+    display: none;
+  }
+  .studio-model-picks :deep(.model-select-value) {
+    flex: 1;
+    min-width: 0;
+  }
   .studio-actions {
     grid-area: actions;
     width: auto;
     flex-wrap: nowrap;
+  }
+  .studio-actions :deep(.locale-current) { display: none; }
+  .studio-actions :deep(.locale-trigger) {
+    width: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    justify-content: center;
   }
   .studio-actions .btn:not(.btn-icon) {
     width: 32px;
@@ -8206,88 +8780,597 @@ button.video-task-metric.on { box-shadow: 0 0 0 2px var(--accent); }
   }
   .studio-actions .task-drawer-badge { font-size: 10px; }
   .studio-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr);
-    align-content: start;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-content: stretch;
   }
+  /* 进度左侧悬浮：叠在主内容上，不占栅格宽度；顶部手柄可拖动 */
   .sidebar,
-  .sidebar.collapsed {
-    width: 100%;
+  .sidebar.collapsed,
+  .sidebar.is-float {
+    position: fixed;
+    left: max(8px, env(safe-area-inset-left));
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 55;
+    grid-column: 1;
+    grid-row: 1;
+    width: 96px;
     height: auto;
-    max-height: none;
-    align-self: start;
+    max-height: min(72vh, 560px);
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface-raised, #fffdf8);
+    box-shadow: var(--shadow-elevated, 0 12px 36px rgba(20, 17, 12, 0.16));
+    overflow: hidden;
+    pointer-events: auto;
+    touch-action: none;
   }
-  .sidebar.collapsed .pipe-section-label > span { display: inline; }
-  .sidebar.collapsed .pipe-copy { display: flex; }
-  .sidebar.collapsed .pipe-item {
-    grid-template-columns: auto 1fr auto;
-    justify-content: stretch;
-    padding: 6px 10px;
+  .sidebar.is-float.is-float-placed,
+  .sidebar.is-float.is-float-dragging {
+    transform: none;
   }
-  .pipeline {
-    flex: none;
+  .sidebar.is-float-dragging {
+    box-shadow: 0 16px 40px rgba(20, 17, 12, 0.28);
+    opacity: 0.96;
+    user-select: none;
+  }
+  .sidebar-float-handle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 8px 6px 6px;
+    border-bottom: 1px solid var(--border);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    background: color-mix(in srgb, var(--surface-muted, #ede6d6) 55%, var(--surface-raised, #fffdf8));
+  }
+  .sidebar-float-handle:active { cursor: grabbing; }
+  .sidebar-float-grip {
+    width: 22px;
+    height: 3px;
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--text-3) 55%, transparent);
+  }
+  .sidebar-float-handle-text {
+    font-size: 9px;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    line-height: 1;
+  }
+  .sidebar.is-float .pipeline {
+    flex: 1 1 auto;
     height: auto;
-    flex-direction: row;
-    align-items: center;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 6px 8px;
-    gap: 6px;
-    -webkit-overflow-scrolling: touch;
+    max-height: min(62vh, 480px);
+    flex-direction: column;
+    align-items: stretch;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 8px 6px 10px;
+    gap: 10px;
   }
-  .pipe-section {
-    flex-direction: row;
-    align-items: center;
+  .sidebar.is-float .pipe-section {
+    flex-direction: column;
+    align-items: stretch;
     flex-shrink: 0;
-    gap: 4px;
+    gap: 2px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed color-mix(in srgb, var(--border) 85%, transparent);
   }
-  .pipe-section-label { white-space: nowrap; padding: 0 4px; }
-  .pipe-item {
-    width: auto;
-    min-height: 36px;
+  .sidebar.is-float .pipe-section:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+  /* 章节：圆点在左，文字在右 */
+  .sidebar.is-float .pipe-section-label {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 5px;
     white-space: nowrap;
-    padding: 6px 10px;
+    padding: 3px 4px 3px 2px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: var(--text-1);
   }
-  .pipe-item-sub:not(:last-child)::after { display: none; }
-  .pipe-sub { display: none; }
-  .sidebar-bottom { display: none; }
+  .sidebar.is-float .pipe-section-state {
+    width: 10px;
+    height: 10px;
+  }
+  .sidebar.is-float .pipe-section-tag { display: none; }
+  /* 子步骤：缩进 + 圆点在文字前 */
+  .sidebar.is-float .pipe-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 5px;
+    width: 100%;
+    min-height: 26px;
+    margin: 0;
+    padding: 4px 4px 4px 12px;
+    grid-template-columns: none;
+    text-align: left;
+    border-radius: 9px;
+  }
+  .sidebar.is-float .pipe-item.active::before {
+    left: 2px;
+    top: 7px;
+    bottom: 7px;
+    width: 2px;
+  }
+  .sidebar.is-float .pipe-icon { display: none; }
+  .sidebar.is-float .pipe-status-dot {
+    display: block;
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+    background: color-mix(in srgb, var(--text-3) 45%, transparent);
+  }
+  .sidebar.is-float .pipe-status-dot.is-done {
+    background: var(--success);
+  }
+  .sidebar.is-float .pipe-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    min-width: 0;
+    flex: 1;
+  }
+  .sidebar.is-float .pipe-label {
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1.2;
+    white-space: normal;
+    text-align: left;
+  }
+  .sidebar.is-float .pipe-item-sub:not(:last-child)::after { display: none; }
+  .sidebar.is-float .pipe-sub { display: none; }
+  .sidebar.is-float .sidebar-bottom { display: none; }
+  /* 主栏独占整页，侧栏只做视口浮层 */
+  .main {
+    grid-column: 1;
+    grid-row: 1;
+    padding-left: 0;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    min-height: 0;
+  }
   .step-toolbar { flex-wrap: wrap; align-items: flex-start; height: auto; gap: 8px; }
   .toolbar-right { width: 100%; min-width: 0; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
   .toolbar-right .btn { flex: 0 0 auto; }
   .prod-section-bar { align-items: flex-start; }
-  .prod-section-bar > .flex,
-  .export-section-head > .flex {
+  .video-section-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface-raised);
+  }
+  .video-section-heading {
+    width: 100%;
+  }
+  .video-section-actions {
+    width: 100%;
     margin-left: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .video-section-actions .btn {
     width: 100%;
     min-width: 0;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 2px;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .prod-section-bar > .flex .btn,
-  .export-section-head > .flex .btn { flex: 0 0 auto; }
+  .video-section-actions .btn svg:not(.animate-spin) {
+    flex-shrink: 0;
+  }
+  .video-task-empty-state {
+    padding: 28px 16px;
+    border-radius: 14px;
+    border: 1px dashed var(--border);
+    background: color-mix(in srgb, var(--surface-muted, #ede6d6) 35%, var(--surface-raised));
+  }
+  .video-task-empty-state .btn-primary {
+    width: min(100%, 280px);
+    min-height: 40px;
+    justify-content: center;
+  }
+  .batch-video-dialog {
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    border-radius: 16px;
+  }
+  .pace-card {
+    text-align: left;
+    padding: 12px;
+    border-radius: 12px;
+  }
+  .asset-section-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .asset-bar-actions {
+    margin-left: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .asset-bar-divider { display: none; }
+  .asset-bar-actions .btn {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    padding: 6px 4px;
+    min-height: 36px;
+    height: auto;
+    font-size: 11px;
+    line-height: 1.25;
+    white-space: normal;
+    text-align: center;
+    gap: 0;
+  }
+  .asset-bar-actions .btn svg { display: none; }
+  .asset-bar-actions .btn .animate-spin { display: inline-block; }
+  .asset-btn-text-full { display: none; }
+  .asset-btn-text-short { display: inline; }
+  .export-main {
+    padding: 12px 12px max(72px, calc(56px + env(safe-area-inset-bottom)));
+    gap: 14px;
+  }
+  .export-section {
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface-raised);
+  }
+  .export-section-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 0;
+  }
+  .export-section-heading {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  .export-section-meta {
+    white-space: normal;
+    line-height: 1.35;
+  }
+  .export-section-actions {
+    width: 100%;
+    margin-left: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .export-section-actions .btn {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    min-height: 34px;
+    white-space: nowrap;
+  }
+  .export-merge-strip {
+    gap: 10px;
+    margin: 0 -4px;
+    padding: 0 4px 6px;
+    scrollbar-width: none;
+  }
+  .export-merge-strip::-webkit-scrollbar { display: none; }
+  .merge-card {
+    width: min(220px, 72vw);
+    border-radius: 12px;
+  }
+  .merge-card-meta {
+    flex-wrap: wrap;
+    gap: 4px 6px;
+  }
+  .merge-card-meta .btn {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
+  .export-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .exp-card {
+    padding: 6px;
+    border-radius: 12px;
+    min-width: 0;
+  }
+  .exp-row-line { gap: 4px; }
+  .exp-row-line .truncate { font-size: 10.5px; }
   .detail-head { flex-wrap: wrap; }
   .storyboard-ref-group { grid-template-columns: 1fr; }
   .toolbar-left { flex-wrap: wrap; min-width: 0; }
   .fill-textarea { padding: 16px; font-size: 16px; }
   .prod-content { padding: 8px; }
-  .video-task-list { max-height: 46vh; overflow-y: auto; }
+  /* 视频页锁死外层滚动，让右侧栏自己滚，生成按钮可 sticky 可见 */
+  .prod-content:has(.video-task-workbench) {
+    overflow: hidden;
+  }
+  .video-task-workbench.has-player {
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: min(112px, 30vw) minmax(0, 1fr);
+    overflow: hidden;
+  }
+  .video-task-list {
+    max-height: none;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .video-task-table {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* 右侧整栏可滚，避免生成按钮被 overflow:hidden 裁掉 */
+  .video-task-side {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: max(72px, calc(56px + env(safe-area-inset-bottom)));
+  }
+  .video-task-side .video-task-inspector {
+    flex: none;
+    overflow: visible;
+  }
+  .video-inspector-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    box-shadow: 0 -10px 24px rgba(20, 17, 12, 0.08);
+  }
+  .video-task-head {
+    padding: 8px 6px;
+    gap: 6px;
+  }
+  .video-task-title { font-size: 12px; }
+  .video-task-meta { font-size: 10px; }
+  .video-task-metrics {
+    width: 100%;
+    gap: 4px;
+  }
+  .video-task-metric {
+    min-height: 20px;
+    padding: 0 6px;
+    font-size: 10px;
+  }
+  .video-task-row {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 6px;
+    padding: 5px 6px;
+  }
+  .video-task-preview {
+    width: 40px;
+  }
+  .video-task-name { font-size: 11px; }
+  .video-task-action { display: none; }
   .video-main-scroll { padding: 12px; }
   .video-main-scroll .textarea { font-size: 16px; }
   .video-inspector-prompt-head { flex-wrap: wrap; align-items: flex-start; }
   .frame-thumbs { flex-wrap: wrap; }
   .frame-thumb { width: calc(50% - 4px); }
-  .export-grid { grid-template-columns: 1fr; }
-  .asset-foot { flex-wrap: wrap; }
-  .character-gen-btn,
-  .character-asset-head .btn { align-self: flex-start; }
+  .asset-foot { flex-wrap: nowrap; }
+  .asset-foot .btn { flex: 1 1 0; justify-content: center; min-width: 0; }
   .asset-del-btn,
   .merge-card-play { opacity: 1; }
   .exp-play { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  .merge-card { width: min(260px, 78vw); }
   .image-viewer-dialog,
   .asset-detail-dialog,
   .merge-viewer-dialog { width: calc(100vw - 16px); }
+
+  /* ===== H5 整体美化补强 ===== */
+  .studio {
+    background:
+      radial-gradient(120% 55% at 50% -8%, color-mix(in srgb, var(--accent-bg) 48%, transparent), transparent 56%),
+      var(--surface-base);
+  }
+  .studio-topbar {
+    gap: 8px 10px;
+    padding: 8px 10px;
+    border-radius: 16px;
+    box-shadow: var(--shadow-card), 0 1px 0 rgba(255, 255, 255, 0.35) inset;
+  }
+  .studio-brand-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+  }
+  .studio-episode-chip {
+    flex-shrink: 0;
+    font-size: 10px;
+    padding: 2px 7px;
+  }
+  .studio-model-picks {
+    gap: 6px;
+    padding-top: 2px;
+  }
+  .studio-model-picks :deep(.model-select-trigger) {
+    border-radius: 10px;
+    background: var(--surface-muted, var(--bg-2));
+  }
+  .main {
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .content-panel {
+    border-radius: 16px;
+  }
+  .step-toolbar,
+  .prod-toolbar {
+    padding: 10px 12px;
+    gap: 8px;
+    background: color-mix(in srgb, var(--surface-raised) 92%, var(--surface-muted, #ede6d6));
+  }
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+  }
+  .step-name { font-size: 13px; }
+  .toolbar-right {
+    gap: 6px;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .toolbar-right::-webkit-scrollbar { display: none; }
+  .toolbar-right .btn {
+    min-height: 32px;
+    border-radius: 999px;
+    padding: 0 12px;
+  }
+  .step-next-bar {
+    margin: 8px 10px 10px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--accent-bg) 42%, var(--surface-raised));
+    box-shadow: 0 1px 0 rgba(20, 17, 12, 0.04);
+  }
+  .step-next-hint { font-size: 12px; }
+  .step-next-bar .btn {
+    min-height: 40px;
+    border-radius: 12px;
+  }
+  .fill-textarea {
+    padding: 16px 14px;
+    line-height: 1.75;
+  }
+  .prod-content {
+    padding: 10px;
+    gap: 12px;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-muted, #ede6d6) 35%, transparent), transparent 40px),
+      transparent;
+  }
+  .asset-section-title {
+    margin-top: 2px;
+    font-size: 13px;
+  }
+  .asset-section-bar {
+    padding: 10px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface-raised);
+  }
+  .asset-bar-actions {
+    gap: 6px;
+  }
+  .asset-bar-actions .btn {
+    border-radius: 12px;
+    background: var(--surface-muted, var(--bg-2));
+  }
+  .asset-grid,
+  .character-asset-grid,
+  .prod-grid {
+    gap: 8px;
+  }
+  .asset-card,
+  .character-asset-card {
+    border-radius: 14px;
+    box-shadow: 0 1px 0 rgba(20, 17, 12, 0.03);
+  }
+  .character-asset-main { padding: 8px; gap: 6px; }
+  .character-name { font-size: 12.5px; }
+  .character-visual-summary {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 10.5px;
+    line-height: 1.35;
+  }
+  .character-asset-actions .btn {
+    min-height: 30px;
+    font-size: 11px;
+    border-radius: 999px;
+    padding: 0 8px;
+  }
+  .asset-cover-badge {
+    font-size: 9.5px;
+    padding: 2px 6px;
+    border-radius: 999px;
+  }
+  .asset-body { padding: 8px 10px; gap: 4px; }
+  .asset-name { font-size: 12.5px; }
+  .asset-meta { font-size: 10.5px; }
+  .asset-foot {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  .asset-foot .btn {
+    min-height: 30px;
+    border-radius: 999px;
+    font-size: 11px;
+  }
+  .video-task-workbench {
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .video-task-list {
+    background: color-mix(in srgb, var(--surface-muted, #ede6d6) 40%, var(--surface-raised));
+  }
+  .video-task-head {
+    background: var(--surface-raised);
+  }
+  .video-task-row {
+    border-radius: 0;
+  }
+  .video-task-row.active {
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .video-inspector-footer {
+    border-radius: 12px 12px 0 0;
+    background: color-mix(in srgb, var(--surface-raised) 94%, var(--surface-muted, #ede6d6));
+  }
+  .video-inspector-action {
+    min-height: 40px;
+    border-radius: 12px;
+  }
+  .sidebar.is-float {
+    border-radius: 18px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .sidebar.is-float .pipe-item.active {
+    background: color-mix(in srgb, var(--accent-bg) 70%, var(--surface-raised));
+    border-radius: 10px;
+  }
+  .locked-config-banner,
+  .step-empty {
+    border-radius: 14px;
+  }
+  .dialog,
+  .asset-detail-dialog,
+  .image-viewer-dialog,
+  .merge-viewer-dialog {
+    border-radius: 18px;
+  }
 }
 </style>
