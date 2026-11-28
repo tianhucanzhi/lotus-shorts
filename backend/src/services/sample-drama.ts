@@ -2,11 +2,13 @@
  * SaaS 示例项目：每个账号预置《一品布衣》《灵环纪》等，角标「示例」，用户可自行删除。
  * - 媒体文件共享同一 static 路径，只复制数据库行并重映射 ID
  * - 若用户曾拥有同 sample_key（含软删），该 key 不再重复下发；各示例相互独立
+ * - 《灵环纪》等以 data/sample-packs/<key> 本地导出包为权威源，避免线上同名落后副本被克隆
  */
 import { and, eq, isNull } from 'drizzle-orm'
 import { isSaas } from '../config/mode.js'
 import { db, getInsertId, schema } from '../db/index.js'
 import { now } from '../utils/response.js'
+import { syncSamplePackToTemplate } from './sample-pack.js'
 
 export type SampleDef = {
   key: string
@@ -64,33 +66,49 @@ function envTemplateId(sample: SampleDef): number | null {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
-/** 解析某一部示例的模板源（优先环境变量，其次同 key 的 is_template，再次标题匹配） */
+/** 解析某一部示例的模板源（环境变量 → 已标记 is_template；不再按标题盲匹配，避免线上落后副本） */
 async function resolveTemplateDrama(sample: SampleDef) {
   const preferred = envTemplateId(sample)
   if (preferred) {
     const [row] = await db.select().from(schema.dramas).where(eq(schema.dramas.id, preferred))
-    if (row) return row
+    if (row && !row.deletedAt) return row
   }
 
   const all = await db.select().from(schema.dramas)
   const byFlag = all.find(d => {
+    if (d.deletedAt) return false
     const meta = parseDramaMeta(d.metadata)
     return meta.is_template === true && meta.sample_key === sample.key
   })
-  if (byFlag) return byFlag
-
-  const byTitle = all
-    .filter(d => !d.deletedAt && d.title === sample.title)
-    .sort((a, b) => a.id - b.id)[0]
-  return byTitle || null
+  return byFlag || null
 }
 
-async function userHasSampleSeed(userId: number, sample: SampleDef): Promise<boolean> {
+type UserSampleState =
+  | { kind: 'missing' }
+  | { kind: 'retired' }
+  | { kind: 'ready'; version: number; ids: number[] }
+
+async function getUserSampleState(userId: number, sample: SampleDef): Promise<UserSampleState> {
   const rows = await db.select({
     id: schema.dramas.id,
     metadata: schema.dramas.metadata,
+    deletedAt: schema.dramas.deletedAt,
   }).from(schema.dramas).where(eq(schema.dramas.userId, userId))
-  return rows.some(r => parseDramaMeta(r.metadata).sample_key === sample.key)
+
+  const related = rows.filter(r => parseDramaMeta(r.metadata).sample_key === sample.key)
+  if (!related.length) return { kind: 'missing' }
+
+  const active = related.filter(r => !r.deletedAt && parseDramaMeta(r.metadata).is_template !== true)
+  if (!active.length) {
+    // 用户主动软删过则不再下发；若只剩模板行则视为 missing（模板所有者不另克隆）
+    if (related.some(r => r.deletedAt && parseDramaMeta(r.metadata).is_template !== true)) {
+      return { kind: 'retired' }
+    }
+    return { kind: 'missing' }
+  }
+
+  const version = Math.max(...active.map(r => Number(parseDramaMeta(r.metadata).pack_version || 0)))
+  return { kind: 'ready', version, ids: active.map(r => r.id) }
 }
 
 async function stampExistingTitleAsSample(userId: number, sample: SampleDef): Promise<boolean> {
@@ -120,16 +138,20 @@ async function markTemplate(sourceId: number, sample: SampleDef) {
   }).where(eq(schema.dramas.id, sourceId))
 }
 
-function cloneSampleDrama(sourceId: number, userId: number, sample: SampleDef): number {
+function cloneSampleDrama(sourceId: number, userId: number, sample: SampleDef, packVersion = 0): number {
   const ts = now()
   const src = db.select().from(schema.dramas).where(eq(schema.dramas.id, sourceId)).get()
   if (!src) throw new Error(`示例模板不存在: ${sourceId}`)
+
+  const srcMeta = parseDramaMeta(src.metadata)
+  const version = packVersion || Number(srcMeta.pack_version || 0)
 
   // better-sqlite3 事务回调必须同步；克隆结果不带 is_template
   const sampleMeta = JSON.stringify({
     is_sample: true,
     sample_key: sample.key,
     cloned_from: sourceId,
+    pack_version: version,
   })
 
   return db.transaction((tx) => {
@@ -203,6 +225,29 @@ function cloneSampleDrama(sourceId: number, userId: number, sample: SampleDef): 
         updatedAt: ts,
       }).run()
       charMap.set(ch.id, getInsertId(res))
+    }
+
+    const variantMap = new Map<number, number>()
+    for (const [oldCharId, newCharId] of charMap) {
+      const variants = tx.select().from(schema.characterVariants).where(and(
+        eq(schema.characterVariants.characterId, oldCharId),
+        isNull(schema.characterVariants.deletedAt),
+      )).all()
+      for (const v of variants) {
+        const res = tx.insert(schema.characterVariants).values({
+          characterId: newCharId,
+          label: v.label,
+          imageUrl: v.imageUrl,
+          localPath: v.localPath,
+          finalPrompt: v.finalPrompt,
+          source: v.source || 'archive',
+          presetKey: v.presetKey,
+          sortOrder: v.sortOrder,
+          createdAt: ts,
+          updatedAt: ts,
+        }).run()
+        variantMap.set(v.id, getInsertId(res))
+      }
     }
 
     const sceneRows = tx.select().from(schema.scenes).where(and(
@@ -339,7 +384,7 @@ function cloneSampleDrama(sourceId: number, userId: number, sample: SampleDef): 
         tx.insert(schema.storyboardCharacters).values({
           storyboardId: newSbId,
           characterId: newCharId,
-          variantId: null,
+          variantId: link.variantId != null ? (variantMap.get(link.variantId) ?? null) : null,
         }).run()
       }
       const props = tx.select().from(schema.storyboardProps)
@@ -410,22 +455,34 @@ function cloneSampleDrama(sourceId: number, userId: number, sample: SampleDef): 
   })
 }
 
-async function ensureOneSampleForUser(userId: number, sample: SampleDef): Promise<void> {
-  if (await userHasSampleSeed(userId, sample)) return
-  if (await stampExistingTitleAsSample(userId, sample)) return
+async function ensureOneSampleForUser(userId: number, sample: SampleDef, packVersion: number | null): Promise<void> {
+  const state = await getUserSampleState(userId, sample)
+  if (state.kind === 'retired') return
+
+  const requiredVersion = packVersion || 0
+  if (state.kind === 'ready') {
+    if (!requiredVersion || state.version >= requiredVersion) return
+    // 包已升级：软删旧副本后按新模板重发
+    const ts = now()
+    for (const id of state.ids) {
+      await db.update(schema.dramas).set({ deletedAt: ts, updatedAt: ts }).where(eq(schema.dramas.id, id))
+    }
+  } else if (await stampExistingTitleAsSample(userId, sample)) {
+    // 用户自己已有同名项目：打标即可，不强制覆盖其内容
+    return
+  }
 
   const template = await resolveTemplateDrama(sample)
   if (!template) {
-    console.warn(`[sample-drama] 未找到《${sample.title}》模板，跳过预置`)
+    console.warn(`[sample-drama] 未找到《${sample.title}》权威模板（需 is_template 或 sample-pack），跳过预置`)
     return
   }
   await markTemplate(template.id, sample)
-  // 模板归属当前用户时，上面 stamp 已处理；仍可能是别的账号的模板
   if (template.userId === userId) {
     await stampExistingTitleAsSample(userId, sample)
     return
   }
-  const newId = await cloneSampleDrama(template.id, userId, sample)
+  const newId = cloneSampleDrama(template.id, userId, sample, requiredVersion || Number(parseDramaMeta(template.metadata).pack_version || 0))
   console.log(`[sample-drama] 已为用户 ${userId} 预置示例《${sample.title}》 #${newId} ← #${template.id}`)
 }
 
@@ -437,7 +494,9 @@ export async function ensureSampleDramaForUser(userId: number): Promise<void> {
   try {
     for (const sample of SAMPLE_DRAMAS) {
       try {
-        await ensureOneSampleForUser(userId, sample)
+        // 有本地导出包则先同步媒体+模板（以包为准）
+        const packVersion = await syncSamplePackToTemplate(sample)
+        await ensureOneSampleForUser(userId, sample, packVersion)
       } catch (err: any) {
         console.error(`[sample-drama] 用户 ${userId} 预置《${sample.title}》失败:`, err?.message || err)
       }

@@ -34,6 +34,7 @@ data/public.sql
 data/*.bak*
 data/static/
 data/storage/
+data/sample-packs/
 
 # Config
 configs/config.yaml
