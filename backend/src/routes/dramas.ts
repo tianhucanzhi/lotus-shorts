@@ -34,6 +34,35 @@ function coverRoleLabel(role?: string | null): string {
   return 'cast'
 }
 
+/** 已有集 / 角色 / 场景 / 道具，或任一集已有剧本/成片 → 视为已开始制作 */
+function dramaHasProductionProgress(input: {
+  episodes: { content?: string | null; scriptContent?: string | null; videoUrl?: string | null }[]
+  characters: { deletedAt?: string | null }[]
+  scenes: { deletedAt?: string | null }[]
+  props?: { deletedAt?: string | null }[]
+}): boolean {
+  if (input.episodes.length > 0) return true
+  if (input.characters.some(c => !c.deletedAt)) return true
+  if (input.scenes.some(s => !s.deletedAt)) return true
+  if ((input.props || []).some(p => !p.deletedAt)) return true
+  return input.episodes.some(e => !!(e.content || e.scriptContent || e.videoUrl))
+}
+
+async function promoteDraftDramaIfStarted(
+  dramaId: number,
+  currentStatus: string | null | undefined,
+  progress: Parameters<typeof dramaHasProductionProgress>[0],
+): Promise<string> {
+  const status = currentStatus || 'draft'
+  if (status !== 'draft') return status
+  if (!dramaHasProductionProgress(progress)) return 'draft'
+  const ts = now()
+  await db.update(schema.dramas)
+    .set({ status: 'active', updatedAt: ts })
+    .where(and(eq(schema.dramas.id, dramaId), eq(schema.dramas.status, 'draft')))
+  return 'active'
+}
+
 // GET /dramas - List dramas
 app.get('/', async (c) => {
   const page = Number(c.req.query('page') || 1)
@@ -58,7 +87,7 @@ app.get('/', async (c) => {
   const total = filtered.length
   const items = filtered.slice((page - 1) * pageSize, page * pageSize)
 
-  // Attach episode/character/scene counts
+  // Attach episode/character/scene counts；draft 且已有制作痕迹时自动升为 active
   const enriched = await Promise.all(items.map(async (drama) => {
     const eps = await db.select().from(schema.episodes)
       .where(and(eq(schema.episodes.dramaId, drama.id), isNull(schema.episodes.deletedAt)))
@@ -66,9 +95,17 @@ app.get('/', async (c) => {
       .where(eq(schema.characters.dramaId, drama.id))
     const scns = await db.select().from(schema.scenes)
       .where(eq(schema.scenes.dramaId, drama.id))
+    const props = await db.select().from(schema.props)
+      .where(eq(schema.props.dramaId, drama.id))
+    const status = await promoteDraftDramaIfStarted(drama.id, drama.status, {
+      episodes: eps,
+      characters: chars,
+      scenes: scns,
+      props,
+    })
     const meta = parseDramaMeta(drama.metadata)
     return {
-      ...toSnakeCase(drama),
+      ...toSnakeCase({ ...drama, status }),
       tags: drama.tags ? JSON.parse(drama.tags) : [],
       metadata: meta,
       is_sample: isSampleDrama(meta),

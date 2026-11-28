@@ -355,7 +355,7 @@
     "sortAria": "プロジェクトの並び替え",
     "sortUpdated": "最近更新",
     "sortTitle": "プロジェクト名",
-    "statusBadgeTitle": "クリックしてプロジェクト状態を設定",
+    "statusBadgeTitle": "クリックしてプロジェクト状態を設定（制作開始後は自動で進行中）",
     "sampleBadge": "サンプル",
     "openProjectAria": "プロジェクト {title} を開く",
     "openProject": "プロジェクトを開く",

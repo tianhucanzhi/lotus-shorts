@@ -380,7 +380,7 @@
     "sortAria": "Sort projects",
     "sortUpdated": "Recently updated",
     "sortTitle": "Project name",
-    "statusBadgeTitle": "Click to set project status",
+    "statusBadgeTitle": "Click to set project status (auto-switches to In Progress when work starts)",
     "sampleBadge": "Sample",
     "openProjectAria": "Open project {title}",
     "openProject": "Open project",

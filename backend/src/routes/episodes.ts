@@ -45,6 +45,12 @@ app.post('/', async (c) => {
 
   const [ep] = await db.select().from(schema.episodes)
     .where(eq(schema.episodes.id, getInsertId(res)))
+
+  // 一创建集即视为进入制作：draft → active（已完成/已手动标记的不改）
+  await db.update(schema.dramas)
+    .set({ status: 'active', updatedAt: ts })
+    .where(and(eq(schema.dramas.id, body.drama_id), eq(schema.dramas.status, 'draft')))
+
   return success(c, {
     id: ep.id,
     episode_number: ep.episodeNumber,

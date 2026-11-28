@@ -352,7 +352,7 @@ const filters = computed(() => ([
   { label: t('index.status.active'), value: 'active' },
   { label: t('index.status.completed'), value: 'completed' },
 ]))
-// 项目状态由用户手动标记（持久化到 dramas.status），不再按内容自动推算
+// 项目状态可手动标记；后端也会在已有制作进度时把 draft 自动升为 active
 const statusOptions = computed(() => ([
   { label: t('index.status.draft'), value: 'draft' },
   { label: t('index.status.active'), value: 'active' },
