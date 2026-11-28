@@ -456,21 +456,53 @@ function cloneSampleDrama(sourceId: number, userId: number, sample: SampleDef, p
   })
 }
 
+async function dramaIdsHaveContent(ids: number[]): Promise<boolean> {
+  for (const id of ids) {
+    const eps = await db.select({ id: schema.episodes.id }).from(schema.episodes).where(and(
+      eq(schema.episodes.dramaId, id),
+      isNull(schema.episodes.deletedAt),
+    ))
+    if (eps.length) return true
+    const chars = await db.select({ id: schema.characters.id }).from(schema.characters).where(and(
+      eq(schema.characters.dramaId, id),
+      isNull(schema.characters.deletedAt),
+    ))
+    if (chars.length) return true
+  }
+  return false
+}
+
 async function ensureOneSampleForUser(userId: number, sample: SampleDef, packVersion: number | null): Promise<void> {
   const state = await getUserSampleState(userId, sample)
   if (state.kind === 'retired') return
 
   const requiredVersion = packVersion || 0
   if (state.kind === 'ready') {
-    if (!requiredVersion || state.version >= requiredVersion) return
-    // 包已升级：软删旧副本后按新模板重发
+    const hasContent = await dramaIdsHaveContent(state.ids)
+    const versionOk = !requiredVersion || state.version >= requiredVersion
+    if (versionOk && hasContent) return
+    // 包升级，或历史空壳副本：软删后按权威模板重发
     const ts = now()
     for (const id of state.ids) {
       await db.update(schema.dramas).set({ deletedAt: ts, updatedAt: ts }).where(eq(schema.dramas.id, id))
     }
-  } else if (await stampExistingTitleAsSample(userId, sample)) {
-    // 用户自己已有同名项目：打标即可，不强制覆盖其内容
-    return
+  } else {
+    // 仅当用户同名项目本身有内容时才打标复用；空壳同名不要挡住从模板克隆
+    const titled = await db.select().from(schema.dramas).where(and(
+      eq(schema.dramas.userId, userId),
+      eq(schema.dramas.title, sample.title),
+      isNull(schema.dramas.deletedAt),
+    ))
+    if (titled.length && await dramaIdsHaveContent(titled.map(r => r.id))) {
+      await stampExistingTitleAsSample(userId, sample)
+      return
+    }
+    if (titled.length) {
+      const ts = now()
+      for (const row of titled) {
+        await db.update(schema.dramas).set({ deletedAt: ts, updatedAt: ts }).where(eq(schema.dramas.id, row.id))
+      }
+    }
   }
 
   const template = await resolveTemplateDrama(sample)
@@ -480,8 +512,11 @@ async function ensureOneSampleForUser(userId: number, sample: SampleDef, packVer
   }
   await markTemplate(template.id, sample)
   if (template.userId === userId) {
-    await stampExistingTitleAsSample(userId, sample)
-    return
+    // 模板所有者：若模板已有内容则只需打标；空壳模板不应在此短路
+    if (await dramaIdsHaveContent([template.id])) {
+      await stampExistingTitleAsSample(userId, sample)
+      return
+    }
   }
   const newId = cloneSampleDrama(template.id, userId, sample, requiredVersion || Number(parseDramaMeta(template.metadata).pack_version || 0))
   console.log(`[sample-drama] 已为用户 ${userId} 预置示例《${sample.title}》 #${newId} ← #${template.id}`)

@@ -561,8 +561,33 @@ function importPackAsTemplate(manifest: SamplePackManifest, ownerId: number): nu
   })
 }
 
+function dramaHasRows(dramaId: number): boolean {
+  const eps = db.select({ id: schema.episodes.id }).from(schema.episodes).where(and(
+    eq(schema.episodes.dramaId, dramaId),
+    isNull(schema.episodes.deletedAt),
+  )).all()
+  if (eps.length) return true
+  const chars = db.select({ id: schema.characters.id }).from(schema.characters).where(and(
+    eq(schema.characters.dramaId, dramaId),
+    isNull(schema.characters.deletedAt),
+  )).all()
+  if (chars.length) return true
+  const scenes = db.select({ id: schema.scenes.id }).from(schema.scenes).where(and(
+    eq(schema.scenes.dramaId, dramaId),
+    isNull(schema.scenes.deletedAt),
+  )).all()
+  return scenes.length > 0
+}
+
+function packHasContent(manifest: SamplePackManifest): boolean {
+  return (manifest.episodes?.length || 0) > 0
+    || (manifest.characters?.length || 0) > 0
+    || (manifest.scenes?.length || 0) > 0
+    || (manifest.storyboards?.length || 0) > 0
+}
+
 /**
- * 若存在示例包：覆盖写入媒体，并保证库内模板行与包版本一致（过期则重建模板）。
+ * 若存在示例包：覆盖写入媒体，并保证库内模板行与包版本一致（过期/空壳则重建模板）。
  * 返回当前权威 pack_version；无包时返回 null。
  */
 export async function syncSamplePackToTemplate(sample: SampleDef): Promise<number | null> {
@@ -572,8 +597,10 @@ export async function syncSamplePackToTemplate(sample: SampleDef): Promise<numbe
   const copied = materializePackMedia(manifest)
   const existing = findTemplateRow(sample.key)
   const existingVer = existing ? Number(parseDramaMeta(existing.metadata).pack_version || 0) : 0
+  const existingEmpty = existing ? !dramaHasRows(existing.id) : false
+  const needRebuildEmpty = !!(existing && existingEmpty && packHasContent(manifest))
 
-  if (existing && existingVer >= manifest.version) {
+  if (existing && existingVer >= manifest.version && !needRebuildEmpty) {
     // 媒体已按包覆盖；模板元数据保持
     if (copied) console.log(`[sample-pack] 《${sample.title}》媒体已按本地包同步 (${copied} 个文件)`)
     return manifest.version
@@ -586,15 +613,26 @@ export async function syncSamplePackToTemplate(sample: SampleDef): Promise<numbe
   }
 
   const ts = now()
-  if (existing) softDeleteDramaTree(existing.id, ts)
+  if (existing) {
+    softDeleteDramaTree(existing.id, ts)
+    if (needRebuildEmpty) {
+      console.warn(`[sample-pack] 《${sample.title}》模板 #${existing.id} 为空壳，按本地包重建`)
+    }
+  }
 
-  // 同源本地工程：若标题剧就是当前工作副本且尚未标模板，优先打标而不是再复制一份
+  // 同源本地工程：仅当该剧本身已有内容时才打标复用。
+  // 禁止仅凭同名/同 id 打标——线上常有空壳同名项目，id 也可能碰巧撞上导出源 id。
   if (!existing) {
     const byTitle = db.select().from(schema.dramas).where(and(
       eq(schema.dramas.title, sample.title),
       isNull(schema.dramas.deletedAt),
     )).all().sort((a, b) => a.id - b.id)[0]
-    if (byTitle && byTitle.userId === ownerId && Number(byTitle.id) === Number(manifest.source_drama_id)) {
+    if (
+      byTitle
+      && byTitle.userId === ownerId
+      && Number(byTitle.id) === Number(manifest.source_drama_id)
+      && dramaHasRows(byTitle.id)
+    ) {
       db.update(schema.dramas).set({
         metadata: JSON.stringify({
           ...parseDramaMeta(byTitle.metadata),
