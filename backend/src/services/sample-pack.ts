@@ -81,30 +81,49 @@ function collectMediaPaths(manifest: Omit<SamplePackManifest, 'media' | 'exporte
       if (Array.isArray(v)) v.forEach(add)
     } catch { /* ignore */ }
   }
+  // 列表页 preload=none 依赖海报帧/缩略图；一并打进示例包，避免线上黑屏
+  const addDerivatives = (p?: unknown) => {
+    if (typeof p !== 'string' || !p) return
+    const rel = p.replace(/^\//, '')
+    if (/\.(mp4|webm|mov)$/i.test(rel)) add(rel.replace(/\.[^./]+$/, '_poster.jpg'))
+    if (/\.(png|jpe?g|webp|gif)$/i.test(rel) && !rel.endsWith('_thumb.webp') && !rel.includes('_poster.')) {
+      add(rel.replace(/\.[^./]+$/, '_thumb.webp'))
+    }
+  }
 
-  add(manifest.drama.thumbnail)
+  add(manifest.drama.thumbnail); addDerivatives(manifest.drama.thumbnail)
   for (const row of manifest.characters) {
     add(row.imageUrl); add(row.localPath); addJsonList(row.referenceImages); addJsonList(row.referenceAudios)
+    addDerivatives(row.imageUrl); addDerivatives(row.localPath)
   }
   for (const row of manifest.character_variants) {
     add(row.imageUrl); add(row.localPath)
+    addDerivatives(row.imageUrl); addDerivatives(row.localPath)
   }
   for (const row of manifest.scenes) {
     add(row.imageUrl); add(row.localPath); addJsonList(row.referenceImages)
+    addDerivatives(row.imageUrl); addDerivatives(row.localPath)
   }
   for (const row of manifest.props) {
     add(row.imageUrl); add(row.localPath); addJsonList(row.referenceImages)
+    addDerivatives(row.imageUrl); addDerivatives(row.localPath)
   }
   for (const row of manifest.storyboards) {
     add(row.videoUrl); add(row.composedImage); add(row.firstFrameImage); add(row.lastFrameImage)
     add(row.subtitleUrl); add(row.composedVideoUrl); addJsonList(row.referenceImages)
+    addDerivatives(row.videoUrl); addDerivatives(row.composedVideoUrl)
+    addDerivatives(row.composedImage); addDerivatives(row.firstFrameImage); addDerivatives(row.lastFrameImage)
   }
-  for (const row of manifest.video_merges) add(row.mergedUrl)
+  for (const row of manifest.video_merges) {
+    add(row.mergedUrl); addDerivatives(row.mergedUrl)
+  }
   for (const row of manifest.sys_tasks) {
     add(row.resultUrl); add(row.localPath)
+    addDerivatives(row.resultUrl); addDerivatives(row.localPath)
   }
   for (const ep of manifest.episodes) {
     add(ep.videoUrl); add(ep.thumbnail)
+    addDerivatives(ep.videoUrl); addDerivatives(ep.thumbnail)
   }
   return [...out]
 }
