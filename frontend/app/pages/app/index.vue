@@ -131,7 +131,7 @@
           <p v-if="d.description" class="project-desc truncate-2">{{ d.description }}</p>
           <div class="project-meta">
             <span v-if="d.style" class="tag tag-accent">{{ styleLabel(d.style) }}</span>
-            <span class="dim">{{ t('index.projectMeta', { chars: d.characters?.length || 0, scenes: d.scenes?.length || 0, eps: d.episodes?.length || 0 }) }}</span>
+            <span class="dim">{{ t('index.projectMeta', { chars: (d.character_count ?? d.characters?.length) || 0, scenes: (d.scene_count ?? d.scenes?.length) || 0, eps: (d.total_episodes ?? d.episodes?.length) || 0 }) }}</span>
           </div>
           <div class="project-foot dim">
             <Clock :size="11" :stroke-width="1.8" />

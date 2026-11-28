@@ -87,22 +87,37 @@ app.get('/', async (c) => {
   const total = filtered.length
   const items = filtered.slice((page - 1) * pageSize, page * pageSize)
 
-  // Attach episode/character/scene counts；draft 且已有制作痕迹时自动升为 active
+  // 列表页只需计数 + 精简集信息；避免把整集剧本/角色详情塞进 /app 首屏
   const enriched = await Promise.all(items.map(async (drama) => {
-    const eps = await db.select().from(schema.episodes)
+    const eps = await db.select({
+      id: schema.episodes.id,
+      episodeNumber: schema.episodes.episodeNumber,
+      title: schema.episodes.title,
+      content: schema.episodes.content,
+      scriptContent: schema.episodes.scriptContent,
+      videoUrl: schema.episodes.videoUrl,
+    }).from(schema.episodes)
       .where(and(eq(schema.episodes.dramaId, drama.id), isNull(schema.episodes.deletedAt)))
-    const chars = await db.select().from(schema.characters)
-      .where(eq(schema.characters.dramaId, drama.id))
-    const scns = await db.select().from(schema.scenes)
-      .where(eq(schema.scenes.dramaId, drama.id))
-    const props = await db.select().from(schema.props)
-      .where(eq(schema.props.dramaId, drama.id))
+    const chars = await db.select({
+      id: schema.characters.id,
+      deletedAt: schema.characters.deletedAt,
+    }).from(schema.characters).where(eq(schema.characters.dramaId, drama.id))
+    const scns = await db.select({
+      id: schema.scenes.id,
+      deletedAt: schema.scenes.deletedAt,
+    }).from(schema.scenes).where(eq(schema.scenes.dramaId, drama.id))
+    const props = await db.select({
+      id: schema.props.id,
+      deletedAt: schema.props.deletedAt,
+    }).from(schema.props).where(eq(schema.props.dramaId, drama.id))
     const status = await promoteDraftDramaIfStarted(drama.id, drama.status, {
       episodes: eps,
       characters: chars,
       scenes: scns,
       props,
     })
+    const liveChars = chars.filter(c => !c.deletedAt)
+    const liveScenes = scns.filter(s => !s.deletedAt)
     const meta = parseDramaMeta(drama.metadata)
     return {
       ...toSnakeCase({ ...drama, status }),
@@ -110,9 +125,16 @@ app.get('/', async (c) => {
       metadata: meta,
       is_sample: isSampleDrama(meta),
       total_episodes: eps.length,
-      episodes: toSnakeCaseArray(eps),
-      characters: toSnakeCaseArray(chars),
-      scenes: toSnakeCaseArray(scns),
+      character_count: liveChars.length,
+      scene_count: liveScenes.length,
+      // 兼容旧前端：保留 length，但不下发大字段
+      episodes: eps.map(e => ({
+        id: e.id,
+        episode_number: e.episodeNumber,
+        title: e.title,
+      })),
+      characters: liveChars.map(c => ({ id: c.id })),
+      scenes: liveScenes.map(s => ({ id: s.id })),
     }
   }))
 

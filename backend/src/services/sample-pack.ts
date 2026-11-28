@@ -288,18 +288,31 @@ function softDeleteDramaTree(dramaId: number, ts: string) {
   }
 }
 
-function materializePackMedia(manifest: SamplePackManifest) {
+function materializePackMedia(manifest: SamplePackManifest, opts?: { force?: boolean }) {
   const filesDir = path.join(samplePackDir(manifest.key), 'files')
   let copied = 0
+  let skipped = 0
   for (const rel of manifest.media || []) {
     const src = path.join(filesDir, rel)
     if (!fs.existsSync(src)) continue
     const dest = path.join(DATA_ROOT, rel)
+    if (!opts?.force && fs.existsSync(dest)) {
+      try {
+        if (fs.statSync(dest).size === fs.statSync(src).size) {
+          skipped++
+          continue
+        }
+      } catch { /* 目标异常则覆盖 */ }
+    }
     copyFileEnsured(src, dest)
     copied++
   }
-  return copied
+  return { copied, skipped }
 }
+
+/** 进程内短缓存：避免每次打开 /app 都扫包/拷媒体 */
+const packSyncCache = new Map<string, { version: number; at: number }>()
+const PACK_SYNC_TTL_MS = 10 * 60 * 1000
 
 function importPackAsTemplate(manifest: SamplePackManifest, ownerId: number): number {
   const ts = now()
@@ -591,20 +604,27 @@ function packHasContent(manifest: SamplePackManifest): boolean {
  * 返回当前权威 pack_version；无包时返回 null。
  */
 export async function syncSamplePackToTemplate(sample: SampleDef): Promise<number | null> {
+  const cached = packSyncCache.get(sample.key)
+  if (cached && Date.now() - cached.at < PACK_SYNC_TTL_MS) {
+    return cached.version
+  }
+
   const manifest = readSamplePackManifest(sample.key)
   if (!manifest) return null
 
-  const copied = materializePackMedia(manifest)
   const existing = findTemplateRow(sample.key)
   const existingVer = existing ? Number(parseDramaMeta(existing.metadata).pack_version || 0) : 0
   const existingEmpty = existing ? !dramaHasRows(existing.id) : false
   const needRebuildEmpty = !!(existing && existingEmpty && packHasContent(manifest))
 
+  // 模板已是当前版本且非空壳：不再反复拷贝数百 MB 媒体（这是 /app 列表变慢的主因）
   if (existing && existingVer >= manifest.version && !needRebuildEmpty) {
-    // 媒体已按包覆盖；模板元数据保持
-    if (copied) console.log(`[sample-pack] 《${sample.title}》媒体已按本地包同步 (${copied} 个文件)`)
+    packSyncCache.set(sample.key, { version: manifest.version, at: Date.now() })
     return manifest.version
   }
+
+  const { copied } = materializePackMedia(manifest)
+  if (copied) console.log(`[sample-pack] 《${sample.title}》媒体同步新建/覆盖 ${copied} 个文件`)
 
   const ownerId = existing?.userId || resolveTemplateOwnerId()
   if (!ownerId) {
@@ -645,11 +665,13 @@ export async function syncSamplePackToTemplate(sample: SampleDef): Promise<numbe
         updatedAt: ts,
       }).where(eq(schema.dramas.id, byTitle.id)).run()
       console.log(`[sample-pack] 已将本地 #${byTitle.id}《${sample.title}》标为权威模板 v${manifest.version}`)
+      packSyncCache.set(sample.key, { version: manifest.version, at: Date.now() })
       return manifest.version
     }
   }
 
   const newId = importPackAsTemplate(manifest, ownerId)
   console.log(`[sample-pack] 已从本地包安装《${sample.title}》模板 #${newId} v${manifest.version}`)
+  packSyncCache.set(sample.key, { version: manifest.version, at: Date.now() })
   return manifest.version
 }
